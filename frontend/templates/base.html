@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{% block meta_description %}GoCart delivers fresh groceries and everyday essentials to your door.{% endblock %}">
+  <title>{% block title %}GoCart — Fresh groceries, thoughtfully delivered{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  {% block extra_css %}{% endblock %}
+  <script src="{% static 'js/script.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <div class="announcement">
+    <p>Free delivery on your first order over $35</p>
+    <button class="announcement__close" type="button" aria-label="Dismiss announcement">×</button>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="{% url 'home' %}" aria-label="GoCart home">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 36 36"><path d="M9 18c0-7 5-12 12-12 1 6-2 11-8 13 6-1 11 3 12 9H9V18Z"/><path d="M19 8c2-4 5-6 9-6-1 4-4 7-9 8Z"/></svg>
+      </span>
+      <span>GoCart</span>
+    </a>
+
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
+      <span></span><span></span><span></span>
+      <span class="sr-only">Open menu</span>
+    </button>
+
+    <nav class="primary-nav" id="primary-navigation" aria-label="Primary navigation">
+      <a href="#categories">Shop</a>
+      <a href="#deals">Deals</a>
+      <a href="#why-us">Why GoCart</a>
+      <a href="#app">Our app</a>
+    </nav>
+
+    <div class="header-actions">
+      <button class="location-button" type="button" aria-label="Choose delivery location">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <span><small>Deliver to</small>New Baneshwor</span>
+      </button>
+      <button class="icon-button search-toggle" type="button" aria-label="Open search">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      </button>
+      <button class="icon-button" type="button" aria-label="Open account">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-4.2 3.4-6 8-6s7.3 1.8 8 6"/></svg>
+      </button>
+      <button class="cart-button" type="button" aria-label="Open cart, 2 items">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H7"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+        <span class="cart-count">2</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="search-panel" aria-hidden="true">
+    <form class="search-form" role="search">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <label class="sr-only" for="site-search">Search groceries</label>
+      <input id="site-search" type="search" placeholder="Search for mangoes, milk, bread…" autocomplete="off">
+      <button type="button" class="search-close" aria-label="Close search">×</button>
+    </form>
+  </div>
+
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a class="brand brand--light" href="{% url 'home' %}"><span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M9 18c0-7 5-12 12-12 1 6-2 11-8 13 6-1 11 3 12 9H9V18Z"/><path d="M19 8c2-4 5-6 9-6-1 4-4 7-9 8Z"/></svg></span><span>GoCart</span></a>
+        <p>Fresh choices, thoughtfully delivered.</p>
+      </div>
+      <div><h3>Shop</h3><a href="#categories">Fresh produce</a><a href="#categories">Pantry</a><a href="#deals">Deals</a><a href="#">All categories</a></div>
+      <div><h3>About</h3><a href="#why-us">Our story</a><a href="#">Sourcing</a><a href="#">Sustainability</a><a href="#">Careers</a></div>
+      <div><h3>Help</h3><a href="#">Help centre</a><a href="#">Delivery info</a><a href="#">Returns</a><a href="#">Contact us</a></div>
+    </div>
+    <div class="footer__bottom"><span>© 2026 GoCart. All rights reserved.</span><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Accessibility</a></div></div>
+  </footer>
+</body>
+</html>

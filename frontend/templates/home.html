@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__content reveal">
+        <p class="eyebrow"><span></span>Fresh from local shelves</p>
+        <h1 id="hero-title">Your weekly shop,<br><em>without the weekly trek.</em></h1>
+        <p class="hero__intro">Market-fresh produce, pantry favourites, and household essentials—picked with care and delivered when it suits you.</p>
+        <div class="hero__actions">
+          <a class="button button--primary" href="#categories">Start shopping <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="#why-us">See how it works <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="hero__proof" aria-label="Customer rating">
+          <div class="avatar-stack" aria-hidden="true">
+            <span>AK</span><span>SR</span><span>NM</span>
+          </div>
+          <p><strong>4.9 <span class="stars">★★★★★</span></strong><small>Loved by 12,000+ households</small></p>
+        </div>
+      </div>
+
+      <div class="hero__visual reveal">
+        <div class="hero__arch">
+          <img src="https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=1200&q=85" alt="A colourful selection of fresh vegetables in a market basket">
+          <div class="floating-card floating-card--delivery">
+            <span class="floating-card__icon">✓</span>
+            <span><strong>Delivered fresh</strong><small>Today, 5:00–6:00 PM</small></span>
+          </div>
+          <div class="floating-card floating-card--organic">
+            <span aria-hidden="true">☘</span> Locally sourced
+          </div>
+        </div>
+        <span class="doodle doodle--one" aria-hidden="true">Fresh!</span>
+        <svg class="doodle doodle--arrow" aria-hidden="true" viewBox="0 0 90 60"><path d="M5 10c24 2 45 15 60 37M55 40l11 8 1-14"/></svg>
+      </div>
+    </section>
+
+    <section class="benefit-strip" aria-label="Shopping benefits">
+      <div><span>✦</span><p><strong>Handpicked quality</strong><small>Only the good stuff</small></p></div>
+      <div><span>⌁</span><p><strong>Delivery on your time</strong><small>Choose a slot that fits</small></p></div>
+      <div><span>↺</span><p><strong>Freshness guaranteed</strong><small>Love it or get a refund</small></p></div>
+      <div><span>♧</span><p><strong>Less waste, more care</strong><small>Thoughtful packaging</small></p></div>
+    </section>
+
+    <section class="section categories" id="categories" aria-labelledby="category-title">
+      <div class="section-heading reveal">
+        <div>
+          <p class="eyebrow"><span></span>Explore the aisles</p>
+          <h2 id="category-title">What are you looking for?</h2>
+        </div>
+        <a class="text-link" href="#">View all categories <span aria-hidden="true">→</span></a>
+      </div>
+
+      <div class="category-grid">
+        <a class="category-card category-card--large reveal" href="#">
+          <img src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=900&q=85" alt="Fresh vegetables">
+          <span class="category-card__content"><small>JUST PICKED</small><strong>Fresh produce</strong><span>Shop now →</span></span>
+        </a>
+        <a class="category-card reveal" href="#">
+          <img src="https://images.unsplash.com/photo-1628088062854-d1870b4553da?auto=format&fit=crop&w=700&q=85" alt="Milk and dairy products">
+          <span class="category-card__content"><strong>Dairy & eggs</strong><span>86 products</span></span>
+        </a>
+        <a class="category-card category-card--warm reveal" href="#">
+          <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=700&q=85" alt="Freshly baked bread">
+          <span class="category-card__content"><strong>Bakery</strong><span>42 products</span></span>
+        </a>
+        <a class="category-card reveal" href="#">
+          <img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=700&q=85" alt="Fresh meat selection">
+          <span class="category-card__content"><strong>Meat & seafood</strong><span>64 products</span></span>
+        </a>
+        <a class="category-card category-card--gold reveal" href="#">
+          <img src="https://images.unsplash.com/photo-1531988042231-d39a9cc12a9a?auto=format&fit=crop&w=700&q=85" alt="Pantry jars and ingredients">
+          <span class="category-card__content"><strong>Pantry</strong><span>120 products</span></span>
+        </a>
+      </div>
+    </section>
+
+    <section class="seasonal section" id="deals" aria-labelledby="seasonal-title">
+      <div class="seasonal__copy reveal">
+        <p class="eyebrow eyebrow--light"><span></span>This week's harvest</p>
+        <h2 id="seasonal-title">In season.<br><em>At their best.</em></h2>
+        <p>Sweet, fragrant, and full of sunshine. Discover produce at peak flavour, sourced from growers close to home.</p>
+        <a class="button button--cream" href="#">Shop seasonal picks <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="seasonal__image reveal">
+        <img src="https://images.unsplash.com/photo-1591073113125-e46713c829ed?auto=format&fit=crop&w=1000&q=85" alt="Ripe mangoes arranged with green leaves">
+        <span class="price-sticker"><small>FROM</small><strong>$2.49</strong><small>/ EACH</small></span>
+      </div>
+    </section>
+
+    <section class="section why-us" id="why-us" aria-labelledby="why-title">
+      <div class="why-us__image reveal">
+        <img src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1000&q=85" alt="A local produce market with fresh vegetables">
+        <blockquote>"Good food starts with good people."</blockquote>
+      </div>
+      <div class="why-us__content reveal">
+        <p class="eyebrow"><span></span>Grocery shopping, reconsidered</p>
+        <h2 id="why-title">Better for your table.<br><em>Better for the neighbourhood.</em></h2>
+        <p class="why-us__lead">We work with trusted local suppliers, choose produce carefully, and pack every order like it were our own.</p>
+        <ol class="steps">
+          <li><span>01</span><div><strong>Fill your basket</strong><p>Browse hundreds of everyday staples and fresh finds.</p></div></li>
+          <li><span>02</span><div><strong>Pick your moment</strong><p>Choose a convenient delivery or collection window.</p></div></li>
+          <li><span>03</span><div><strong>We'll handle the rest</strong><p>Your order is handpicked, packed, and brought to you.</p></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="app-banner section" id="app" aria-labelledby="app-title">
+      <div class="app-banner__copy reveal">
+        <p class="eyebrow"><span></span>GoCart in your pocket</p>
+        <h2 id="app-title">The aisle is always open.</h2>
+        <p>Reorder favourites, track deliveries, and catch fresh deals wherever you are.</p>
+        <div class="store-buttons">
+          <a href="#" aria-label="Download on the App Store"><small>Download on the</small><strong>App Store</strong></a>
+          <a href="#" aria-label="Get it on Google Play"><small>GET IT ON</small><strong>Google Play</strong></a>
+        </div>
+      </div>
+      <div class="phone" aria-hidden="true">
+        <div class="phone__screen">
+          <div class="phone__top"><span>GoCart</span><b>●</b></div>
+          <p>Good morning!</p><h3>What's fresh today?</h3>
+          <div class="phone__search">⌕ Search groceries</div>
+          <div class="phone__tiles"><span>🍓</span><span>🥖</span><span>🥬</span></div>
+          <div class="phone__product">🥭 <span><b>Golden Mango</b><small>$2.49 each</small></span><button>+</button></div>
+        </div>
+      </div>
+      <span class="app-banner__shape" aria-hidden="true"></span>
+    </section>
+
+    <section class="newsletter section reveal" aria-labelledby="newsletter-title">
+      <div><p class="eyebrow"><span></span>A little freshness in your inbox</p><h2 id="newsletter-title">Get the good stuff first.</h2></div>
+      <form class="newsletter__form">
+        <label class="sr-only" for="email">Email address</label>
+        <input id="email" type="email" placeholder="Your email address" required>
+        <button type="submit">Join the list <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="newsletter__message" role="status" aria-live="polite"></p>
+    </section>
+{% endblock %}
