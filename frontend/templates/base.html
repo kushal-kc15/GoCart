@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3">
   {% block extra_css %}{% endblock %}
   <script src="{% static 'js/script.js' %}" defer></script>
   {% block extra_js %}{% endblock %}
@@ -24,10 +24,7 @@
 
   <header class="site-header">
     <a class="brand" href="{% url 'home' %}" aria-label="GoCart home">
-      <span class="brand__mark" aria-hidden="true">
-        <svg viewBox="0 0 36 36"><path d="M9 18c0-7 5-12 12-12 1 6-2 11-8 13 6-1 11 3 12 9H9V18Z"/><path d="M19 8c2-4 5-6 9-6-1 4-4 7-9 8Z"/></svg>
-      </span>
-      <span>GoCart</span>
+      <img src="{% static 'images/logo.png' %}?v=3" alt="GoCart logo" class="brand__logo">
     </a>
 
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
@@ -76,7 +73,9 @@
   <footer class="site-footer">
     <div class="footer__top">
       <div class="footer__brand">
-        <a class="brand brand--light" href="{% url 'home' %}"><span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M9 18c0-7 5-12 12-12 1 6-2 11-8 13 6-1 11 3 12 9H9V18Z"/><path d="M19 8c2-4 5-6 9-6-1 4-4 7-9 8Z"/></svg></span><span>GoCart</span></a>
+        <a class="brand brand--light" href="{% url 'home' %}" aria-label="GoCart home">
+          <img src="{% static 'images/logo.png' %}?v=3" alt="GoCart logo" class="brand__logo">
+        </a>
         <p>Fresh choices, thoughtfully delivered.</p>
       </div>
       <div><h3>Shop</h3><a href="#categories">Fresh produce</a><a href="#categories">Pantry</a><a href="#deals">Deals</a><a href="#">All categories</a></div>
