@@ -1,70 +1,142 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="{% block meta_description %}GoCart delivers fresh groceries and everyday essentials to your door.{% endblock %}">
+  <meta name="description"
+    content="{% block meta_description %}GoCart delivers fresh groceries and everyday essentials to your door.{% endblock %}">
   <title>{% block title %}GoCart — Fresh groceries, thoughtfully delivered{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=3">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=4">
   {% block extra_css %}{% endblock %}
   <script src="{% static 'js/script.js' %}" defer></script>
   {% block extra_js %}{% endblock %}
 </head>
+
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
 
-  <div class="announcement">
-    <p>Free delivery on your first order over $35</p>
+  <!-- Announcement Bar -->
+  <div class="announcement" id="announcement-bar">
+    <p>🌿 Free delivery on your first order over $35 — <a href="{% url 'accounts:signup' %}" style="color:inherit;text-decoration:underline;font-weight:700;">Join GoCart</a></p>
     <button class="announcement__close" type="button" aria-label="Dismiss announcement">×</button>
   </div>
 
-  <header class="site-header">
+  <!-- ===== NAVBAR ===== -->
+  <header class="site-header" id="site-header">
+    <!-- Logo -->
     <a class="brand" href="{% url 'home' %}" aria-label="GoCart home">
       <img src="{% static 'images/logo.png' %}?v=3" alt="GoCart logo" class="brand__logo">
     </a>
 
-    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
-      <span></span><span></span><span></span>
-      <span class="sr-only">Open menu</span>
-    </button>
-
+    <!-- Centre nav links (desktop) -->
     <nav class="primary-nav" id="primary-navigation" aria-label="Primary navigation">
-      <a href="#categories">Shop</a>
-      <a href="#deals">Deals</a>
-      <a href="#why-us">Why GoCart</a>
-      <a href="#app">Our app</a>
+      <a href="{% url 'home' %}#categories" class="nav-link">Shop</a>
+      <a href="{% url 'home' %}#deals" class="nav-link">Deals</a>
+      <a href="{% url 'home' %}#why-us" class="nav-link">Why GoCart</a>
+      <a href="{% url 'home' %}#app" class="nav-link">Our App</a>
     </nav>
 
+    <!-- Right side actions -->
     <div class="header-actions">
-      <button class="location-button" type="button" aria-label="Choose delivery location">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-        <span><small>Deliver to</small>New Baneshwor</span>
+
+      <!-- Search -->
+      <button class="icon-btn search-toggle" type="button" aria-label="Open search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
       </button>
-      <button class="icon-button search-toggle" type="button" aria-label="Open search">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+
+      <!-- Location pill (desktop only) -->
+      <button class="location-pill" type="button" aria-label="Choose delivery location">
+        <svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        <span class="location-pill__text">
+          <small>Deliver to</small>
+          <strong>New Baneshwor</strong>
+        </span>
       </button>
-      <button class="icon-button" type="button" aria-label="Open account">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-4.2 3.4-6 8-6s7.3 1.8 8 6"/></svg>
-      </button>
-      <button class="cart-button" type="button" aria-label="Open cart, 2 items">
-        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H7"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
-        <span class="cart-count">2</span>
+
+      <!-- Auth links -->
+      <div class="header-auth-btns">
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:login' %}" class="btn-ghost">Log in</a>
+          <a href="{% url 'accounts:signup' %}" class="btn-ghost">Sign up</a>
+          <a href="{% url 'accounts:logout' %}" class="btn-solid">Log out</a>
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="btn-ghost">Log in</a>
+          <a href="{% url 'accounts:signup' %}" class="btn-solid">Sign up</a>
+        {% endif %}
+      </div>
+
+      <!-- Hamburger (mobile) -->
+      <button class="hamburger" id="hamburger" type="button"
+        aria-expanded="false" aria-controls="mobile-drawer" aria-label="Open menu">
+        <span></span><span></span><span></span>
       </button>
     </div>
   </header>
 
-  <div class="search-panel" aria-hidden="true">
-    <form class="search-form" role="search">
-      <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-      <label class="sr-only" for="site-search">Search groceries</label>
-      <input id="site-search" type="search" placeholder="Search for mangoes, milk, bread…" autocomplete="off">
-      <button type="button" class="search-close" aria-label="Close search">×</button>
-    </form>
+  <!-- Search overlay -->
+  <div class="search-overlay" id="search-overlay" aria-hidden="true">
+    <div class="search-overlay__inner">
+      <form class="search-overlay__form" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <label class="sr-only" for="site-search">Search groceries</label>
+        <input id="site-search" type="search" placeholder="Search for mangoes, milk, bread…" autocomplete="off">
+        <button type="button" class="search-overlay__close" id="search-close" aria-label="Close search">×</button>
+      </form>
+    </div>
   </div>
+
+  <!-- Mobile drawer -->
+  <div class="mobile-drawer" id="mobile-drawer" aria-hidden="true">
+    <div class="mobile-drawer__header">
+      <a class="brand" href="{% url 'home' %}" aria-label="GoCart home">
+        <img src="{% static 'images/logo.png' %}?v=3" alt="GoCart logo" class="brand__logo">
+      </a>
+      <button class="mobile-drawer__close" id="drawer-close" aria-label="Close menu">×</button>
+    </div>
+
+    <nav class="mobile-drawer__nav" aria-label="Mobile navigation">
+      <a href="{% url 'home' %}#categories">Shop</a>
+      <a href="{% url 'home' %}#deals">Deals</a>
+      <a href="{% url 'home' %}#why-us">Why GoCart</a>
+      <a href="{% url 'home' %}#app">Our App</a>
+    </nav>
+
+    <div class="mobile-drawer__auth">
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:login' %}" class="btn-ghost btn-ghost--full">Log in</a>
+        <a href="{% url 'accounts:signup' %}" class="btn-ghost btn-ghost--full">Sign up</a>
+        <a href="{% url 'accounts:logout' %}" class="btn-solid btn-solid--full">Log out</a>
+      {% else %}
+        <a href="{% url 'accounts:login' %}" class="btn-ghost btn-ghost--full">Log in</a>
+        <a href="{% url 'accounts:signup' %}" class="btn-solid btn-solid--full">Create Account — it's free</a>
+      {% endif %}
+    </div>
+  </div>
+  <!-- Drawer backdrop -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+
+
+  <!-- Toast notifications -->
+  {% if messages %}
+  <div class="toast-container" id="toast-container">
+    {% for message in messages %}
+    <div class="toast toast--{{ message.tags }}" role="alert">
+      <span class="toast__icon">
+        {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✕{% else %}ℹ{% endif %}
+      </span>
+      <p>{{ message }}</p>
+      <button type="button" class="toast__close" aria-label="Dismiss">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <main id="main-content">
     {% block content %}{% endblock %}
@@ -78,11 +150,20 @@
         </a>
         <p>Fresh choices, thoughtfully delivered.</p>
       </div>
-      <div><h3>Shop</h3><a href="#categories">Fresh produce</a><a href="#categories">Pantry</a><a href="#deals">Deals</a><a href="#">All categories</a></div>
-      <div><h3>About</h3><a href="#why-us">Our story</a><a href="#">Sourcing</a><a href="#">Sustainability</a><a href="#">Careers</a></div>
-      <div><h3>Help</h3><a href="#">Help centre</a><a href="#">Delivery info</a><a href="#">Returns</a><a href="#">Contact us</a></div>
+      <div>
+        <h3>Shop</h3><a href="{% url 'home' %}#categories">Fresh produce</a><a href="{% url 'home' %}#categories">Pantry</a><a href="{% url 'home' %}#deals">Deals</a><a href="#">All categories</a>
+      </div>
+      <div>
+        <h3>About</h3><a href="{% url 'home' %}#why-us">Our story</a><a href="#">Sourcing</a><a href="#">Sustainability</a><a href="#">Careers</a>
+      </div>
+      <div>
+        <h3>Help</h3><a href="#">Help centre</a><a href="#">Delivery info</a><a href="#">Returns</a><a href="#">Contact us</a>
+      </div>
     </div>
-    <div class="footer__bottom"><span>© 2026 GoCart. All rights reserved.</span><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Accessibility</a></div></div>
+    <div class="footer__bottom"><span>© 2026 GoCart. All rights reserved.</span>
+      <div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Accessibility</a></div>
+    </div>
   </footer>
 </body>
+
 </html>

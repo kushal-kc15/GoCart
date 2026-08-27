@@ -1,0 +1,208 @@
+/* Landing page refinements. Shared navigation, controls, and footer remain in styles.css. */
+.hero::before {
+  content: "";
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  top: -260px;
+  left: -190px;
+  border-radius: 50%;
+  background: rgba(242, 177, 52, 0.1);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  width: 460px;
+  height: 460px;
+  right: -250px;
+  bottom: -250px;
+  border: 1px solid rgba(47, 122, 77, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero__content {
+  max-width: 720px;
+}
+
+.hero__content h1 {
+  text-wrap: balance;
+}
+
+.hero__arch {
+  isolation: isolate;
+}
+
+.hero__arch::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 24px -24px -24px 24px;
+  border: 1px solid rgba(47, 122, 77, 0.24);
+  border-radius: inherit;
+}
+
+.category-card {
+  box-shadow: 0 12px 34px rgba(36, 55, 39, 0.08);
+}
+
+.category-card__content {
+  transition: transform 0.3s ease;
+}
+
+.category-card:hover .category-card__content {
+  transform: translateY(-4px);
+}
+
+.seasonal__image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(32, 92, 57, 0.22), transparent 35%);
+  pointer-events: none;
+}
+
+.why-us__content h2,
+.app-banner__copy h2,
+.newsletter h2 {
+  text-wrap: balance;
+}
+
+.newsletter {
+  position: relative;
+}
+
+.newsletter::before {
+  content: "Fresh news";
+  position: absolute;
+  top: 52px;
+  right: 8vw;
+  color: rgba(255, 107, 74, 0.7);
+  font-family: var(--serif);
+  font-size: 20px;
+  font-style: italic;
+  transform: rotate(5deg);
+}
+
+.newsletter__form:focus-within {
+  border-bottom-color: var(--green);
+}
+
+.newsletter__form button {
+  color: var(--green-dark);
+  transition: color 0.2s, transform 0.2s;
+}
+
+.newsletter__form button:hover {
+  color: var(--coral);
+  transform: translateX(3px);
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .hero {
+    min-height: 620px;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.72fr);
+  }
+
+  .hero__arch {
+    height: clamp(430px, 52vw, 540px);
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, 280px);
+  }
+
+  .category-card--large {
+    grid-row: 1 / 3;
+  }
+
+  .category-card:last-child {
+    grid-column: 1 / 3;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    gap: 72px;
+  }
+
+  .hero h1 {
+    font-size: clamp(47px, 14vw, 64px);
+  }
+
+  .hero__arch::before {
+    inset: 16px -12px -16px 12px;
+  }
+
+  .hero__proof {
+    width: 100%;
+  }
+
+  .category-grid {
+    margin-right: -20px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--green) var(--paper);
+  }
+
+  .category-card,
+  .category-card--large,
+  .category-card:not(.category-card--large) {
+    min-width: min(82vw, 350px);
+    height: 410px;
+  }
+
+  .seasonal__copy {
+    padding-right: 28px;
+  }
+
+  .newsletter::before {
+    display: none;
+  }
+
+  .newsletter__form {
+    height: auto;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    border: 0;
+  }
+
+  .newsletter__form input {
+    min-height: 52px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: white;
+  }
+
+  .newsletter__form button {
+    min-height: 52px;
+    padding: 0 18px;
+    color: white;
+    background: var(--green);
+    border-radius: 7px;
+  }
+
+  .newsletter__message {
+    margin-top: -25px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero__proof .avatar-stack span {
+    width: 31px;
+    height: 31px;
+  }
+
+  .hero__proof small {
+    font-size: 10px;
+  }
+
+  .store-buttons {
+    flex-direction: column;
+    width: max-content;
+  }
+}
