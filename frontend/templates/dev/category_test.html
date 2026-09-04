@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Backend Test</title>
+</head>
+<body>
+    <h1>Category Backend Test</h1>
+
+    <ul>
+        {% for category in categories %}
+            <li>
+                <h2>{{ category.name }}</h2>
+                <p>Slug: {{ category.slug }}</p>
+
+                {% if category.description %}
+                    <p>{{ category.description }}</p>
+                {% endif %}
+
+                {% if category.image %}
+                    <img src="{{ category.image.url }}" alt="{{ category.name }}">
+                {% endif %}
+            </li>
+        {% empty %}
+            <li>No categories found.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

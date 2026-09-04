@@ -27,7 +27,7 @@ class Product(models.Model):
     image=models.ImageField(upload_to='products', blank=True, null=True)
     is_available=models.BooleanField(default=True)
     created_at=models.DateTimeField(auto_now_add=True)
-    updated_at=models.DateTimeField(auto_now=True)
+    updated_at=models.DateField(auto_now=True)
 
     class Meta:
         ordering=['name']

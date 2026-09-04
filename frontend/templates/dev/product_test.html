@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Backend Test</title>
+</head>
+<body>
+    <h1>Product Backend Test</h1>
+
+    <ul>
+        {% for product in products %}
+            <li>
+                <h2>{{ product.name }}</h2>
+                <p>Slug: {{ product.slug }}</p>
+                <p>Category: {{ product.category.name }}</p>
+                <p>Price: {{ product.price }}</p>
+                <p>Unit: {{ product.unit }}</p>
+                <p>Stock: {{ product.stock }}</p>
+                <p>Available: {{ product.is_available }}</p>
+
+                {% if product.stock > 0 %}
+                    <p>In Stock</p>
+                {% else %}
+                    <p>Out of Stock</p>
+                {% endif %}
+
+                {% if product.description %}
+                    <p>{{ product.description }}</p>
+                {% endif %}
+
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% endif %}
+            </li>
+        {% empty %}
+            <li>No products found.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
