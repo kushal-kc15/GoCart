@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from .forms import SignUpForm
+from .models import Address
 
 
 def signup(request):
@@ -38,3 +39,8 @@ def logout_view(request):
     logout(request)
     messages.info(request, 'You have been logged out successfully.')
     return redirect('home')
+
+
+def address_test(request):
+    addresses = Address.objects.select_related("user").all()
+    return render(request, "dev/address_test.html", {"addresses": addresses})

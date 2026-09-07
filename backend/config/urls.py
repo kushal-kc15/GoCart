@@ -19,12 +19,13 @@ from django.urls import path,include
 from django.conf import settings
 from django.conf.urls.static import static
 
-from config.views import home
+from accounts.views import address_test
+from config.views import dev_index
 
 urlpatterns = [
-    path('', home, name='home'),
+    path('', dev_index, name='dev_index'),
     path('admin/', admin.site.urls),
-    path('accounts/',include('accounts.urls')),
+    path('dev/addresses/', address_test, name='address_test'),
     path('dev/', include('products.urls')),
 ]
 
