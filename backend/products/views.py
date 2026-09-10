@@ -1,4 +1,3 @@
-from django.db.models import Prefetch
 from django.shortcuts import render
 
 from .models import Category, Product, ProductImage
@@ -10,13 +9,7 @@ def category_test(request):
 
 
 def product_test(request):
-    products = Product.objects.select_related("category").prefetch_related(
-        Prefetch(
-            "images",
-            queryset=ProductImage.objects.order_by("sort_order", "pk"),
-            to_attr="ordered_images",
-        )
-    )
+    products = Product.objects.select_related("category").prefetch_related("images")
     return render(request, "dev/product_test.html", {"products": products})
 
 
