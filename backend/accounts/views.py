@@ -40,7 +40,6 @@ def logout_view(request):
     messages.info(request, 'You have been logged out successfully.')
     return redirect('home')
 
-
-def address_test(request):
+def address_list(request):
     addresses = Address.objects.select_related("user").all()
     return render(request, "dev/address_test.html", {"addresses": addresses})
