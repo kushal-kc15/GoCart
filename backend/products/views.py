@@ -9,16 +9,12 @@ def category_list(request):
 
 def category_detail(request, slug):
     category = get_object_or_404(Category, slug=slug)
-    products = category.products.filter(
-        is_available=True,
-        stock__gt=0,
-    ).prefetch_related("images")
+    products = category.products.filter(is_available=True,stock__gt=0,).prefetch_related("images")
     return render(
         request,
         "dev/category_detail_test.html",
         {"category": category, "products": products},
     )
-
 
 def product_list(request):
     products = Product.objects.select_related("category").prefetch_related("images")

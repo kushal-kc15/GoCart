@@ -4,7 +4,6 @@ from django.contrib import messages
 from .forms import SignUpForm,LoginForm
 from .models import Address
 
-
 def signup(request):
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -24,15 +23,13 @@ def login_view(request):
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"]
         password = form.cleaned_data["password"]
-
         user = authenticate(request, username=email, password=password)
-
         if user is not None:
             login(request, user)
+
+            
             return redirect("home")
-
         messages.error(request, "Invalid email or password.")
-
     return render(request, "login.html", {"form": form})
 
 def logout_view(request):
