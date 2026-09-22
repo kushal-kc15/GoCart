@@ -8,6 +8,7 @@
   <style>
     /* ===================== BASE / SHARED ===================== */
 
+
 :root {
   --cream: #F6F2E7;
   --white: #ffffff;
@@ -148,9 +149,37 @@ header.site {
   box-shadow: 0 0 0 3px var(--green-pale);
 }
 
+.field input {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  font: inherit;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.field input::placeholder {
+  color: var(--muted);
+}
+
 .field svg {
   margin-left: auto;
   flex-shrink: 0;
+}
+
+.field-submit {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-left: auto;
+  display: flex;
+  color: var(--muted);
+  transition: color .15s ease;
+}
+
+.field-submit:hover {
+  color: var(--green);
 }
 
 .header-right {
@@ -460,6 +489,20 @@ input[type=checkbox] {
   color: #fff;
 }
 
+.continue-link {
+  display: inline-block;
+  margin-top: 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  transition: color .15s ease;
+}
+
+.continue-link:hover {
+  color: var(--green-dark);
+  text-decoration: underline;
+}
+
     /* ===================== ORDER SUMMARY ===================== */
 /* Uses the SAME background-color declaration as .cart-panel (css/cart.css)
    so the two panels always stay visually in sync. */
@@ -549,6 +592,20 @@ input[type=checkbox] {
 
 .coupon-row button:hover {
   background: var(--green-dark);
+}
+
+.coupon-msg {
+  font-size: 12px;
+  margin-top: 8px;
+  min-height: 14px;
+}
+
+.coupon-msg.success {
+  color: var(--green);
+}
+
+.coupon-msg.error {
+  color: var(--danger);
 }
 
 .divider {
@@ -720,13 +777,40 @@ input[type=checkbox] {
   width: 30px;
   height: 30px;
   background: rgba(255, 255, 255, .9);
+  border: none;
   border-radius: 50%;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--danger);
   font-size: 14px;
   cursor: pointer;
+  transition: transform .12s ease, background .15s ease;
+}
+
+.heart:hover {
+  background: #fff;
+  transform: scale(1.06);
+}
+
+.heart.active svg path {
+  fill: var(--danger);
+}
+
+.heart:not(.active) svg path {
+  fill: none;
+}
+
+.rec-btns button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.rec-btns button:disabled:hover {
+  border-color: var(--border);
+  color: var(--ink);
+  background: var(--white);
 }
 
 .rec-info {
@@ -958,36 +1042,42 @@ footer {
 
   <!-- ===================== HEADER ===================== -->
 <header class="site">
-  <div class="logo-box">Logo</div>
-  <div class="header-mid">
-    <div class="field">Phone number
+  <a href="index.html" class="logo-box" aria-label="Go to homepage">Logo</a>
+
+  <form class="header-mid" id="siteSearchForm" action="/search" method="GET">
+    <div class="field">
+      <input type="tel" name="phone" placeholder="Phone number" aria-label="Phone number">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path
           d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
       </svg>
     </div>
-    <div class="field">Search ......
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8" />
-        <path d="m21 21-4.3-4.3" />
-      </svg>
+    <div class="field">
+      <input type="search" name="q" id="siteSearchInput" placeholder="Search ......" aria-label="Search products">
+      <button type="submit" class="field-submit" aria-label="Search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+      </button>
     </div>
-  </div>
+  </form>
+
   <div class="header-right">
-    <div class="icon-btn">
+    <a href="wishlist.html" class="icon-btn" id="wishlistLink" aria-label="View wishlist">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
         <path
           d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" />
       </svg>
-    </div>
-    <div class="icon-btn">
+    </a>
+    <a href="cart.html" class="icon-btn" id="cartLink" aria-label="View cart" aria-current="page">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="9" cy="21" r="1" />
         <circle cx="20" cy="21" r="1" />
         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
       </svg>
-    </div>
-    <div class="user-chip">
+    </a>
+    <a href="account.html" class="user-chip" id="accountLink">
       <div class="avatar">
         <svg viewBox="0 0 34 34">
           <rect width="34" height="34" fill="#C9A98A" />
@@ -996,20 +1086,20 @@ footer {
         </svg>
       </div>
       @Ross95
-    </div>
+    </a>
   </div>
 </header>
 
 <nav class="main">
-  <a href="#">HOME</a>
-  <a href="#">CATEGORIES</a>
-  <a href="#">ABOUT US</a>
-  <a href="#">CONTACT US</a>
+  <a href="index.html" class="active">HOME</a>
+  <a href="categories.html">CATEGORIES</a>
+  <a href="about.html">ABOUT US</a>
+  <a href="contact.html">CONTACT US</a>
 </nav>
 
 <section class="hero">
   <h1>CART</h1>
-  <div class="crumb">Home / <span>Cart</span></div>
+  <div class="crumb"><a href="index.html">Home</a> / <span>Cart</span></div>
 </section>
 
   <div class="wrap">
@@ -1029,34 +1119,46 @@ footer {
   </div>
 
   <div id="cartItems"></div>
+
+  <a href="index.html" class="continue-link" id="continueShoppingBtn">&larr; Continue shopping</a>
 </div>
 
     <!-- ===================== ORDER SUMMARY ===================== -->
 <aside class="summary">
   <h2>Order Summary</h2>
   <div class="sum-row"><span class="label">Sub-total</span><span class="value" id="subtotal">Rs. 1200</span></div>
-  <div class="sum-row discount"><span class="label">Discount</span><span class="value">15%</span></div>
-  <div class="sum-row"><span class="label">VAT / TAX</span><span class="value">Rs. 0</span></div>
-  <div class="sum-row"><span class="label">Shipping charge</span><span class="value">Rs. 100</span></div>
+  <div class="sum-row discount"><span class="label">Discount</span><span class="value" id="discountValue">15%</span></div>
+  <div class="sum-row"><span class="label">VAT / TAX</span><span class="value" id="vatValue">Rs. 0</span></div>
+  <div class="sum-row"><span class="label">Shipping charge</span><span class="value" id="shippingValue">Rs. 100</span></div>
   <div class="sum-row final"><span class="label">Final total</span><span class="value" id="finaltotal">Rs. 1000</span></div>
 
-  <div class="coupon-label">Have discount code or coupon ?</div>
-  <div class="coupon-row">
-    <input type="text" placeholder="Enter coupon">
-    <button id="applyBtn">Apply</button>
-  </div>
+  <!-- Standalone form so a backend can receive this as a normal POST
+       (action can be pointed at a real coupon endpoint) even before
+       the JS fetch layer in js/cart.js is wired up. -->
+  <form id="couponForm" action="/api/cart/coupon" method="POST" novalidate>
+    <div class="coupon-label">Have discount code or coupon ?</div>
+    <div class="coupon-row">
+      <input type="text" id="couponInput" name="coupon" placeholder="Enter coupon" autocomplete="off">
+      <button id="applyBtn" type="submit">Apply</button>
+    </div>
+    <p class="coupon-msg" id="couponMsg" role="status" aria-live="polite"></p>
+  </form>
 
   <hr class="divider">
 
-  <div class="delivery-label">Choose Delivery Service !</div>
-  <label class="delivery-opt"><input type="checkbox" name="delivery" checked> Home Delivery</label>
-  <label class="delivery-opt"><input type="checkbox" name="delivery"> Pick up at store</label>
+  <!-- Radio group (not independent checkboxes) so exactly one delivery
+       method is ever selected, matching a real order's data model. -->
+  <form id="checkoutForm" action="/api/checkout" method="POST">
+    <div class="delivery-label">Choose Delivery Service !</div>
+    <label class="delivery-opt"><input type="radio" id="deliveryHome" name="delivery" value="delivery" checked> Home Delivery</label>
+    <label class="delivery-opt"><input type="radio" id="deliveryPickup" name="delivery" value="pickup"> Pick up at store</label>
 
-  <div class="total-row">
-    <span class="t-label">Total</span>
-    <span class="t-value" id="grandtotal">Rs.1000</span>
-  </div>
-  <button class="pay-btn">Pay Now</button>
+    <div class="total-row">
+      <span class="t-label">Total</span>
+      <span class="t-value" id="grandtotal">Rs.1000</span>
+    </div>
+    <button class="pay-btn" id="payBtn" type="submit">Pay Now</button>
+  </form>
 </aside>
 
   </div>
@@ -1067,88 +1169,96 @@ footer {
     <h2>You may also like</h2>
     <hr>
     <div class="recs-nav">
-      <button>&lt;</button>
-      <button>&gt;</button>
+      <button type="button" id="recsPrev" aria-label="Previous recommendations">&lt;</button>
+      <button type="button" id="recsNext" aria-label="Next recommendations">&gt;</button>
     </div>
   </div>
 
-  <div class="rec-grid">
-    <div class="rec-card">
+  <div class="rec-grid" id="recGrid">
+    <div class="rec-card" data-product-id="101">
       <div class="rec-img img-fish">
         <span class="rec-tag">Meat , Egg and Fish</span>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-          <path
-            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-          </path>
-        </svg>
+        <button type="button" class="heart" data-wishlist="101" aria-label="Add Tuna Fish to wishlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+            </path>
+          </svg>
+        </button>
       </div>
       <div class="rec-info">
         <div class="name-row"><span>Tuna Fish</span><span class="stock in">&#10003; In Stock</span></div>
         <div class="rec-price-label">By weight per kg</div>
         <div class="rec-price">rs. 1200</div>
         <div class="rec-btns">
-          <button class="btn-outline">Add to Cart</button>
-          <button class="btn-fill">Buy Now</button>
+          <button type="button" class="btn-outline" data-add-to-cart="101">Add to Cart</button>
+          <button type="button" class="btn-fill" data-buy-now="101">Buy Now</button>
         </div>
       </div>
     </div>
 
-    <div class="rec-card">
+    <div class="rec-card" data-product-id="102">
       <div class="rec-img img-baby">
         <span class="rec-tag">Baby care</span>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-          <path
-            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-          </path>
-        </svg>
+        <button type="button" class="heart" data-wishlist="102" aria-label="Add Baby shampoo to wishlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+            </path>
+          </svg>
+        </button>
       </div>
       <div class="rec-info">
         <div class="name-row"><span>Baby shampoo</span><span class="stock out">&#10005; Out of Stock</span></div>
         <div class="rec-price-label">Price</div>
         <div class="rec-price">rs. 1200</div>
         <div class="rec-btns">
-          <button class="btn-outline">Add to Cart</button>
-          <button class="btn-fill">Buy Now</button>
+          <button type="button" class="btn-outline" data-add-to-cart="102" disabled>Add to Cart</button>
+          <button type="button" class="btn-fill" data-buy-now="102" disabled>Buy Now</button>
         </div>
       </div>
     </div>
 
-    <div class="rec-card">
+    <div class="rec-card" data-product-id="103">
       <div class="rec-img img-potato">
         <span class="rec-tag">Vegetables and fruits</span>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-          <path
-            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-          </path>
-        </svg>
+        <button type="button" class="heart" data-wishlist="103" aria-label="Add Local Potato to wishlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+            </path>
+          </svg>
+        </button>
       </div>
       <div class="rec-info">
         <div class="name-row"><span>Local Potato</span><span class="stock in">&#10003; In Stock</span></div>
         <div class="rec-price-label">by weight per kg</div>
         <div class="rec-price">rs. 1200</div>
         <div class="rec-btns">
-          <button class="btn-outline">Add to Cart</button>
-          <button class="btn-fill">Buy Now</button>
+          <button type="button" class="btn-outline" data-add-to-cart="103">Add to Cart</button>
+          <button type="button" class="btn-fill" data-buy-now="103">Buy Now</button>
         </div>
       </div>
     </div>
 
-    <div class="rec-card">
+    <div class="rec-card" data-product-id="104">
       <div class="rec-img img-atta">
         <span class="rec-tag">Atta and Rice</span>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-          <path
-            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-          </path>
-        </svg>
+        <button type="button" class="heart" data-wishlist="104" aria-label="Add Chaaki Atta to wishlist">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+            </path>
+          </svg>
+        </button>
       </div>
       <div class="rec-info">
         <div class="name-row"><span>Chaaki Atta</span><span class="stock in">&#10003; In Stock</span></div>
         <div class="rec-price-label">by weight per kg</div>
         <div class="rec-price">rs. 1200</div>
         <div class="rec-btns">
-          <button class="btn-outline">Add to Cart</button>
-          <button class="btn-fill">Buy Now</button>
+          <button type="button" class="btn-outline" data-add-to-cart="104">Add to Cart</button>
+          <button type="button" class="btn-fill" data-buy-now="104">Buy Now</button>
         </div>
       </div>
     </div>
@@ -1205,6 +1315,78 @@ footer {
 </footer>
 
   <script>
+/* =========================================================================
+   BACKEND INTEGRATION LAYER
+   -------------------------------------------------------------------------
+   Every network call the page needs goes through the small `api` object
+   below. Point API_BASE at your real server and these functions map
+   straight onto REST endpoints:
+
+     GET    {API_BASE}/cart                    -> current cart contents
+     POST   {API_BASE}/cart/items               { productId, qty }
+     PATCH  {API_BASE}/cart/items/:id            { qty }            (quantity)
+     PATCH  {API_BASE}/cart/items/:id/variant     { weightIndex }
+     DELETE {API_BASE}/cart/items/:id
+     POST   {API_BASE}/cart/coupon               { code } -> { valid, discountRate, message }
+     PUT    {API_BASE}/cart/delivery              { method: 'delivery' | 'pickup' } -> { shippingCharge }
+     POST   {API_BASE}/checkout                   { delivery, items } -> { orderId, redirectUrl }
+     POST   {API_BASE}/wishlist/:productId
+     DELETE {API_BASE}/wishlist/:productId
+
+   Until a real backend exists at API_BASE, every call below fails softly:
+   it logs the request it *would* have sent and falls back to updating
+   local state only, so the page stays fully usable during frontend work.
+   Swap API_BASE and remove the try/catch fallbacks once the endpoints
+   are live.
+   ========================================================================= */
+
+const API_BASE = '/api';
+
+async function apiRequest(method, path, body) {
+  const res = await fetch(API_BASE + path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`${method} ${path} failed: ${res.status}`);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+const api = {
+  addToCart: (productId, qty = 1) =>
+    apiRequest('POST', '/cart/items', { productId, qty }),
+  updateQty: (itemId, qty) =>
+    apiRequest('PATCH', `/cart/items/${itemId}`, { qty }),
+  updateVariant: (itemId, weightIndex) =>
+    apiRequest('PATCH', `/cart/items/${itemId}/variant`, { weightIndex }),
+  removeItem: (itemId) =>
+    apiRequest('DELETE', `/cart/items/${itemId}`),
+  applyCoupon: (code) =>
+    apiRequest('POST', '/cart/coupon', { code }),
+  setDeliveryMethod: (method) =>
+    apiRequest('PUT', '/cart/delivery', { method }),
+  checkout: (payload) =>
+    apiRequest('POST', '/checkout', payload),
+  toggleWishlist: (productId, add) =>
+    apiRequest(add ? 'POST' : 'DELETE', `/wishlist/${productId}`),
+};
+
+/* Runs a backend call but never blocks the UI on failure — logs instead,
+   so the demo keeps working with no server attached. */
+async function tryBackend(label, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    console.info(`[backend not connected] ${label}:`, err.message);
+    return null;
+  }
+}
+
+/* =========================================================================
+   CART STATE
+   ========================================================================= */
+
 const products = [
   {
     id: 1, name: 'Sprite', image: 'spriteee.jpg', badge: '15% off',
@@ -1230,7 +1412,14 @@ const products = [
 
 const selected = new Set(products.map(p => p.id));
 
+let deliveryMethod = 'delivery';   // 'delivery' | 'pickup'
+let discountRate = 0.15;           // overwritten by a valid coupon
+
 function fmt(n) { return 'Rs. ' + n.toLocaleString(); }
+
+/* =========================================================================
+   RENDER
+   ========================================================================= */
 
 function render() {
   const container = document.getElementById('cartItems');
@@ -1240,7 +1429,7 @@ function render() {
     const div = document.createElement('div');
     div.className = 'cart-item';
     div.innerHTML = `
-      <input type="checkbox" class="item-check" data-id="${p.id}" ${selected.has(p.id) ? 'checked' : ''}>
+      <input type="checkbox" class="item-check" name="cartItem" value="${p.id}" data-id="${p.id}" ${selected.has(p.id) ? 'checked' : ''}>
       <div class="item-thumb">
   <img src="${p.image}" alt="${p.name}">
   ${p.badge ? `<span class="badge">${p.badge}</span>` : ''}
@@ -1248,22 +1437,24 @@ function render() {
       <div class="item-body">
         <div class="item-top">
           <h3>${p.name}</h3>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z"></path></svg>
+          <button type="button" class="trash-btn" data-remove="${p.id}" aria-label="Remove ${p.name} from cart">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z"></path></svg>
+          </button>
         </div>
         <div class="price-row">
           <div>
             ${p.oldPrice ? `<span class="price-label">Price</span><span class="price-old">rs.${p.oldPrice}</span><div class="price-now">On Offer<br>rs. ${p.price}</div>` : `<span class="price-label">Price</span><div class="price-now">rs. ${p.price}</div>`}
           </div>
           <div class="qty-control">
-            <button data-dec="${p.id}">&#8722;</button>
+            <button type="button" data-dec="${p.id}" aria-label="Decrease ${p.name} quantity">&#8722;</button>
             <span>${p.qty}</span>
-            <button data-inc="${p.id}">&#43;</button>
+            <button type="button" data-inc="${p.id}" aria-label="Increase ${p.name} quantity">&#43;</button>
           </div>
         </div>
         <div class="weight-row">
           <span class="weight-label">Weight :</span>
           <div class="weight-options">
-            ${p.weights.map((w, i) => `<button class="weight-pill ${i === p.activeWeight ? 'active' : ''}" data-weight="${p.id}:${i}">${w}</button>`).join('')}
+            ${p.weights.map((w, i) => `<button type="button" class="weight-pill ${i === p.activeWeight ? 'active' : ''}" data-weight="${p.id}:${i}">${w}</button>`).join('')}
           </div>
         </div>
       </div>
@@ -1284,23 +1475,28 @@ function updateHeadCount() {
 function updateSummary() {
   const items = products.filter(p => selected.has(p.id));
   const subtotal = items.reduce((s, p) => s + p.price * p.qty, 0);
-  const discountRate = 0.15;
+  const shipping = items.length === 0 ? 0 : (deliveryMethod === 'pickup' ? 0 : 100);
   const discount = Math.round(subtotal * discountRate);
-  const finalTotal = subtotal - discount;
+  const finalTotal = subtotal - discount + shipping;
 
-  const subtotalEl = document.getElementById('subtotal');
-  const finalTotalEl = document.getElementById('finaltotal');
-  const grandTotalEl = document.getElementById('grandtotal');
-  if (subtotalEl) subtotalEl.textContent = fmt(subtotal);
-  if (finalTotalEl) finalTotalEl.textContent = fmt(finalTotal);
-  if (grandTotalEl) grandTotalEl.textContent = 'Rs.' + finalTotal.toLocaleString();
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('subtotal', fmt(subtotal));
+  set('discountValue', Math.round(discountRate * 100) + '%');
+  set('shippingValue', shipping === 0 ? 'Free' : fmt(shipping));
+  set('finaltotal', fmt(subtotal - discount));
+  set('grandtotal', 'Rs.' + finalTotal.toLocaleString());
 }
+
+/* =========================================================================
+   CART PANEL EVENTS
+   ========================================================================= */
 
 function initCartEvents() {
   const cartItems = document.getElementById('cartItems');
   const selectAll = document.getElementById('selectAll');
   const deleteBtn = document.getElementById('deleteBtn');
-  const applyBtn = document.getElementById('applyBtn');
+  const couponForm = document.getElementById('couponForm');
+  const checkoutForm = document.getElementById('checkoutForm');
 
   if (cartItems) {
     cartItems.addEventListener('click', (e) => {
@@ -1312,10 +1508,14 @@ function initCartEvents() {
       if (inc) {
         const p = products.find(p => p.id == inc.dataset.inc);
         p.qty++; render();
+        tryBackend('updateQty', () => api.updateQty(p.id, p.qty));
       }
       if (dec) {
         const p = products.find(p => p.id == dec.dataset.dec);
-        if (p.qty > 1) p.qty--; render();
+        if (p.qty > 1) {
+          p.qty--; render();
+          tryBackend('updateQty', () => api.updateQty(p.id, p.qty));
+        }
       }
       if (rm) {
         const id = Number(rm.dataset.remove);
@@ -1323,12 +1523,14 @@ function initCartEvents() {
         if (idx > -1) products.splice(idx, 1);
         selected.delete(id);
         render();
+        tryBackend('removeItem', () => api.removeItem(id));
       }
       if (wt) {
         const [id, i] = wt.dataset.weight.split(':').map(Number);
         const p = products.find(p => p.id === id);
         p.activeWeight = i;
         render();
+        tryBackend('updateVariant', () => api.updateVariant(id, i));
       }
     });
 
@@ -1355,26 +1557,133 @@ function initCartEvents() {
 
   if (deleteBtn) {
     deleteBtn.addEventListener('click', () => {
+      const removedIds = [];
       for (let i = products.length - 1; i >= 0; i--) {
         if (selected.has(products[i].id)) {
+          removedIds.push(products[i].id);
           selected.delete(products[i].id);
           products.splice(i, 1);
         }
       }
       render();
+      removedIds.forEach(id => tryBackend('removeItem', () => api.removeItem(id)));
     });
   }
 
-  if (applyBtn) {
-    applyBtn.addEventListener('click', () => {
+  if (couponForm) {
+    couponForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('couponInput');
+      const msg = document.getElementById('couponMsg');
+      const code = (input?.value || '').trim();
+      if (!code) return;
+
+      const result = await tryBackend('applyCoupon', () => api.applyCoupon(code));
+
+      if (result && result.valid) {
+        discountRate = result.discountRate;
+        if (msg) { msg.textContent = result.message || 'Coupon applied.'; msg.className = 'coupon-msg success'; }
+      } else if (result) {
+        if (msg) { msg.textContent = result.message || 'That code is not valid.'; msg.className = 'coupon-msg error'; }
+      } else {
+        // No backend reachable yet — demo fallback so the field is still usable.
+        if (code.toUpperCase() === 'SAVE20') {
+          discountRate = 0.20;
+          if (msg) { msg.textContent = 'Coupon applied (demo mode — no backend connected).'; msg.className = 'coupon-msg success'; }
+        } else {
+          if (msg) { msg.textContent = 'Backend not connected — try SAVE20 in demo mode.'; msg.className = 'coupon-msg error'; }
+        }
+      }
       updateSummary();
+    });
+  }
+
+  if (checkoutForm) {
+    checkoutForm.addEventListener('change', (e) => {
+      if (e.target.name === 'delivery') {
+        deliveryMethod = e.target.value;
+        updateSummary();
+        tryBackend('setDeliveryMethod', () => api.setDeliveryMethod(deliveryMethod));
+      }
+    });
+
+    checkoutForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        delivery: deliveryMethod,
+        items: products
+          .filter(p => selected.has(p.id))
+          .map(p => ({ id: p.id, qty: p.qty, weightIndex: p.activeWeight })),
+      };
+      const result = await tryBackend('checkout', () => api.checkout(payload));
+      if (result && result.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      } else {
+        console.info('Checkout payload (no backend connected yet):', payload);
+        alert('Backend not connected — this is where checkout would proceed.');
+      }
     });
   }
 
   render();
 }
 
+/* =========================================================================
+   "YOU MAY ALSO LIKE" EVENTS
+   ========================================================================= */
+
+function initRecsEvents() {
+  const recGrid = document.getElementById('recGrid');
+  const prevBtn = document.getElementById('recsPrev');
+  const nextBtn = document.getElementById('recsNext');
+
+  if (recGrid) {
+    recGrid.addEventListener('click', (e) => {
+      const addBtn = e.target.closest('[data-add-to-cart]');
+      const buyBtn = e.target.closest('[data-buy-now]');
+      const heartBtn = e.target.closest('[data-wishlist]');
+
+      if (addBtn && !addBtn.disabled) {
+        const productId = addBtn.dataset.addToCart;
+        tryBackend('addToCart', () => api.addToCart(productId, 1));
+        addBtn.textContent = 'Added';
+        setTimeout(() => { addBtn.textContent = 'Add to Cart'; }, 1200);
+      }
+
+      if (buyBtn && !buyBtn.disabled) {
+        const productId = buyBtn.dataset.buyNow;
+        tryBackend('addToCart', () => api.addToCart(productId, 1)).then(() => {
+          window.location.href = `checkout.html?productId=${productId}`;
+        });
+      }
+
+      if (heartBtn) {
+        const productId = heartBtn.dataset.wishlist;
+        const nowActive = !heartBtn.classList.contains('active');
+        heartBtn.classList.toggle('active', nowActive);
+        heartBtn.setAttribute('aria-pressed', String(nowActive));
+        tryBackend('toggleWishlist', () => api.toggleWishlist(productId, nowActive));
+      }
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      // Hook point for paging in previous recommendations from the backend
+      // once GET {API_BASE}/recommendations?page=n exists.
+      recGrid?.scrollBy({ left: -280, behavior: 'smooth' });
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      recGrid?.scrollBy({ left: 280, behavior: 'smooth' });
+    });
+  }
+}
+
     initCartEvents();
+    initRecsEvents();
   </script>
 
 </body>
