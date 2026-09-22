@@ -6,1077 +6,1240 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cart</title>
   <style>
-    .item-thumb {
-      width: 100px;
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    }
-
-    .item-thumb img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    :root {
-      --cream: #F4F1E6;
-      --white: #ffffff;
-      --green: #1F6B3A;
-      --green-dark: #17532C;
-      --text: #1A1A1A;
-      --muted: #8A8A80;
-      --border: #E7E3D6;
-      --danger: #E24C4C;
-      --pill-bg: #F4F1E6;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-      background: var(--cream);
-      color: var(--text);
-    }
-
-    a {
-      text-decoration: none;
-      color: inherit;
-    }
-
-    button {
-      font-family: inherit;
-      cursor: pointer;
-    }
-
-    /* ---------- HEADER ---------- */
-    header.site {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 18px 48px;
-      background: var(--cream);
-      flex-wrap: wrap;
-      gap: 14px;
-    }
-
-    .logo-box {
-      width: 78px;
-      height: 44px;
-      background: #D9D6C8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      color: #555;
-      border-radius: 2px;
-    }
-
-    .header-mid {
-      display: flex;
-      gap: 14px;
-      flex: 1;
-      max-width: 680px;
-      margin: 0 24px;
-    }
-
-    .field {
-      display: flex;
-      align-items: center;
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 10px 18px;
-      flex: 1;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .field svg {
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 22px;
-    }
-
-    .icon-btn {
-      position: relative;
-      color: var(--text);
-    }
-
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .avatar {
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: #C9A98A;
-      overflow: hidden;
-    }
-
-    .avatar svg {
-      width: 100%;
-      height: 100%;
-    }
-
-    nav.main {
-      display: flex;
-      gap: 44px;
-      justify-content: center;
-      padding: 14px 0 22px;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: .2px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    nav.main a {
-      color: #333;
-    }
-
-    nav.main a.active {
-      color: var(--text);
-    }
-
-    /* ---------- HERO ---------- */
-    .hero {
-      text-align: center;
-      padding: 64px 20px 40px;
-    }
-
-    .hero h1 {
-      font-size: 52px;
-      font-weight: 800;
-      letter-spacing: 1px;
-    }
-
-    .crumb {
-      margin-top: 14px;
-      font-size: 15px;
-      color: var(--muted);
-    }
-
-    .crumb span {
-      color: var(--green);
-      font-weight: 600;
-    }
-
-    /* ---------- LAYOUT ---------- */
-    .wrap {
-      max-width: 1240px;
-      margin: 0 auto;
-      padding: 0 24px 60px;
-      display: grid;
-      grid-template-columns: 1fr 360px;
-      gap: 28px;
-    }
-
-    @media (max-width:980px) {
-      .wrap {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* ---------- CART PANEL ---------- */
-    .cart-panel {
-      background: var(--white);
-      border-radius: 4px;
-      padding: 24px 28px;
-    }
-
-    .cart-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-      color: #555;
-    }
-
-    .select-all {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .delete-link {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #333;
-      font-weight: 600;
-      background: none;
-      border: none;
-      font-size: 14px;
-    }
-
-    input[type=checkbox] {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--green);
-      cursor: pointer;
-    }
-
-    .cart-item {
-      display: flex;
-      gap: 20px;
-      padding: 26px 0;
-      border-bottom: 2px solid var(--border);
-      position: relative;
-    }
-
-    .cart-item .item-check {
-      margin-top: 38px;
-    }
-
-    .item-thumb {
-      width: 120px;
-      height: 120px;
-      border-radius: 6px;
-      overflow: hidden;
-      position: relative;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #F4F1E6;
-      font-weight: 700;
-      text-align: center;
-      font-size: 13px;
-    }
-
-    .badge {
-      position: absolute;
-      top: 8px;
-      left: 0;
-      background: var(--danger);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px 3px 8px;
-      border-radius: 0 10px 10px 0;
-    }
-
-    .item-body {
-      flex: 1;
-      position: relative;
-    }
-
-    .item-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-    }
-
-    .item-top h3 {
-      font-size: 19px;
-      font-weight: 700;
-    }
-
-    .trash-btn {
-      background: none;
-      border: none;
-      color: #333;
-      font-size: 16px;
-    }
-
-    .price-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-    }
-
-    .price-label {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .price-old {
-      font-size: 12px;
-      color: #B9B5A8;
-      text-decoration: line-through;
-      display: block;
-    }
-
-    .price-now {
-      font-size: 16px;
-      font-weight: 700;
-      margin-top: 2px;
-    }
-
-    .price-now.discounted {
-      color: var(--text);
-    }
-
-    .qty-control {
-      display: flex;
-      align-items: center;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .qty-control button {
-      width: 32px;
-      height: 32px;
-      border: none;
-      background: var(--white);
-      font-size: 16px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .qty-control span {
-      width: 34px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .weight-row {
-      margin-top: 16px;
-    }
-
-    .weight-label {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 8px;
-      display: block;
-    }
-
-    .weight-options {
-      display: flex;
-      gap: 10px;
-    }
-
-    .weight-pill {
-      border: 1px solid var(--border);
-      background: var(--pill-bg);
-      padding: 7px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .weight-pill.active {
-      background: var(--green);
-      border-color: var(--green);
-      color: #fff;
-    }
-
-    /* ---------- ORDER SUMMARY ---------- */
-    .summary {
-      background: var(--white);
-      border-radius: 4px;
-      padding: 26px 28px;
-      height: fit-content;
-    }
-
-    .summary h2 {
-      text-align: center;
-      font-size: 22px;
-      font-weight: 700;
-      padding-bottom: 16px;
-      border-bottom: 2px solid var(--text);
-      margin-bottom: 20px;
-    }
-
-    .sum-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 14px;
-      padding: 9px 0;
-      color: #333;
-    }
-
-    .sum-row .label {
-      color: #333;
-      font-weight: 600;
-    }
-
-    .sum-row.discount .value {
-      color: var(--danger);
-      font-weight: 600;
-    }
-
-    .sum-row.final .value {
-      font-weight: 700;
-    }
-
-    .coupon-label {
-      font-size: 13px;
-      color: #555;
-      margin: 18px 0 8px;
-    }
-
-    .coupon-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    .coupon-row input {
-      flex: 1;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 11px 14px;
-      font-size: 13px;
-      background: var(--cream);
-    }
-
-    .coupon-row button {
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 0 20px;
-      font-weight: 600;
-      font-size: 13px;
-    }
-
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 20px 0;
-    }
-
-    .delivery-label {
-      font-size: 13px;
-      color: #555;
-      margin-bottom: 12px;
-    }
-
-    .delivery-opt {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-      font-size: 14px;
-      color: #333;
-    }
-
-    .total-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 22px;
-      padding-top: 18px;
-    }
-
-    .total-row .t-label {
-      font-size: 20px;
-      font-weight: 800;
-    }
-
-    .total-row .t-value {
-      font-size: 22px;
-      font-weight: 800;
-      color: var(--green);
-    }
-
-    .pay-btn {
-      width: 100%;
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 16px;
-      font-size: 16px;
-      font-weight: 700;
-      margin-top: 18px;
-    }
-
-    .pay-btn:hover {
-      background: var(--green-dark);
-    }
-
-    /* ---------- YOU MAY ALSO LIKE ---------- */
-    .recs {
-      max-width: 1240px;
-      margin: 10px auto 60px;
-      padding: 0 24px;
-    }
-
-    .recs-head {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 22px;
-    }
-
-    .recs-head h2 {
-      font-size: 24px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .recs-head hr {
-      flex: 1;
-      border: none;
-      border-top: 1px solid var(--border);
-    }
-
-    .recs-nav {
-      display: flex;
-      gap: 8px;
-    }
-
-    .recs-nav button {
-      width: 34px;
-      height: 34px;
-      border: 1px solid var(--border);
-      background: var(--white);
-      border-radius: 6px;
-      font-size: 14px;
-    }
-
-    .rec-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 22px;
-    }
-
-    @media (max-width:900px) {
-      .rec-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width:520px) {
-      .rec-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .rec-card {
-      background: var(--white);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .rec-img {
-      height: 200px;
-      position: relative;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: 12px;
-      color: #fff;
-    }
-
-    .rec-tag {
-      font-size: 12px;
-      font-weight: 700;
-      background: rgba(0, 0, 0, .35);
-      padding: 5px 10px;
-      border-radius: 4px;
-    }
-
-    .heart {
-      width: 30px;
-      height: 30px;
-      background: rgba(255, 255, 255, .85);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #E24C4C;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .rec-info {
-      padding: 14px 16px 18px;
-    }
-
-    .rec-info .name-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 700;
-      font-size: 15px;
-    }
-
-    .stock {
-      font-size: 11px;
-      font-weight: 600;
-    }
-
-    .stock.in {
-      color: var(--green);
-    }
-
-    .stock.out {
-      color: var(--danger);
-    }
-
-    .rec-price-label {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 8px;
-    }
-
-    .rec-price {
-      font-weight: 700;
-      font-size: 14px;
-      margin-top: 2px;
-    }
-
-    .rec-btns {
-      display: flex;
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .rec-btns button {
-      flex: 1;
-      padding: 9px 0;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 700;
-      border: 1px solid var(--border);
-    }
-
-    .btn-outline {
-      background: var(--white);
-      color: #333;
-    }
-
-    .btn-fill {
-      background: var(--green);
-      color: #fff;
-      border: none;
-    }
-
-    /* ---------- FOOTER ---------- */
-    footer {
-      background: var(--green-dark);
-      color: #fff;
-      padding: 56px 24px 30px;
-    }
-
-    .footer-inner {
-      max-width: 1240px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1.4fr 1fr 1fr 1fr;
-      gap: 30px;
-    }
-
-    @media (max-width:800px) {
-      .footer-inner {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    .footer-inner h3 {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 18px;
-    }
-
-    .footer-inner ul {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      font-size: 14px;
-      opacity: .9;
-    }
-
-    .foot-col.center ul,
-    .foot-col.center h3 {
-      text-align: center;
-    }
-
-    .foot-col.center ul {
-      align-items: center;
-    }
-
-    .brand-blurb {
-      font-size: 14px;
-      opacity: .85;
-      margin: 14px 0 20px;
-      line-height: 1.6;
-      max-width: 280px;
-    }
-
-    .socials {
-      display: flex;
-      gap: 12px;
-    }
-
-    .socials a {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, .15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-    }
-
-    .contact-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .contact-col h3 {
-        text-align: center;
-      }
-
-      .contact-col .contact-list {
-        align-items: center; /* was flex-start */
-      }
-
-      .contact-col .contact-list li {
-        justify-content: center; /* centers icon + text inside each row */
-        text-align: center;
-      }
-
-    .close-time {
-      color: #F2A6A6;
-    }
-
-    /* placeholder image gradients */
-    .img-sprite {
-      background: linear-gradient(160deg, #0E3F1E, #1F6B3A);
-    }
-
-    .img-tomato {
-      background: linear-gradient(160deg, #7A1F14, #C43A24);
-    }
-
-    .img-noodle {
-      background: linear-gradient(160deg, #3B2E22, #6B5540);
-    }
-
-    .img-tea {
-      background: linear-gradient(160deg, #1A1A1A, #3A3128);
-    }
-
-    .img-fish {
-      background: linear-gradient(160deg, #8A9BA8, #5C6B76);
-    }
-
-    .img-baby {
-      background: linear-gradient(160deg, #C9CFE0, #8FA0C2);
-    }
-
-    .img-potato {
-      background: linear-gradient(160deg, #C8A45A, #8A6A34);
-    }
-
-    .img-atta {
-      background: linear-gradient(160deg, #CFCABC, #A29C8B);
-    }
+    /* ===================== BASE / SHARED ===================== */
+
+:root {
+  --cream: #F6F2E7;
+  --white: #ffffff;
+  --green: #1F6B3A;
+  --green-dark: #143F26;
+  --green-pale: #EAF1E7;
+  --gold: #C8963E;
+  --ink: #1B2A20;
+  --text: #1B2A20;
+  --muted: #857F6E;
+  --border: #E6E1D2;
+  --danger: #D64545;
+  --pill-bg: #FBF9F2;
+  --shadow-sm: 0 1px 2px rgba(27, 42, 32, .05);
+  --shadow-md: 0 10px 28px rgba(27, 42, 32, .09);
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* Hero / breadcrumb (shared, not tied to one section) */
+.hero {
+  text-align: center;
+  padding: 60px 20px 36px;
+}
+
+.hero h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 50px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  color: var(--ink);
+}
+
+.crumb {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.crumb span {
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* Shared page layout wrapper (cart panel + summary) */
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: stretch;
+}
+
+@media (max-width:980px) {
+  .wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+    /* ===================== HEADER ===================== */
+header.site {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 48px;
+  background: var(--cream);
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.logo-box {
+  width: 78px;
+  height: 44px;
+  background: var(--green-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--green-dark);
+  border-radius: 6px;
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+.header-mid {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+  max-width: 680px;
+  margin: 0 24px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 10px 18px;
+  flex: 1;
+  color: var(--muted);
+  font-size: 14px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.field:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-pale);
+}
+
+.field svg {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.icon-btn {
+  position: relative;
+  color: var(--ink);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #C9A98A;
+  overflow: hidden;
+}
+
+.avatar svg {
+  width: 100%;
+  height: 100%;
+}
+
+nav.main {
+  display: flex;
+  gap: 44px;
+  justify-content: center;
+  padding: 14px 0 22px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  border-bottom: 1px solid var(--border);
+}
+
+nav.main a {
+  color: #4A4A40;
+  position: relative;
+  padding-bottom: 4px;
+  transition: color .15s ease;
+}
+
+nav.main a:hover {
+  color: var(--green);
+}
+
+nav.main a.active {
+  color: var(--ink);
+}
+
+nav.main a.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 2px;
+  background: var(--green);
+}
+
+    /* ===================== CART PANEL ===================== */
+.cart-panel {
+  background-color: var(--white);
+  border-radius: var(--radius);
+  padding: 28px 30px;
+  box-shadow: var(--shadow-sm);
+}
+
+.cart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: #55503F;
+  letter-spacing: .2px;
+}
+
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.delete-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4A4A40;
+  font-weight: 600;
+  background: none;
+  border: none;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background .15s ease, color .15s ease;
+}
+
+.delete-link:hover {
+  background: #FBEAEA;
+  color: var(--danger);
+}
+
+input[type=checkbox] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
+.cart-item {
+  display: flex;
+  gap: 22px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.cart-item:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.cart-item .item-check {
+  margin-top: 40px;
+}
+
+.item-thumb {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--green-pale);
+  border: 1px solid var(--border);
+  color: var(--cream);
+  font-weight: 700;
+  text-align: center;
+  font-size: 13px;
+}
+
+.item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.badge {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px 3px 8px;
+  border-radius: 0 10px 10px 0;
+  letter-spacing: .2px;
+}
+
+.item-body {
+  flex: 1;
+  position: relative;
+}
+
+.item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.item-top h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.trash-btn {
+  background: none;
+  border: none;
+  color: #4A4A40;
+  font-size: 16px;
+}
+
+.item-top svg {
+  color: #A6A192;
+  transition: color .15s ease;
+  cursor: pointer;
+}
+
+.item-top svg:hover {
+  color: var(--danger);
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.price-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.price-old {
+  font-size: 12px;
+  color: #B9B5A8;
+  text-decoration: line-through;
+  display: block;
+}
+
+.price-now {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 2px;
+  color: var(--ink);
+}
+
+.price-now.discounted {
+  color: var(--text);
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.qty-control button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--white);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background .15s ease;
+}
+
+.qty-control button:hover {
+  background: var(--green-pale);
+  color: var(--green-dark);
+}
+
+.qty-control span {
+  width: 34px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weight-row {
+  margin-top: 18px;
+}
+
+.weight-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 9px;
+  display: block;
+}
+
+.weight-options {
+  display: flex;
+  gap: 9px;
+}
+
+.weight-pill {
+  border: 1px solid var(--border);
+  background: var(--white);
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A4A40;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.weight-pill:hover {
+  border-color: var(--green);
+}
+
+.weight-pill.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+    /* ===================== ORDER SUMMARY ===================== */
+/* Uses the SAME background-color declaration as .cart-panel (css/cart.css)
+   so the two panels always stay visually in sync. */
+.summary {
+  background-color: var(--white);
+  border-radius: var(--radius);
+  padding: 28px 30px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.summary h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  text-align: left;
+  font-size: 21px;
+  font-weight: 600;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  color: var(--ink);
+}
+
+.sum-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 9px 0;
+  color: #4A4A40;
+}
+
+.sum-row .label {
+  color: #4A4A40;
+  font-weight: 500;
+}
+
+.sum-row .value {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sum-row.discount .value {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.sum-row.final .value {
+  font-weight: 700;
+}
+
+.coupon-label {
+  font-size: 13px;
+  color: #55503F;
+  margin: 18px 0 8px;
+}
+
+.coupon-row {
+  display: flex;
+  gap: 8px;
+}
+
+.coupon-row input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 11px 14px;
+  font-size: 13px;
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.coupon-row input:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+
+.coupon-row button {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 0 20px;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background .15s ease;
+}
+
+.coupon-row button:hover {
+  background: var(--green-dark);
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+.delivery-label {
+  font-size: 13px;
+  color: #55503F;
+  margin-bottom: 12px;
+}
+
+.delivery-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #333;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* auto margin absorbs the extra stretched height so Total + Pay Now
+     stay pinned to the bottom, level with the cart panel's edge. */
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.total-row .t-label {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.total-row .t-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.pay-btn {
+  width: 100%;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  margin-top: 16px;
+  transition: background .15s ease, transform .1s ease;
+}
+
+.pay-btn:hover {
+  background: var(--green-dark);
+}
+
+.pay-btn:active {
+  transform: translateY(1px);
+}
+
+    /* ===================== YOU MAY ALSO LIKE ===================== */
+.recs {
+  max-width: 1240px;
+  margin: 10px auto 60px;
+  padding: 0 24px;
+}
+
+.recs-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.recs-head h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 24px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.recs-head hr {
+  flex: 1;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.recs-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.recs-nav button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 7px;
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color .15s ease, color .15s ease;
+}
+
+.recs-nav button:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.rec-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+}
+
+@media (max-width:900px) {
+  .rec-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width:520px) {
+  .rec-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rec-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.rec-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+.rec-img {
+  height: 190px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px;
+  color: #fff;
+}
+
+.rec-tag {
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, .35);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.heart {
+  width: 30px;
+  height: 30px;
+  background: rgba(255, 255, 255, .9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--danger);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rec-info {
+  padding: 16px 18px 20px;
+}
+
+.rec-info .name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+}
+
+.stock {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+}
+
+.stock.in {
+  color: var(--green);
+}
+
+.stock.out {
+  color: var(--danger);
+}
+
+.rec-price-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.rec-price {
+  font-weight: 700;
+  font-size: 15px;
+  margin-top: 2px;
+  color: var(--ink);
+}
+
+.rec-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.rec-btns button {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.btn-outline {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.btn-outline:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.btn-fill {
+  background: var(--green);
+  color: #fff;
+  border: none;
+}
+
+.btn-fill:hover {
+  background: var(--green-dark);
+}
+
+/* placeholder image gradients */
+.img-sprite {
+  background: linear-gradient(160deg, #0E3F1E, #1F6B3A);
+}
+
+.img-tomato {
+  background: linear-gradient(160deg, #7A1F14, #C43A24);
+}
+
+.img-noodle {
+  background: linear-gradient(160deg, #3B2E22, #6B5540);
+}
+
+.img-tea {
+  background: linear-gradient(160deg, #1A1A1A, #3A3128);
+}
+
+.img-fish {
+  background: linear-gradient(160deg, #8A9BA8, #5C6B76);
+}
+
+.img-baby {
+  background: linear-gradient(160deg, #C9CFE0, #8FA0C2);
+}
+
+.img-potato {
+  background: linear-gradient(160deg, #C8A45A, #8A6A34);
+}
+
+.img-atta {
+  background: linear-gradient(160deg, #CFCABC, #A29C8B);
+}
+
+    /* ===================== FOOTER ===================== */
+footer {
+  background: var(--green-dark);
+  color: #fff;
+  padding: 60px 24px 32px;
+}
+
+.footer-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 36px;
+}
+
+@media (max-width:800px) {
+  .footer-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.footer-inner h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.footer-inner ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  opacity: .85;
+}
+
+.footer-inner ul li {
+  transition: opacity .15s ease;
+}
+
+.footer-inner ul li:hover {
+  opacity: 1;
+}
+
+/* "CUSTOMER SERVICE" and "CONTACT US" columns: left-aligned to match the
+   logo column instead of being centered. */
+.foot-col.center ul,
+.foot-col.center h3 {
+  text-align: left;
+  align-items: flex-start;
+}
+
+.contact-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.contact-col h3 {
+  text-align: left;
+}
+
+.contact-col .contact-list {
+  align-items: flex-start;
+}
+
+.contact-col .contact-list li {
+  justify-content: flex-start;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-blurb {
+  font-size: 14px;
+  opacity: .8;
+  margin: 14px 0 20px;
+  line-height: 1.65;
+  max-width: 280px;
+  text-align: left;
+}
+
+.socials {
+  display: flex;
+  gap: 12px;
+}
+
+.socials a {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: background .15s ease;
+}
+
+.socials a:hover {
+  background: rgba(255, 255, 255, .22);
+}
+
+.close-time {
+  color: #E8A3A3;
+  opacity: 1 !important;
+}
+
   </style>
 </head>
 
 <body>
 
-  <header class="site">
-    <div class="logo-box">Logo</div>
-    <div class="header-mid">
-      <div class="field">Phone number
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path
-            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-        </svg>
-      </div>
-      <div class="field">Search ......
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-      </div>
+  <!-- ===================== HEADER ===================== -->
+<header class="site">
+  <div class="logo-box">Logo</div>
+  <div class="header-mid">
+    <div class="field">Phone number
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path
+          d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+      </svg>
     </div>
-    <div class="header-right">
-      <div class="icon-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-          <path
-            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" />
-        </svg>
-      </div>
-      <div class="icon-btn">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="9" cy="21" r="1" />
-          <circle cx="20" cy="21" r="1" />
-          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-        </svg>
-      </div>
-      <div class="user-chip">
-        <div class="avatar">
-          <svg viewBox="0 0 34 34">
-            <rect width="34" height="34" fill="#C9A98A" />
-            <circle cx="17" cy="13" r="6" fill="#8A6A4B" />
-            <ellipse cx="17" cy="30" rx="11" ry="9" fill="#8A6A4B" />
-          </svg>
-        </div>
-        @Ross95
-      </div>
+    <div class="field">Search ......
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
     </div>
-  </header>
+  </div>
+  <div class="header-right">
+    <div class="icon-btn">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
+        <path
+          d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" />
+      </svg>
+    </div>
+    <div class="icon-btn">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="9" cy="21" r="1" />
+        <circle cx="20" cy="21" r="1" />
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+      </svg>
+    </div>
+    <div class="user-chip">
+      <div class="avatar">
+        <svg viewBox="0 0 34 34">
+          <rect width="34" height="34" fill="#C9A98A" />
+          <circle cx="17" cy="13" r="6" fill="#8A6A4B" />
+          <ellipse cx="17" cy="30" rx="11" ry="9" fill="#8A6A4B" />
+        </svg>
+      </div>
+      @Ross95
+    </div>
+  </div>
+</header>
 
-  <nav class="main">
-    <a href="#">HOME</a>
-    <a href="#">CATEGORIES</a>
-    <a href="#">ABOUT US</a>
-    <a href="#">CONTACT US</a>
-  </nav>
+<nav class="main">
+  <a href="#">HOME</a>
+  <a href="#">CATEGORIES</a>
+  <a href="#">ABOUT US</a>
+  <a href="#">CONTACT US</a>
+</nav>
 
-  <section class="hero">
-    <h1>CART</h1>
-    <div class="crumb">Home / <span>Cart</span></div>
-  </section>
+<section class="hero">
+  <h1>CART</h1>
+  <div class="crumb">Home / <span>Cart</span></div>
+</section>
 
   <div class="wrap">
-    <!-- CART PANEL -->
-    <div class="cart-panel">
-      <div class="cart-head">
-        <label class="select-all">
-          <input type="checkbox" id="selectAll">
-          SELECT ALL(<span id="itemCount">4</span> products)
-        </label>
-        <button class="delete-link" id="deleteBtn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" />
-          </svg>
-          DELETE
-        </button>
-      </div>
-
-      <div id="cartItems"></div>
-    </div>
-
-    <!-- ORDER SUMMARY -->
-    <aside class="summary">
-      <h2>Order Summary</h2>
-      <div class="sum-row"><span class="label">Sub-total</span><span class="value" id="subtotal">Rs. 1200</span></div>
-      <div class="sum-row discount"><span class="label">Discount</span><span class="value">15%</span></div>
-      <div class="sum-row"><span class="label">VAT / TAX</span><span class="value">Rs. 0</span></div>
-      <div class="sum-row"><span class="label">Shipping charge</span><span class="value">Rs. 100</span></div>
-      <div class="sum-row final"><span class="label">Final total</span><span class="value" id="finaltotal">Rs.
-          1000</span></div>
-
-      <div class="coupon-label">Have discount code or coupon ?</div>
-      <div class="coupon-row">
-        <input type="text" placeholder="Enter coupon">
-        <button id="applyBtn">Apply</button>
-      </div>
-
-      <hr class="divider">
-
-      <div class="delivery-label">Choose Delivery Service !</div>
-      <label class="delivery-opt"><input type="checkbox" name="delivery" checked> Home Delivery</label>
-      <label class="delivery-opt"><input type="checkbox" name="delivery"> Pick up at store</label>
-
-      <div class="total-row">
-        <span class="t-label">Total</span>
-        <span class="t-value" id="grandtotal">Rs.1000</span>
-      </div>
-      <button class="pay-btn">Pay Now</button>
-    </aside>
+    <!-- ===================== CART PANEL ===================== -->
+<div class="cart-panel">
+  <div class="cart-head">
+    <label class="select-all">
+      <input type="checkbox" id="selectAll">
+      SELECT ALL(<span id="itemCount">4</span> products)
+    </label>
+    <button class="delete-link" id="deleteBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" />
+      </svg>
+      DELETE
+    </button>
   </div>
 
-  <!-- YOU MAY ALSO LIKE -->
-  <section class="recs">
-    <div class="recs-head">
-      <h2>You may also like</h2>
-      <hr>
-      <div class="recs-nav">
-        <button>&lt;</button>
-        <button>&gt;</button>
+  <div id="cartItems"></div>
+</div>
+
+    <!-- ===================== ORDER SUMMARY ===================== -->
+<aside class="summary">
+  <h2>Order Summary</h2>
+  <div class="sum-row"><span class="label">Sub-total</span><span class="value" id="subtotal">Rs. 1200</span></div>
+  <div class="sum-row discount"><span class="label">Discount</span><span class="value">15%</span></div>
+  <div class="sum-row"><span class="label">VAT / TAX</span><span class="value">Rs. 0</span></div>
+  <div class="sum-row"><span class="label">Shipping charge</span><span class="value">Rs. 100</span></div>
+  <div class="sum-row final"><span class="label">Final total</span><span class="value" id="finaltotal">Rs. 1000</span></div>
+
+  <div class="coupon-label">Have discount code or coupon ?</div>
+  <div class="coupon-row">
+    <input type="text" placeholder="Enter coupon">
+    <button id="applyBtn">Apply</button>
+  </div>
+
+  <hr class="divider">
+
+  <div class="delivery-label">Choose Delivery Service !</div>
+  <label class="delivery-opt"><input type="checkbox" name="delivery" checked> Home Delivery</label>
+  <label class="delivery-opt"><input type="checkbox" name="delivery"> Pick up at store</label>
+
+  <div class="total-row">
+    <span class="t-label">Total</span>
+    <span class="t-value" id="grandtotal">Rs.1000</span>
+  </div>
+  <button class="pay-btn">Pay Now</button>
+</aside>
+
+  </div>
+
+  <!-- ===================== YOU MAY ALSO LIKE ===================== -->
+<section class="recs">
+  <div class="recs-head">
+    <h2>You may also like</h2>
+    <hr>
+    <div class="recs-nav">
+      <button>&lt;</button>
+      <button>&gt;</button>
+    </div>
+  </div>
+
+  <div class="rec-grid">
+    <div class="rec-card">
+      <div class="rec-img img-fish">
+        <span class="rec-tag">Meat , Egg and Fish</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
+          <path
+            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+          </path>
+        </svg>
+      </div>
+      <div class="rec-info">
+        <div class="name-row"><span>Tuna Fish</span><span class="stock in">&#10003; In Stock</span></div>
+        <div class="rec-price-label">By weight per kg</div>
+        <div class="rec-price">rs. 1200</div>
+        <div class="rec-btns">
+          <button class="btn-outline">Add to Cart</button>
+          <button class="btn-fill">Buy Now</button>
+        </div>
       </div>
     </div>
 
-    <div class="rec-grid">
-      <div class="rec-card">
-        <div class="rec-img img-fish">
-          <span class="rec-tag">Meat , Egg and Fish</span>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-            <path
-              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-            </path>
-          </svg>
-        </div>
-        <div class="rec-info">
-          <div class="name-row"><span>Tuna Fish</span><span class="stock in">&#10003; In Stock</span></div>
-          <div class="rec-price-label">By weight per kg</div>
-          <div class="rec-price">rs. 1200</div>
-          <div class="rec-btns">
-            <button class="btn-outline">Add to Cart</button>
-            <button class="btn-fill">Buy Now</button>
-          </div>
-        </div>
+    <div class="rec-card">
+      <div class="rec-img img-baby">
+        <span class="rec-tag">Baby care</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
+          <path
+            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+          </path>
+        </svg>
       </div>
-
-      <div class="rec-card">
-        <div class="rec-img img-baby">
-          <span class="rec-tag">Baby care</span>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-            <path
-              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-            </path>
-          </svg>
-        </div>
-        <div class="rec-info">
-          <div class="name-row"><span>Baby shampoo</span><span class="stock out">&#10005; Out of Stock</span></div>
-          <div class="rec-price-label">Price</div>
-          <div class="rec-price">rs. 1200</div>
-          <div class="rec-btns">
-            <button class="btn-outline">Add to Cart</button>
-            <button class="btn-fill">Buy Now</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="rec-card">
-        <div class="rec-img img-potato">
-          <span class="rec-tag">Vegetables and fruits</span>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-            <path
-              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-            </path>
-          </svg>
-        </div>
-        <div class="rec-info">
-          <div class="name-row"><span>Local Potato</span><span class="stock in">&#10003; In Stock</span></div>
-          <div class="rec-price-label">by weight per kg</div>
-          <div class="rec-price">rs. 1200</div>
-          <div class="rec-btns">
-            <button class="btn-outline">Add to Cart</button>
-            <button class="btn-fill">Buy Now</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="rec-card">
-        <div class="rec-img img-atta">
-          <span class="rec-tag">Atta and Rice</span>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-            <path
-              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
-            </path>
-          </svg>
-        </div>
-        <div class="rec-info">
-          <div class="name-row"><span>Chaaki Atta</span><span class="stock in">&#10003; In Stock</span></div>
-          <div class="rec-price-label">by weight per kg</div>
-          <div class="rec-price">rs. 1200</div>
-          <div class="rec-btns">
-            <button class="btn-outline">Add to Cart</button>
-            <button class="btn-fill">Buy Now</button>
-          </div>
+      <div class="rec-info">
+        <div class="name-row"><span>Baby shampoo</span><span class="stock out">&#10005; Out of Stock</span></div>
+        <div class="rec-price-label">Price</div>
+        <div class="rec-price">rs. 1200</div>
+        <div class="rec-btns">
+          <button class="btn-outline">Add to Cart</button>
+          <button class="btn-fill">Buy Now</button>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-inner">
-      <div class="foot-col">
-        <div class="logo-box" style="background:#fff;color:#17532C;">Logo</div>
-        <p class="brand-blurb">Everything You Need, All in One Cart.<br>&#127808; Fresh Groceries, Delivered with Care.
-        </p>
-        <div class="socials">
-          <a href="#">&#128247;</a>
-          <a href="#">&#128038;</a>
-          <a href="#">f</a>
+    <div class="rec-card">
+      <div class="rec-img img-potato">
+        <span class="rec-tag">Vegetables and fruits</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
+          <path
+            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+          </path>
+        </svg>
+      </div>
+      <div class="rec-info">
+        <div class="name-row"><span>Local Potato</span><span class="stock in">&#10003; In Stock</span></div>
+        <div class="rec-price-label">by weight per kg</div>
+        <div class="rec-price">rs. 1200</div>
+        <div class="rec-btns">
+          <button class="btn-outline">Add to Cart</button>
+          <button class="btn-fill">Buy Now</button>
         </div>
       </div>
-      <div class="foot-col center">
-        <h3>SHOP</h3>
-        <ul>
-          <li>Meat, Fish and Egg</li>
-          <li>Bakery and Bread</li>
-          <li>Soft Drinks</li>
-          <li>Salt and Spices</li>
-          <li>Atta, Rice and Daal</li>
-          <li>Water and Gas</li>
-          <li>Alcohol</li>
-        </ul>
+    </div>
+
+    <div class="rec-card">
+      <div class="rec-img img-atta">
+        <span class="rec-tag">Atta and Rice</span>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
+          <path
+            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z">
+          </path>
+        </svg>
       </div>
-      <div class="foot-col center">
-        <h3>CUSTOMER SERVICE</h3>
-        <ul>
-          <li>Home</li>
-          <li>About us</li>
-          <li>Terms and Conditions</li>
-          <li>Return Policies</li>
-          <li>Delivery Methods</li>
-          <li>Payment methods</li>
-        </ul>
-      </div>
-      <div class="foot-col contact-col">
-        <h3>CONTACT US</h3>
-        <ul class="contact-list">
-          <li>&#128205; Location</li>
-          <li>&#128222; Phone</li>
-          <li>&#9993; Email</li>
-          <li>&#128340; Open : 9:00 am</li>
-          <li class="close-time">Close : 8:00 pm</li>
-        </ul>
+      <div class="rec-info">
+        <div class="name-row"><span>Chaaki Atta</span><span class="stock in">&#10003; In Stock</span></div>
+        <div class="rec-price-label">by weight per kg</div>
+        <div class="rec-price">rs. 1200</div>
+        <div class="rec-btns">
+          <button class="btn-outline">Add to Cart</button>
+          <button class="btn-fill">Buy Now</button>
+        </div>
       </div>
     </div>
-  </footer>
+  </div>
+</section>
+
+  <!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="footer-inner">
+    <div class="foot-col">
+      <div class="logo-box" style="background:#fff;color:#17532C;">Logo</div>
+      <p class="brand-blurb">Everything You Need, All in One Cart.<br>&#127808; Fresh Groceries, Delivered with Care.
+      </p>
+      <div class="socials">
+        <a href="#">&#128247;</a>
+        <a href="#">&#128038;</a>
+        <a href="#">f</a>
+      </div>
+    </div>
+    <div class="foot-col center">
+      <h3>SHOP</h3>
+      <ul>
+        <li>Meat, Fish and Egg</li>
+        <li>Bakery and Bread</li>
+        <li>Soft Drinks</li>
+        <li>Salt and Spices</li>
+        <li>Atta, Rice and Daal</li>
+        <li>Water and Gas</li>
+        <li>Alcohol</li>
+      </ul>
+    </div>
+    <div class="foot-col center">
+      <h3>CUSTOMER SERVICE</h3>
+      <ul>
+        <li>Home</li>
+        <li>About us</li>
+        <li>Terms and Conditions</li>
+        <li>Return Policies</li>
+        <li>Delivery Methods</li>
+        <li>Payment methods</li>
+      </ul>
+    </div>
+    <div class="foot-col contact-col">
+      <h3>CONTACT US</h3>
+      <ul class="contact-list">
+        <li>&#128205; Location</li>
+        <li>&#128222; Phone</li>
+        <li>&#9993; Email</li>
+        <li>&#128340; Open : 9:00 am</li>
+        <li class="close-time">Close : 8:00 pm</li>
+      </ul>
+    </div>
+  </div>
+</footer>
 
   <script>
-    const products = [
-      {
-        id: 1, name: 'Sprite', image: 'spriteee.jpg', badge: '15% off',
-        oldPrice: 2000, price: 150, qty: 1,
-        weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
-      },
-      {
-        id: 2, name: 'Ketchup', image: 'ketchup.jpg', badge: null,
-        oldPrice: null, price: 280, qty: 1,
-        weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
-      },
-      {
-        id: 3, name: 'Shin-Ramen', image: 'shinramen.jpg', badge: null,
-        oldPrice: null, price: 180, qty: 1,
-        weights: ['500gm', '1kg', '2kg', '3kg'], activeWeight: 1
-      },
-      {
-        id: 4, name: 'Green Tea', image: 'chiya.jpg', badge: null,
-        oldPrice: null, price: 1200, qty: 1,
-        weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
-      }
-    ];
+const products = [
+  {
+    id: 1, name: 'Sprite', image: 'spriteee.jpg', badge: '15% off',
+    oldPrice: 2000, price: 150, qty: 1,
+    weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
+  },
+  {
+    id: 2, name: 'Ketchup', image: 'ketchup.jpg', badge: null,
+    oldPrice: null, price: 280, qty: 1,
+    weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
+  },
+  {
+    id: 3, name: 'Shin-Ramen', image: 'shinramen.jpg', badge: null,
+    oldPrice: null, price: 180, qty: 1,
+    weights: ['500gm', '1kg', '2kg', '3kg'], activeWeight: 1
+  },
+  {
+    id: 4, name: 'Green Tea', image: 'chiya.jpg', badge: null,
+    oldPrice: null, price: 1200, qty: 1,
+    weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
+  }
+];
 
-    const selected = new Set(products.map(p => p.id));
+const selected = new Set(products.map(p => p.id));
 
-    function fmt(n) { return 'Rs. ' + n.toLocaleString(); }
+function fmt(n) { return 'Rs. ' + n.toLocaleString(); }
 
-    function render() {
-      const container = document.getElementById('cartItems');
-      container.innerHTML = '';
-      products.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'cart-item';
-        div.innerHTML = `
+function render() {
+  const container = document.getElementById('cartItems');
+  if (!container) return;
+  container.innerHTML = '';
+  products.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.innerHTML = `
       <input type="checkbox" class="item-check" data-id="${p.id}" ${selected.has(p.id) ? 'checked' : ''}>
       <div class="item-thumb">
   <img src="${p.image}" alt="${p.name}">
@@ -1105,30 +1268,42 @@
         </div>
       </div>
     `;
-        container.appendChild(div);
-      });
-      updateHeadCount();
-      updateSummary();
-    }
+    container.appendChild(div);
+  });
+  updateHeadCount();
+  updateSummary();
+}
 
-    function updateHeadCount() {
-      document.getElementById('itemCount').textContent = products.length;
-      document.getElementById('selectAll').checked = selected.size === products.length && products.length > 0;
-    }
+function updateHeadCount() {
+  const itemCount = document.getElementById('itemCount');
+  const selectAll = document.getElementById('selectAll');
+  if (itemCount) itemCount.textContent = products.length;
+  if (selectAll) selectAll.checked = selected.size === products.length && products.length > 0;
+}
 
-    function updateSummary() {
-      const items = products.filter(p => selected.has(p.id));
-      const subtotal = items.reduce((s, p) => s + p.price * p.qty, 0);
-      const discountRate = 0.15;
-      const shipping = items.length ? 100 : 0;
-      const discount = Math.round(subtotal * discountRate);
-      const finalTotal = subtotal - discount;
-      document.getElementById('subtotal').textContent = fmt(subtotal);
-      document.getElementById('finaltotal').textContent = fmt(finalTotal);
-      document.getElementById('grandtotal').textContent = 'Rs.' + finalTotal.toLocaleString();
-    }
+function updateSummary() {
+  const items = products.filter(p => selected.has(p.id));
+  const subtotal = items.reduce((s, p) => s + p.price * p.qty, 0);
+  const discountRate = 0.15;
+  const discount = Math.round(subtotal * discountRate);
+  const finalTotal = subtotal - discount;
 
-    document.getElementById('cartItems').addEventListener('click', (e) => {
+  const subtotalEl = document.getElementById('subtotal');
+  const finalTotalEl = document.getElementById('finaltotal');
+  const grandTotalEl = document.getElementById('grandtotal');
+  if (subtotalEl) subtotalEl.textContent = fmt(subtotal);
+  if (finalTotalEl) finalTotalEl.textContent = fmt(finalTotal);
+  if (grandTotalEl) grandTotalEl.textContent = 'Rs.' + finalTotal.toLocaleString();
+}
+
+function initCartEvents() {
+  const cartItems = document.getElementById('cartItems');
+  const selectAll = document.getElementById('selectAll');
+  const deleteBtn = document.getElementById('deleteBtn');
+  const applyBtn = document.getElementById('applyBtn');
+
+  if (cartItems) {
+    cartItems.addEventListener('click', (e) => {
       const inc = e.target.closest('[data-inc]');
       const dec = e.target.closest('[data-dec]');
       const rm = e.target.closest('[data-remove]');
@@ -1157,7 +1332,7 @@
       }
     });
 
-    document.getElementById('cartItems').addEventListener('change', (e) => {
+    cartItems.addEventListener('change', (e) => {
       if (e.target.classList.contains('item-check')) {
         const id = Number(e.target.dataset.id);
         if (e.target.checked) selected.add(id); else selected.delete(id);
@@ -1165,8 +1340,10 @@
         updateSummary();
       }
     });
+  }
 
-    document.getElementById('selectAll').addEventListener('change', (e) => {
+  if (selectAll) {
+    selectAll.addEventListener('change', (e) => {
       if (e.target.checked) {
         products.forEach(p => selected.add(p.id));
       } else {
@@ -1174,8 +1351,10 @@
       }
       render();
     });
+  }
 
-    document.getElementById('deleteBtn').addEventListener('click', () => {
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', () => {
       for (let i = products.length - 1; i >= 0; i--) {
         if (selected.has(products[i].id)) {
           selected.delete(products[i].id);
@@ -1184,12 +1363,18 @@
       }
       render();
     });
+  }
 
-    document.getElementById('applyBtn').addEventListener('click', () => {
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
       updateSummary();
     });
+  }
 
-    render();
+  render();
+}
+
+    initCartEvents();
   </script>
 
 </body>
