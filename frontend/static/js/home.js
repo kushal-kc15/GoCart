@@ -1,30 +1,43 @@
-const newsletterForm = document.querySelector('.newsletter__form');
-const newsletterMessage = document.querySelector('.newsletter__message');
+const categoryGrid = document.getElementById("categoryGrid");
+if (categoryGrid) {
+  const categorySection = categoryGrid.closest("section");
+  const [catPrev, catNext] = categorySection.querySelectorAll(".slider-arrows button");
+  if (catPrev) catPrev.addEventListener("click", () => categoryGrid.scrollBy({ left: -180, behavior: "smooth" }));
+  if (catNext) catNext.addEventListener("click", () => categoryGrid.scrollBy({ left: 180, behavior: "smooth" }));
+}
+// ---------- Feature & Popular Products sliders ----------
+function setupProductSlider(trackId, prevBtnId, nextBtnId) {
+  const track = document.getElementById(trackId);
+  const prevBtn = document.getElementById(prevBtnId);
+  const nextBtn = document.getElementById(nextBtnId);
 
-newsletterForm?.addEventListener('submit', (event) => {
-  event.preventDefault();
+  if (!track || !prevBtn || !nextBtn) return;
 
-  if (!newsletterForm.checkValidity()) {
-    newsletterForm.reportValidity();
-    return;
+  const cardWidth = 260;
+  const gap = 20;
+  const step = cardWidth + gap;
+
+  let currentIndex = 0;
+
+  function updateTrackPosition() {
+    track.style.transform = `translateX(${-currentIndex * step}px)`;
   }
 
-  const emailInput = newsletterForm.querySelector('input[type="email"]');
-  if (!emailInput || !newsletterMessage) return;
+  nextBtn.addEventListener("click", () => {
+    const totalCards = track.children.length;
+    if (currentIndex < totalCards - 1) {
+      currentIndex++;
+      updateTrackPosition();
+    }
+  });
 
-  newsletterMessage.textContent = `You're on the list — fresh updates are heading to ${emailInput.value}.`;
-  newsletterForm.reset();
-});
+  prevBtn.addEventListener("click", () => {
+    if (currentIndex > 0) {
+      currentIndex--;
+      updateTrackPosition();
+    }
+  });
+}
 
-const categoryGrid = document.querySelector('.category-grid');
-categoryGrid?.addEventListener('keydown', (event) => {
-  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-
-  const cards = [...categoryGrid.querySelectorAll('.category-card')];
-  const currentIndex = cards.indexOf(document.activeElement);
-  if (currentIndex < 0) return;
-
-  event.preventDefault();
-  const direction = event.key === 'ArrowRight' ? 1 : -1;
-  cards[(currentIndex + direction + cards.length) % cards.length].focus();
-});
+setupProductSlider("featureTrack", "featurePrev", "featureNext");
+setupProductSlider("popularTrack", "popularPrev", "popularNext");
