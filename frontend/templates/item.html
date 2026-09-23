@@ -76,6 +76,8 @@
     position:relative;
   }
   .heart-icon{color:#c0392b;}
+  .heart-icon.active{color:#c0392b;}
+  .heart-icon.inactive{color:#b9b6a8;}
   .user-chip{
     display:flex;align-items:center;gap:8px;
     font-size:13px;font-weight:600;
@@ -152,9 +154,12 @@
     border-radius:6px;
     background:#5c4a35;
     flex-shrink:0;
+    cursor:pointer;
+    border:2px solid transparent;
   }
   .thumb.t2{background:#3d3527;}
   .thumb.t3{background:#8a6f6f;}
+  .thumb.active-thumb{border-color:var(--green);}
 
   .product-info{
     flex:1;
@@ -417,7 +422,10 @@
     display:flex;
     align-items:center;
     gap:6px;
+    cursor:pointer;
+    user-select:none;
   }
+  .rev-likes.liked{color:var(--green);font-weight:700;}
 
   /* ===== RELATED PRODUCTS ===== */
   .related-heading-row{
@@ -468,6 +476,7 @@
     display:flex;align-items:center;justify-content:center;
     font-size:13px;
     color:#c0392b;
+    cursor:pointer;
   }
   .rp-body{padding:12px 14px 16px;}
   .rp-cat{font-size:10px;color:var(--muted);}
@@ -511,6 +520,10 @@
     background:var(--green);
     border:1px solid var(--green);
     color:var(--white);
+  }
+  .rp-actions button:disabled{
+    opacity:.5;
+    cursor:not-allowed;
   }
 
   /* ===== FOOTER ===== */
@@ -566,6 +579,28 @@
     font-size:14px;
   }
 
+  /* ===== TOAST ===== */
+  #toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--green-dark);
+    color:#fff;
+    padding:12px 22px;
+    border-radius:6px;
+    font-size:13px;
+    font-weight:600;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:999;
+  }
+  #toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
   @media (max-width:900px){
     .related-grid{grid-template-columns:repeat(2,1fr);}
     .footer-grid{grid-template-columns:1fr 1fr;}
@@ -587,8 +622,11 @@
     <div class="search-field">🔍&nbsp; Search...</div>
   </div>
   <div class="topbar-icons">
-    <div class="icon-btn heart-icon">♥</div>
-    <div class="icon-btn">🛒</div>
+    <div class="icon-btn heart-icon" id="wishlistIcon" title="Wishlist">♥</div>
+    <div class="icon-btn" id="cartIcon" title="Cart">
+      🛒
+      <span id="cartBadge" style="display:none;position:absolute;top:-8px;right:-10px;background:var(--green);color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:16px;height:16px;align-items:center;justify-content:center;">0</span>
+    </div>
     <div class="user-chip">
       <div class="avatar"></div>
       @Ross95
@@ -612,9 +650,9 @@
   <div class="product-gallery">
     <div class="main-image"></div>
     <div class="thumb-row">
-      <div class="thumb"></div>
-      <div class="thumb t2"></div>
-      <div class="thumb t3"></div>
+      <div class="thumb active-thumb" onclick="selectThumb(this)"></div>
+      <div class="thumb t2" onclick="selectThumb(this)"></div>
+      <div class="thumb t3" onclick="selectThumb(this)"></div>
     </div>
   </div>
 
@@ -631,10 +669,10 @@
 
     <div class="weight-label">Weight :</div>
     <div class="weight-opts">
-      <button>500 g</button>
-      <button class="active">1 kg</button>
-      <button>2 kg</button>
-      <button>5 kg</button>
+      <button onclick="selectWeight(this)">500 g</button>
+      <button class="active" onclick="selectWeight(this)">1 kg</button>
+      <button onclick="selectWeight(this)">2 kg</button>
+      <button onclick="selectWeight(this)">5 kg</button>
     </div>
 
     <div class="buy-row">
@@ -643,8 +681,8 @@
         <span id="qtyVal">1</span>
         <button onclick="changeQty(1)">+</button>
       </div>
-      <button class="btn btn-buy">Buy Now</button>
-      <button class="btn btn-cart">Add to Cart</button>
+      <button class="btn btn-buy" onclick="buyNow('Local Potato')">Buy Now</button>
+      <button class="btn btn-cart" onclick="addToCart('Local Potato')">Add to Cart</button>
     </div>
 
     <div class="divider"></div>
@@ -673,7 +711,7 @@
   <div class="review-cta">
     <h3>Review this product</h3>
     <p>Share your thoughts with other customer</p>
-    <button>Write a review</button>
+    <button onclick="writeReview()">Write a review</button>
   </div>
 </section>
 
@@ -687,7 +725,7 @@
       </div>
       <div class="rev-stars">★★★★☆</div>
       <p class="rev-text">Excellent service from start to finish. The potatoes looked freshly harvested and had a natural flavor that made our meals taste even better. Delivery was quick, and the products arrived exactly as shown on the website. It's convenient to shop from home without worrying about freshness. Highly recommended!</p>
-      <div class="rev-likes">👍 200 likes</div>
+      <div class="rev-likes" onclick="toggleLike(this,200)">👍 200 likes</div>
     </div>
   </div>
 
@@ -700,7 +738,7 @@
       </div>
       <div class="rev-stars">★★★★☆</div>
       <p class="rev-text">Bhakari has become my go-to grocery store online. The local potatoes were fresh, naturally grown, and perfect for daily cooking. Delivery was punctual, and customer service kept me updated throughout the order. It's refreshing to find an online grocery platform that truly delivers on quality and freshness.</p>
-      <div class="rev-likes">👍 150 likes</div>
+      <div class="rev-likes" onclick="toggleLike(this,150)">👍 150 likes</div>
     </div>
   </div>
 
@@ -713,7 +751,7 @@
       </div>
       <div class="rev-stars">★★★★☆</div>
       <p class="rev-text">The potatoes were exactly what I was hoping for—fresh, flavorful, and great for making curries, fries, and mashed potatoes. They arrived in perfect condition, and the delivery was quicker than expected. Bhakari made grocery shopping simple and stress-free. I highly recommend it to anyone looking for quality local produce.</p>
-      <div class="rev-likes">👍 100 likes</div>
+      <div class="rev-likes" onclick="toggleLike(this,100)">👍 100 likes</div>
     </div>
   </div>
 </div>
@@ -721,60 +759,60 @@
 <div class="related-heading-row">
   <h3>You may also like</h3>
   <div class="related-nav">
-    <button>‹</button>
-    <button>›</button>
+    <button onclick="scrollRelated(-1)">‹</button>
+    <button onclick="scrollRelated(1)">›</button>
   </div>
 </div>
 
-<div class="related-grid">
+<div class="related-grid" id="relatedGrid">
   <div class="rp-card">
-    <div class="rp-image meat"><div class="rp-fav">♡</div></div>
+    <div class="rp-image meat"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Meat , Egg and Fish</div>
       <div class="rp-title-row"><span class="name">Tuna Fish</span><span class="rp-stock">In Stock</span></div>
       <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
       <div class="rp-actions">
-        <button class="add">Add to Cart</button>
-        <button class="buy">Buy Now</button>
+        <button class="add" onclick="addToCart('Tuna Fish')">Add to Cart</button>
+        <button class="buy" onclick="buyNow('Tuna Fish')">Buy Now</button>
       </div>
     </div>
   </div>
 
   <div class="rp-card">
-    <div class="rp-image baby"><div class="rp-fav">♡</div></div>
+    <div class="rp-image baby"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Baby care</div>
       <div class="rp-title-row"><span class="name">Baby shampoo</span><span class="rp-stock out">Out of Stock</span></div>
       <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
       <div class="rp-actions">
-        <button class="add">Add to Cart</button>
-        <button class="buy">Buy Now</button>
+        <button class="add" disabled>Add to Cart</button>
+        <button class="buy" disabled>Buy Now</button>
       </div>
     </div>
   </div>
 
   <div class="rp-card">
-    <div class="rp-image"><div class="rp-fav">♡</div></div>
+    <div class="rp-image"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Vegetables and fruits</div>
       <div class="rp-title-row"><span class="name">Local Potato</span><span class="rp-stock">In Stock</span></div>
       <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
       <div class="rp-actions">
-        <button class="add">Add to Cart</button>
-        <button class="buy">Buy Now</button>
+        <button class="add" onclick="addToCart('Local Potato')">Add to Cart</button>
+        <button class="buy" onclick="buyNow('Local Potato')">Buy Now</button>
       </div>
     </div>
   </div>
 
   <div class="rp-card">
-    <div class="rp-image atta"><div class="rp-fav">♡</div></div>
+    <div class="rp-image atta"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Atta and Rice</div>
       <div class="rp-title-row"><span class="name">Chaaki Atta</span><span class="rp-stock">In Stock</span></div>
       <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
       <div class="rp-actions">
-        <button class="add">Add to Cart</button>
-        <button class="buy">Buy Now</button>
+        <button class="add" onclick="addToCart('Chaaki Atta')">Add to Cart</button>
+        <button class="buy" onclick="buyNow('Chaaki Atta')">Buy Now</button>
       </div>
     </div>
   </div>
@@ -824,18 +862,82 @@
   </div>
 </footer>
 
+<div id="toast"></div>
+
 <script>
+  // ---- Toast helper ----
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> t.classList.remove('show'), 1800);
+  }
+
+  // ---- Quantity selector ----
   let qty = 1;
   function changeQty(delta){
     qty = Math.max(1, qty + delta);
     document.getElementById('qtyVal').textContent = qty;
   }
-  document.querySelectorAll('.weight-opts button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.weight-opts button').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-    });
+
+  // ---- Weight selector ----
+  function selectWeight(btn){
+    document.querySelectorAll('.weight-opts button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // ---- Gallery thumbnails ----
+  function selectThumb(el){
+    document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active-thumb'));
+    el.classList.add('active-thumb');
+  }
+
+  // ---- Cart ----
+  let cartCount = 0;
+  const cartBadge = document.getElementById('cartBadge');
+  function addToCart(name){
+    cartCount++;
+    cartBadge.textContent = cartCount;
+    cartBadge.style.display = 'flex';
+    showToast(name + ' added to cart');
+  }
+  function buyNow(name){
+    showToast('Proceeding to checkout for ' + name);
+  }
+
+  // ---- Wishlist icon (header) ----
+  const wishlistIcon = document.getElementById('wishlistIcon');
+  let wishlistOn = true;
+  wishlistIcon.addEventListener('click', ()=>{
+    wishlistOn = !wishlistOn;
+    wishlistIcon.style.color = wishlistOn ? '#c0392b' : '#b9b6a8';
   });
+
+  // ---- Favorite hearts on related product cards ----
+  function toggleFav(el){
+    const isFav = el.textContent.trim() === '♥';
+    el.textContent = isFav ? '♡' : '♥';
+    el.style.color = isFav ? '#c0392b' : '#c0392b';
+  }
+
+  // ---- Review like toggle ----
+  function toggleLike(el, base){
+    const liked = el.classList.toggle('liked');
+    el.innerHTML = (liked ? '👍 ' : '👍 ') + (liked ? base + 1 : base) + ' likes';
+  }
+
+  // ---- Write a review ----
+  function writeReview(){
+    showToast('Review form would open here');
+  }
+
+  // ---- Related products carousel scroll ----
+  function scrollRelated(dir){
+    const grid = document.getElementById('relatedGrid');
+    grid.scrollBy({left: dir * 280, behavior:'smooth'});
+  }
 </script>
 
 </body>
