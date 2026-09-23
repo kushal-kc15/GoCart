@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shop — Local Potato</title>
+<style>
+  :root{
+    --cream:#f4f1e6;
+    --cream-2:#efece0;
+    --green:#1c5c3a;
+    --green-dark:#164a2f;
+    --gold:#f6b93b;
+    --text:#1f1f1f;
+    --muted:#8a8a80;
+    --border:#e3ded0;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    background:var(--cream);
+    color:var(--text);
+  }
+  a{text-decoration:none;color:inherit;}
+  img{max-width:100%;display:block;}
+  ul{list-style:none;}
+
+  /* ===== HEADER ===== */
+  header.topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 5%;
+    background:var(--cream);
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .logo-box{
+    width:80px;height:36px;
+    background:#d8d4c4;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#666;
+    font-size:13px;
+    border-radius:2px;
+  }
+  .topbar-search{
+    display:flex;
+    gap:10px;
+    flex:1;
+    max-width:640px;
+    margin:0 20px;
+  }
+  .search-field{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--white);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:8px 14px;
+    flex:1;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .topbar-icons{
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+  .icon-btn{
+    width:20px;height:20px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--text);
+    cursor:pointer;
+    position:relative;
+  }
+  .heart-icon{color:#c0392b;}
+  .user-chip{
+    display:flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:600;
+  }
+  .avatar{
+    width:32px;height:32px;border-radius:50%;
+    background:linear-gradient(135deg,#e8b98c,#c9895a);
+  }
+
+  nav.mainnav{
+    display:flex;
+    justify-content:center;
+    gap:48px;
+    padding:14px 0;
+    border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    font-size:13px;
+    letter-spacing:.03em;
+    font-weight:600;
+  }
+  nav.mainnav a{opacity:.85;}
+  nav.mainnav a:hover{opacity:1;color:var(--green);}
+
+  /* ===== HERO ===== */
+  .hero{
+    text-align:center;
+    padding:56px 20px 40px;
+  }
+  .hero h1{
+    font-size:44px;
+    letter-spacing:.06em;
+    font-weight:800;
+  }
+  .breadcrumb{
+    margin-top:10px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .breadcrumb span.current{color:var(--green);font-weight:600;}
+
+  /* ===== PRODUCT SECTION ===== */
+  .product-wrap{
+    display:flex;
+    gap:40px;
+    max-width:1000px;
+    margin:0 auto;
+    padding:0 5% 40px;
+    flex-wrap:wrap;
+  }
+  .product-gallery{
+    flex:1;
+    min-width:280px;
+  }
+  .main-image{
+    width:100%;
+    aspect-ratio:1/0.95;
+    border-radius:6px;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 20% 30%, #c9a15c 0 40px, transparent 41px),
+      radial-gradient(circle at 60% 20%, #b98d4a 0 55px, transparent 56px),
+      radial-gradient(circle at 80% 60%, #cfa869 0 60px, transparent 61px),
+      radial-gradient(circle at 35% 70%, #b78c4c 0 50px, transparent 51px),
+      radial-gradient(circle at 55% 55%, #d4b077 0 45px, transparent 46px),
+      #a98042;
+  }
+  .thumb-row{
+    display:flex;
+    gap:12px;
+    margin-top:12px;
+  }
+  .thumb{
+    width:80px;height:80px;
+    border-radius:6px;
+    background:#5c4a35;
+    flex-shrink:0;
+  }
+  .thumb.t2{background:#3d3527;}
+  .thumb.t3{background:#8a6f6f;}
+
+  .product-info{
+    flex:1;
+    min-width:280px;
+    padding-top:4px;
+  }
+  .cat-label{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .prod-title-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:6px;
+  }
+  .prod-title-row h2{
+    font-size:26px;
+    font-weight:700;
+  }
+  .stock-badge{
+    font-size:11px;
+    color:var(--green);
+    background:#e5f3ea;
+    padding:4px 10px;
+    border-radius:20px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .price{
+    margin-top:14px;
+    font-size:22px;
+    font-weight:800;
+  }
+  .price span{
+    font-size:13px;
+    font-weight:400;
+    color:var(--muted);
+  }
+  .desc{
+    margin-top:14px;
+    font-size:13px;
+    line-height:1.7;
+    color:#6d6a5f;
+    max-width:400px;
+  }
+  .divider{
+    height:1px;
+    background:var(--border);
+    margin:22px 0;
+  }
+  .weight-label{
+    font-size:13px;
+    color:var(--muted);
+    margin-bottom:10px;
+  }
+  .weight-opts{
+    display:flex;
+    gap:10px;
+  }
+  .weight-opts button{
+    padding:8px 16px;
+    border:1px solid var(--border);
+    background:var(--white);
+    border-radius:4px;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .weight-opts button.active{
+    background:var(--green);
+    color:var(--white);
+    border-color:var(--green);
+  }
+  .buy-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-top:24px;
+    flex-wrap:wrap;
+  }
+  .qty-selector{
+    display:flex;
+    align-items:center;
+    border:1px solid var(--border);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .qty-selector button{
+    background:var(--cream-2);
+    border:none;
+    width:34px;height:36px;
+    font-size:16px;
+    cursor:pointer;
+  }
+  .qty-selector span{
+    width:34px;
+    text-align:center;
+    font-size:14px;
+  }
+  .btn{
+    padding:10px 26px;
+    border-radius:4px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    border:1px solid transparent;
+  }
+  .btn-buy{
+    background:var(--green);
+    color:var(--white);
+  }
+  .btn-cart{
+    background:var(--white);
+    color:var(--green);
+    border-color:var(--green);
+  }
+
+  /* ===== RATINGS ===== */
+  .section-heading{
+    max-width:1000px;
+    margin:0 auto;
+    padding:0 5%;
+    font-size:18px;
+    font-weight:700;
+  }
+  hr.section-rule{
+    max-width:1000px;
+    margin:16px auto 30px;
+    border:none;
+    border-top:1px solid var(--border);
+  }
+
+  .ratings-wrap{
+    max-width:1000px;
+    margin:0 auto;
+    padding:0 5% 40px;
+    display:flex;
+    gap:40px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .rating-score{
+    text-align:center;
+    min-width:130px;
+  }
+  .rating-score .num{
+    font-size:40px;
+    font-weight:800;
+  }
+  .rating-score .out-of{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .stars{
+    color:var(--gold);
+    letter-spacing:2px;
+    margin:6px 0;
+  }
+  .rating-score .count{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .rating-bars{
+    flex:1;
+    min-width:220px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .bar-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .bar-track{
+    flex:1;
+    height:7px;
+    background:var(--border);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    background:var(--gold);
+  }
+  .review-cta{
+    text-align:center;
+    min-width:220px;
+  }
+  .review-cta h3{
+    font-size:16px;
+    margin-bottom:6px;
+  }
+  .review-cta p{
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:14px;
+  }
+  .review-cta button{
+    padding:9px 22px;
+    border:1px solid var(--green);
+    background:transparent;
+    color:var(--green);
+    border-radius:4px;
+    font-size:13px;
+    cursor:pointer;
+  }
+
+  /* ===== REVIEWS LIST ===== */
+  .reviews-list{
+    max-width:1000px;
+    margin:0 auto;
+    padding:0 5%;
+  }
+  .review-item{
+    display:flex;
+    gap:16px;
+    padding:24px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .rev-avatar{
+    width:44px;height:44px;
+    border-radius:50%;
+    flex-shrink:0;
+    background:linear-gradient(135deg,#e8b98c,#c9895a);
+  }
+  .rev-body{flex:1;}
+  .rev-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .rev-name{
+    font-weight:700;
+    font-size:14px;
+  }
+  .rev-date{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .rev-stars{
+    color:var(--gold);
+    font-size:12px;
+    margin:4px 0 8px;
+  }
+  .rev-text{
+    font-size:13px;
+    color:#5b584e;
+    line-height:1.6;
+    max-width:760px;
+  }
+  .rev-likes{
+    margin-top:10px;
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  /* ===== RELATED PRODUCTS ===== */
+  .related-heading-row{
+    max-width:1100px;
+    margin:60px auto 20px;
+    padding:0 5%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .related-heading-row h3{font-size:18px;font-weight:700;}
+  .related-nav{display:flex;gap:8px;}
+  .related-nav button{
+    width:28px;height:28px;
+    border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--white);
+    cursor:pointer;
+  }
+  .related-grid{
+    max-width:1100px;
+    margin:0 auto;
+    padding:0 5% 60px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+  }
+  .rp-card{
+    background:var(--white);
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .rp-image{
+    position:relative;
+    aspect-ratio:1/0.9;
+    background:#a98042;
+  }
+  .rp-image.meat{background:#c76b5e;}
+  .rp-image.baby{background:#dfe6ea;}
+  .rp-image.atta{background:#d8cbb0;}
+  .rp-fav{
+    position:absolute;
+    top:10px;right:10px;
+    width:26px;height:26px;
+    border-radius:50%;
+    background:rgba(255,255,255,.85);
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;
+    color:#c0392b;
+  }
+  .rp-body{padding:12px 14px 16px;}
+  .rp-cat{font-size:10px;color:var(--muted);}
+  .rp-title-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:4px;
+  }
+  .rp-title-row .name{font-size:13px;font-weight:700;}
+  .rp-stock{font-size:10px;color:var(--green);}
+  .rp-stock.out{color:#c0392b;}
+  .rp-price-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:6px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  .rp-price-row .price{font-size:13px;font-weight:700;color:var(--text);margin:0;}
+  .rp-actions{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+  }
+  .rp-actions button{
+    flex:1;
+    padding:7px 0;
+    font-size:11px;
+    border-radius:4px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .rp-actions .add{
+    background:var(--white);
+    border:1px solid var(--green);
+    color:var(--green);
+  }
+  .rp-actions .buy{
+    background:var(--green);
+    border:1px solid var(--green);
+    color:var(--white);
+  }
+
+  /* ===== FOOTER ===== */
+  footer{
+    background:var(--green-dark);
+    color:#dfe9e2;
+    padding:56px 5% 28px;
+  }
+  .footer-grid{
+    max-width:1100px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1.6fr 1fr 1fr 1fr;
+    gap:30px;
+  }
+  .footer-brand .logo-box{background:#eee;color:#333;}
+  .footer-brand p{
+    margin-top:14px;
+    font-size:12px;
+    line-height:1.7;
+    color:#b9ccc0;
+    max-width:220px;
+  }
+  .footer-col h4{
+    font-size:13px;
+    margin-bottom:16px;
+    letter-spacing:.03em;
+  }
+  .footer-col ul li{
+    font-size:12px;
+    margin-bottom:10px;
+    color:#c3d3c9;
+  }
+  .contact-item{
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+    font-size:12px;
+    margin-bottom:12px;
+    color:#c3d3c9;
+  }
+  .contact-item .closed{color:#e78b8b;}
+  .socials{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+  }
+  .socials a{
+    width:32px;height:32px;
+    border-radius:50%;
+    background:rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;
+  }
+
+  @media (max-width:900px){
+    .related-grid{grid-template-columns:repeat(2,1fr);}
+    .footer-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:600px){
+    .topbar-search{display:none;}
+    .hero h1{font-size:32px;}
+    .related-grid{grid-template-columns:1fr;}
+    .footer-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo-box">Logo</div>
+  <div class="topbar-search">
+    <div class="search-field">📞 &nbsp;Phone number</div>
+    <div class="search-field">🔍&nbsp; Search...</div>
+  </div>
+  <div class="topbar-icons">
+    <div class="icon-btn heart-icon">♥</div>
+    <div class="icon-btn">🛒</div>
+    <div class="user-chip">
+      <div class="avatar"></div>
+      @Ross95
+    </div>
+  </div>
+</header>
+
+<nav class="mainnav">
+  <a href="#">HOME</a>
+  <a href="#">CATEGORIES</a>
+  <a href="#">ABOUT US</a>
+  <a href="#">CONTACT US</a>
+</nav>
+
+<section class="hero">
+  <h1>SHOP</h1>
+  <div class="breadcrumb">Home / <span class="current">Shop</span></div>
+</section>
+
+<section class="product-wrap">
+  <div class="product-gallery">
+    <div class="main-image"></div>
+    <div class="thumb-row">
+      <div class="thumb"></div>
+      <div class="thumb t2"></div>
+      <div class="thumb t3"></div>
+    </div>
+  </div>
+
+  <div class="product-info">
+    <div class="cat-label">Vegetable and Fruits</div>
+    <div class="prod-title-row">
+      <h2>Local Potato</h2>
+      <span class="stock-badge">● In Stock</span>
+    </div>
+    <div class="price">Rs. 120 <span>Per Kg</span></div>
+    <p class="desc">Freshly harvested from local farms, these potatoes offer rich taste, excellent quality, and the perfect texture for all your favorite meals.</p>
+
+    <div class="divider"></div>
+
+    <div class="weight-label">Weight :</div>
+    <div class="weight-opts">
+      <button>500 g</button>
+      <button class="active">1 kg</button>
+      <button>2 kg</button>
+      <button>5 kg</button>
+    </div>
+
+    <div class="buy-row">
+      <div class="qty-selector">
+        <button onclick="changeQty(-1)">−</button>
+        <span id="qtyVal">1</span>
+        <button onclick="changeQty(1)">+</button>
+      </div>
+      <button class="btn btn-buy">Buy Now</button>
+      <button class="btn btn-cart">Add to Cart</button>
+    </div>
+
+    <div class="divider"></div>
+  </div>
+</section>
+
+<h3 class="section-heading">Rating and Reviews</h3>
+<hr class="section-rule">
+
+<section class="ratings-wrap">
+  <div class="rating-score">
+    <div class="num">4.5</div>
+    <div class="out-of">out of 5</div>
+    <div class="stars">★★★★☆</div>
+    <div class="count">( 20 Reviews )</div>
+  </div>
+
+  <div class="rating-bars">
+    <div class="bar-row"><span>5 Star</span><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div></div>
+    <div class="bar-row"><span>4 Star</span><div class="bar-track"><div class="bar-fill" style="width:62%"></div></div></div>
+    <div class="bar-row"><span>3 Star</span><div class="bar-track"><div class="bar-fill" style="width:40%"></div></div></div>
+    <div class="bar-row"><span>2 Star</span><div class="bar-track"><div class="bar-fill" style="width:15%"></div></div></div>
+    <div class="bar-row"><span>1 Star</span><div class="bar-track"><div class="bar-fill" style="width:8%"></div></div></div>
+  </div>
+
+  <div class="review-cta">
+    <h3>Review this product</h3>
+    <p>Share your thoughts with other customer</p>
+    <button>Write a review</button>
+  </div>
+</section>
+
+<div class="reviews-list">
+  <div class="review-item">
+    <div class="rev-avatar"></div>
+    <div class="rev-body">
+      <div class="rev-top">
+        <div class="rev-name">Asmit Sharma</div>
+        <div class="rev-date">Posted 1 months ago</div>
+      </div>
+      <div class="rev-stars">★★★★☆</div>
+      <p class="rev-text">Excellent service from start to finish. The potatoes looked freshly harvested and had a natural flavor that made our meals taste even better. Delivery was quick, and the products arrived exactly as shown on the website. It's convenient to shop from home without worrying about freshness. Highly recommended!</p>
+      <div class="rev-likes">👍 200 likes</div>
+    </div>
+  </div>
+
+  <div class="review-item">
+    <div class="rev-avatar"></div>
+    <div class="rev-body">
+      <div class="rev-top">
+        <div class="rev-name">BIMAL SHARMA</div>
+        <div class="rev-date">Posted 2 months ago</div>
+      </div>
+      <div class="rev-stars">★★★★☆</div>
+      <p class="rev-text">Bhakari has become my go-to grocery store online. The local potatoes were fresh, naturally grown, and perfect for daily cooking. Delivery was punctual, and customer service kept me updated throughout the order. It's refreshing to find an online grocery platform that truly delivers on quality and freshness.</p>
+      <div class="rev-likes">👍 150 likes</div>
+    </div>
+  </div>
+
+  <div class="review-item" style="border-bottom:none;">
+    <div class="rev-avatar"></div>
+    <div class="rev-body">
+      <div class="rev-top">
+        <div class="rev-name">RABI LAMICHHANE</div>
+        <div class="rev-date">Posted 3 months ago</div>
+      </div>
+      <div class="rev-stars">★★★★☆</div>
+      <p class="rev-text">The potatoes were exactly what I was hoping for—fresh, flavorful, and great for making curries, fries, and mashed potatoes. They arrived in perfect condition, and the delivery was quicker than expected. Bhakari made grocery shopping simple and stress-free. I highly recommend it to anyone looking for quality local produce.</p>
+      <div class="rev-likes">👍 100 likes</div>
+    </div>
+  </div>
+</div>
+
+<div class="related-heading-row">
+  <h3>You may also like</h3>
+  <div class="related-nav">
+    <button>‹</button>
+    <button>›</button>
+  </div>
+</div>
+
+<div class="related-grid">
+  <div class="rp-card">
+    <div class="rp-image meat"><div class="rp-fav">♡</div></div>
+    <div class="rp-body">
+      <div class="rp-cat">Meat , Egg and Fish</div>
+      <div class="rp-title-row"><span class="name">Tuna Fish</span><span class="rp-stock">In Stock</span></div>
+      <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
+      <div class="rp-actions">
+        <button class="add">Add to Cart</button>
+        <button class="buy">Buy Now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rp-card">
+    <div class="rp-image baby"><div class="rp-fav">♡</div></div>
+    <div class="rp-body">
+      <div class="rp-cat">Baby care</div>
+      <div class="rp-title-row"><span class="name">Baby shampoo</span><span class="rp-stock out">Out of Stock</span></div>
+      <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
+      <div class="rp-actions">
+        <button class="add">Add to Cart</button>
+        <button class="buy">Buy Now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rp-card">
+    <div class="rp-image"><div class="rp-fav">♡</div></div>
+    <div class="rp-body">
+      <div class="rp-cat">Vegetables and fruits</div>
+      <div class="rp-title-row"><span class="name">Local Potato</span><span class="rp-stock">In Stock</span></div>
+      <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
+      <div class="rp-actions">
+        <button class="add">Add to Cart</button>
+        <button class="buy">Buy Now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="rp-card">
+    <div class="rp-image atta"><div class="rp-fav">♡</div></div>
+    <div class="rp-body">
+      <div class="rp-cat">Atta and Rice</div>
+      <div class="rp-title-row"><span class="name">Chaaki Atta</span><span class="rp-stock">In Stock</span></div>
+      <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
+      <div class="rp-actions">
+        <button class="add">Add to Cart</button>
+        <button class="buy">Buy Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="logo-box">Logo</div>
+      <p>Everything You Need, All in One Cart.<br>🍃 Fresh Groceries, Delivered with Care.</p>
+      <div class="socials">
+        <a href="#">📷</a>
+        <a href="#">🐦</a>
+        <a href="#">📘</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>SHOP</h4>
+      <ul>
+        <li>Meat, Fish and Egg</li>
+        <li>Bakery and Bread</li>
+        <li>Soft Drinks</li>
+        <li>Salt and Spices</li>
+        <li>Atta, Rice and Daal</li>
+        <li>Water and Gas</li>
+        <li>Alcohol</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>CUSTOMER SERVICE</h4>
+      <ul>
+        <li>Home</li>
+        <li>About us</li>
+        <li>Terms and Conditions</li>
+        <li>Return Policies</li>
+        <li>Delivery Methods</li>
+        <li>Payment methods</li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>CONTACT US</h4>
+      <div class="contact-item">📍 Location</div>
+      <div class="contact-item">📞 Phone</div>
+      <div class="contact-item">✉️ Email</div>
+      <div class="contact-item">🕒 Open : 9:00 am <br><span class="closed">Close : 8:00 pm</span></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let qty = 1;
+  function changeQty(delta){
+    qty = Math.max(1, qty + delta);
+    document.getElementById('qtyVal').textContent = qty;
+  }
+  document.querySelectorAll('.weight-opts button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.weight-opts button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
