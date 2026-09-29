@@ -75,6 +75,7 @@ button { font: inherit; cursor: pointer; }
   stroke: var(--muted);
 }
 
+
 .header-phone-text{
   color: var(--muted);
 }
@@ -990,15 +991,16 @@ button { font: inherit; cursor: pointer; }
     font-weight: 700;
 }
 
-
-/* search-Style Search Suggestions & Server Loading */
+/* ==========================================================================
+   search-Style Search Suggestions & Server Loading
+   ========================================================================== */
 
 @keyframes searchRotate {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* Dropdown Container */
+/* Dropdown Container (search clean style) */
 .search-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -1122,7 +1124,7 @@ button { font: inherit; cursor: pointer; }
   text-align: center;
 }
 
-/* Top-of-window loading progress bar  */
+/* Top-of-window loading progress bar (like search / YouTube) */
 #topProgressBar {
   position: fixed;
   top: 0;
@@ -1141,9 +1143,9 @@ button { font: inherit; cursor: pointer; }
 .auth-title {
   font-family: var(--serif);
   font-weight: 300;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
   color: var(--charcoal);
 }
 
@@ -1163,19 +1165,17 @@ button { font: inherit; cursor: pointer; }
   border-radius: 8px;
   width: 420px;
   max-width: 92%;
-  padding: 32px 36px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px 28px;
   position: relative;
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
 }
 
-.auth-box{
-  overflow: hidden; 
-}
-
 .auth-close {
   position: absolute;
-  top: 18px;
-  right: 20px;
+  top: 14px;
+  right: 16px;
   background: none;
   border: none;
   font-size: 20px;
@@ -1212,29 +1212,70 @@ button { font: inherit; cursor: pointer; }
   background: var(--line);
 }
 
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 5px;
+  letter-spacing: 0.01em;
+}
+
+/* Compact overrides specifically for the Register form */
+#registerForm .form-group { margin-bottom: 8px; }
+#registerForm .form-group label { font-size: 12px; margin-bottom: 2px; }
+
 #loginForm input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 11px 14px;
   border: 1px solid var(--line);
   border-radius: 4px;
   font: inherit;
-  margin-bottom: 14px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+#registerForm input:not([type="checkbox"]) {
+  width: 100%;
+  padding: 5px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+
+#loginForm input:focus,
+#registerForm input:focus {
+  outline: none;
+  border-color: var(--green);
 }
 
 .password-field {
   position: relative;
 }
-.password-field input { padding-right: 40px; }
+
+/* Eye icon general styles */
 .toggle-eye {
   position: absolute;
-  right: 12px;
-  top: 12px;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 15px;
   opacity: 0.6;
 }
+
+/* Login specific eye placement */
+#loginForm .password-field input { padding-right: 40px; }
+#loginForm .toggle-eye { right: 12px; bottom: 11px; font-size: 15px; }
+
+/* Register specific eye placement */
+#registerForm .password-field input { padding-right: 36px; }
+#registerForm .toggle-eye { right: 10px; bottom: 5px; font-size: 14px; }
 
 .forgot-link {
   display: block;
@@ -1288,8 +1329,8 @@ button { font: inherit; cursor: pointer; }
   gap: 28px;
 }
 
-
-/* Register modal */
+/* ── Register modal extras ───────────────────────────────── */
+/* Register modal — inputs mirror login modal style */
 .auth-title {
   font-size: 26px;
   font-weight: 700;
@@ -1297,14 +1338,6 @@ button { font: inherit; cursor: pointer; }
   margin-bottom: 22px;
 }
 
-#registerForm input:not([type="checkbox"]) {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  font: inherit;
-  margin-bottom: 14px;
-}
 
 /* Terms & Conditions checkbox row */
 .terms-row {
@@ -1366,4 +1399,13 @@ button { font: inherit; cursor: pointer; }
   color: var(--coral);
   margin: -10px 0 14px;
   display: block;
+}
+
+@keyframes termsShake {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-5px); }
+  40%  { transform: translateX(5px); }
+  60%  { transform: translateX(-3px); }
+  80%  { transform: translateX(3px); }
+  100% { transform: translateX(0); }
 }
