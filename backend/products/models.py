@@ -8,6 +8,13 @@ class Category(models.Model):
     image=models.ImageField(upload_to='category', blank=True, null=True)
     description=models.TextField(blank=True, null=True)
     created_at=models.DateTimeField(auto_now_add=True)
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        related_name="subcategories",
+    )
 
     class Meta:
         verbose_name_plural='Categories'

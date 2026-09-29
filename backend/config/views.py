@@ -4,7 +4,7 @@ from products.models import Category, Product
 
 
 def home(request):
-    categories = Category.objects.all()
+    categories = Category.objects.filter(parent__isnull=True)
     featured_products = Product.objects.filter(
         is_available=True,
         stock__gt=0,
@@ -13,7 +13,7 @@ def home(request):
 
     return render(
         request,
-        "dev/home.html",
+        "home.html",
         {
             "categories": categories,
             "featured_products": featured_products,
