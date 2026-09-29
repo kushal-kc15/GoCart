@@ -89,7 +89,10 @@
   .buy-row{display:flex;align-items:center;gap:14px;margin-top:24px;flex-wrap:wrap;}
   .qty-selector{display:flex;align-items:center;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
   .qty-selector button{background:var(--cream-2);border:none;width:34px;height:36px;font-size:16px;cursor:pointer;}
+  .qty-selector button:disabled{opacity:.4;cursor:not-allowed;}
   .qty-selector span{width:34px;text-align:center;font-size:14px;}
+  .stock-note{margin-top:10px;font-size:12px;color:var(--muted);}
+  .stock-note.low{color:#c0392b;font-weight:600;}
   .btn{padding:10px 26px;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:transform .15s ease,opacity .2s ease;}
   .btn:active{transform:scale(.96);}
   .btn-buy{background:var(--green);color:var(--white);}
@@ -191,7 +194,7 @@
   <div class="topbar-icons">
     <div class="icon-btn heart-icon" id="wishlistIcon" title="Wishlist">♥</div>
     <div class="icon-btn" id="cartIcon" title="Cart">
-      🛒
+      <a href="./cart.html">🛒</a>
       <span id="cartBadge" style="display:none;position:absolute;top:-8px;right:-10px;background:var(--green);color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:16px;height:16px;align-items:center;justify-content:center;">0</span>
     </div>
     <div class="user-chip">
@@ -223,7 +226,8 @@
     </div>
   </div>
 
-  <div class="product-info">
+  <!-- data-stock = units available for this product -->
+  <div class="product-info" data-stock="10">
     <div class="cat-label">Vegetable and Fruits</div>
     <div class="prod-title-row">
       <h2>Local Potato</h2>
@@ -245,13 +249,14 @@
 
     <div class="buy-row">
       <div class="qty-selector">
-        <button onclick="changeQty(-1)">−</button>
+        <button id="qtyMinus" onclick="changeQty(-1)">−</button>
         <span id="qtyVal">1</span>
-        <button onclick="changeQty(1)">+</button>
+        <button id="qtyPlus" onclick="changeQty(1)">+</button>
       </div>
       <button class="btn btn-buy" onclick="buyNow('Local Potato')">Buy Now</button>
       <button class="btn btn-cart" onclick="addToCart('Local Potato')">Add to Cart</button>
     </div>
+    <div class="stock-note" id="stockNote"></div>
 
     <div class="divider"></div>
   </div>
@@ -443,12 +448,29 @@
     toastTimer = setTimeout(()=> t.classList.remove('show'), 1800);
   }
 
-  // ---- Quantity selector ----
+  // ---- Quantity selector (limited by stock) ----
+  const MAX_STOCK = parseInt(document.querySelector('.product-info').dataset.stock, 10) || 1;
   let qty = 1;
-  function changeQty(delta){
-    qty = Math.max(1, qty + delta);
+
+  function renderQty(){
     document.getElementById('qtyVal').textContent = qty;
+    document.getElementById('qtyMinus').disabled = qty <= 1;
+    document.getElementById('qtyPlus').disabled  = qty >= MAX_STOCK;
+    const note = document.getElementById('stockNote');
+    note.textContent = qty >= MAX_STOCK
+      ? 'Maximum available quantity selected (' + MAX_STOCK + ')'
+      : MAX_STOCK <= 5 ? 'Only ' + MAX_STOCK + ' left in stock'
+      : MAX_STOCK + ' available';
+    note.classList.toggle('low', qty >= MAX_STOCK || MAX_STOCK <= 5);
   }
+
+  function changeQty(delta){
+    const next = qty + delta;
+    if(next > MAX_STOCK){ showToast('Only ' + MAX_STOCK + ' in stock'); return; }
+    qty = Math.max(1, next);
+    renderQty();
+  }
+  renderQty();
 
   // ---- Weight selector (with transition) ----
   const priceEl = document.getElementById('priceDisplay');
@@ -537,7 +559,7 @@
   // ---- RESTORE on page load ----
   const wBtns = $$('.weight-opts button');
   if(wBtns[s.w]) selectWeight(wBtns[s.w]);
-  qty = s.q; document.getElementById('qtyVal').textContent = qty;
+  qty = Math.min(Math.max(1, s.q), MAX_STOCK); renderQty();   // clamp saved qty to current stock
   if(s.c > 0){ cartCount = s.c; cartBadge.textContent = cartCount; cartBadge.style.display = 'flex'; }
   wishlistOn = !!s.wl; wishlistIcon.style.color = wishlistOn ? '#c0392b' : '#b9b6a8';
   $$('.rp-fav').forEach((el,i)=>{ if(s.f.includes(i)) el.textContent = '♥'; });

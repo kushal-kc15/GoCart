@@ -51,6 +51,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (!searchInput || !dropdown) return;
 
+  // 1. Easy-to-edit list of product names
   const products = [
     "Potato",
     "Potato chips slicer cutter",
@@ -128,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </svg>
         </span>
       </div>
-    `).join(""); 
+    `).join("");
 
     dropdown.classList.add("open");
   });
@@ -191,11 +192,27 @@ document.querySelectorAll(".auth-tab").forEach((tab) => {
     tab.classList.add("active"); 
   });
 });
+// Skip password visibility toggle when using Tab key
+document.querySelectorAll(".toggle-eye").forEach((button) => {
+  button.setAttribute("tabindex", "-1");
+  
+  // Set initial SVG (Eye closed)
+  const eyeClosedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>`;
+  const eyeOpenSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  
+  button.innerHTML = eyeClosedSVG;
 
-// Show/hide password
-document.querySelector(".toggle-eye")?.addEventListener("click", function () {
-  const input = this.previousElementSibling;
-  input.type = input.type === "password" ? "text" : "password";
+  // Show/hide password
+  button.addEventListener("click", function () {
+    const input = this.previousElementSibling;
+    if (input.type === "password") {
+      input.type = "text";
+      this.innerHTML = eyeOpenSVG; 
+    } else {
+      input.type = "password";
+      this.innerHTML = eyeClosedSVG;
+    }
+  });
 });
 
 document.getElementById("loginForm")?.addEventListener("submit", (e) => {
@@ -203,7 +220,7 @@ document.getElementById("loginForm")?.addEventListener("submit", (e) => {
   // BACKEND: send login request here
 });
 
-// ── Register modal 
+// ── Register modal ────────────────────────────────────────
 const registerOverlay = document.getElementById("registerOverlay");
 
 // Open register modal, close login modal
@@ -230,14 +247,7 @@ document.getElementById("switchToLogin")?.addEventListener("click", (e) => {
   authOverlay.classList.add("open");
 });
 
-// Show / hide password toggles inside the register form
-document.querySelectorAll(".reg-toggle-eye").forEach((btn) => {
-  btn.addEventListener("click", function () {
-    const input = this.previousElementSibling;
-    input.type = input.type === "password" ? "text" : "password";
-    this.textContent = input.type === "password" ? "👁" : "🙈";
-  });
-});
+
 
 // Register form submit — with terms validation
 (function () {
@@ -246,7 +256,7 @@ document.querySelectorAll(".reg-toggle-eye").forEach((btn) => {
   const termsRow   = document.getElementById("termsRow");
   const termsError = document.getElementById("regTermsError");
 
-
+  // Clear error as soon as the user ticks the box
   termsBox?.addEventListener("change", () => {
     if (termsBox.checked) {
       termsError && (termsError.hidden = true);
@@ -260,20 +270,50 @@ document.querySelectorAll(".reg-toggle-eye").forEach((btn) => {
     // Validate terms checkbox
     if (!termsBox?.checked) {
       termsError && (termsError.hidden = false);
+      // Shake the row for visual emphasis
       termsRow?.classList.remove("terms-row--error");
-      void termsRow?.offsetWidth;                    
+      void termsRow?.offsetWidth;                     // force reflow
       termsRow?.classList.add("terms-row--error");
       termsBox?.focus();
       return;
     }
 
-  
+    // Terms accepted — hide error and proceed
     termsError && (termsError.hidden = true);
     termsRow?.classList.remove("terms-row--error");
 
     // BACKEND: send signup / registration request here
   });
 })();
+
+// ── Focus Trap for Modals ─────────────────────────────────
+function setupFocusTrap(overlayElement) {
+  overlayElement.addEventListener('keydown', function(e) {
+    if (e.key !== 'Tab') return;
+
+    // Get all focusable elements inside the modal
+    const focusable = overlayElement.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+
+    const firstElement = focusable[0];
+    const lastElement = focusable[focusable.length - 1];
+
+    if (e.shiftKey) { // Shift + Tab
+      if (document.activeElement === firstElement) {
+        lastElement.focus();
+        e.preventDefault();
+      }
+    } else { // Tab
+      if (document.activeElement === lastElement) {
+        firstElement.focus();
+        e.preventDefault();
+      }
+    }
+  });
+}
+
+if (authOverlay) setupFocusTrap(authOverlay);
+if (registerOverlay) setupFocusTrap(registerOverlay);
 
 
 
