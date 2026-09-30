@@ -1,6 +1,8 @@
 from django.shortcuts import render
 
-from products.models import Category, Product
+from django.db.models import Prefetch
+
+from products.models import Category, Product, ProductImage
 
 
 def home(request):
@@ -12,7 +14,9 @@ def home(request):
         is_available=True,
         stock__gt=0,
         is_featured=True,
-    ).select_related("category").prefetch_related("images")
+    ).select_related("category").prefetch_related(
+        Prefetch("images", queryset=ProductImage.objects.order_by("sort_order", "id"))
+    )
 
     return render(
         request,
