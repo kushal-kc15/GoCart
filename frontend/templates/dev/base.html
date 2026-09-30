@@ -60,7 +60,7 @@
                     </svg>
                 </a>
                 <span class="header-divider"></span>
-                <a href="" class="icon-link" aria-label="Cart">
+                <a href="{% url 'cart:cart_detail' %}" class="icon-link" aria-label="Cart">
                     <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
                         stroke-linejoin="round">
@@ -71,11 +71,21 @@
                     <span class="cart-badge" id="cartBadge"></span>
                 </a>
                 <span class="header-divider"></span>
-                <a href="" class="user-chip">
-                    <img src="https://media.istockphoto.com/id/2190079061/photo/handsome-teen-boy-with-curly-hairstyle-wearing-green-t-shirt-posing-isolated-on-blue.jpg?s=612x612&w=0&k=20&c=PS54cA3ozt4stBfvfar4g7CXmfBuZpBh3ua25hGLJ7E="
-                        class="user-image" alt="userImage">
-                    <span>@Ross95</span>
-                </a>
+                {% if user.is_authenticated %}
+                <div class="user-chip-container" style="display: flex; align-items: center; gap: 15px;">
+                    <div class="user-chip">
+                        <img src="https://media.istockphoto.com/id/2190079061/photo/handsome-teen-boy-with-curly-hairstyle-wearing-green-t-shirt-posing-isolated-on-blue.jpg?s=612x612&w=0&k=20&c=PS54cA3ozt4stBfvfar4g7CXmfBuZpBh3ua25hGLJ7E="
+                            class="user-image" alt="userImage">
+                        <span>@{{ user.first_name|default:user.email|truncatechars:15 }}</span>
+                    </div>
+                    <a href="{% url 'accounts:logout' %}" class="btn-small" style="background: #f8ddc5; color: #d63384; border: none;">Logout</a>
+                </div>
+                {% else %}
+                <div class="auth-buttons" style="display: flex; align-items: center; gap: 10px;">
+                    <a href="{% url 'accounts:login' %}" class="btn-small" style="background: transparent; color: var(--primary); border: 1px solid var(--primary);">Login</a>
+                    <a href="{% url 'accounts:signup' %}" class="btn-small">Sign Up</a>
+                </div>
+                {% endif %}
             </div>
         </div>
         <nav class="main-nav">

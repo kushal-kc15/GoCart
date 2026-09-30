@@ -1,0 +1,369 @@
+{% extends 'dev/base.html' %}
+{% load static %}
+
+{% block title %}GoCart - Farm-Fresh Groceries Delivered{% endblock %}
+{% block meta_description %}Shop fresh fruits, vegetables, meat, dairy and daily essentials at GoCart. Farm-fresh goodness delivered to your door every day.{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dev/home.css' %}">
+{% endblock %}
+
+{% block content %}
+
+    <!-- hero section -->
+    <section class="hero">
+        <div class="hero-text">
+            <h1>Farm-Fresh Goodness, <br><span>Every Day !</span></h1>
+            <p>Handpicked fruits and vegetables delivered fresh from trusted local farms.</p>
+            <a href="" class="btn-primary">Shop Now</a>
+        </div>
+        <div class="hero-image">
+            <img src="{% static 'images/Grocery.jpg' %}" alt="Grocery shelves" class="hero-img">
+        </div>
+    </section>
+    <div class="hero-dots">
+        <span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+
+    <!-- Benefits section -->
+    <section class="benefits">
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-truck">
+                <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+                <path d="M15 18H9" />
+                <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+                <circle cx="17" cy="18" r="2" />
+                <circle cx="7" cy="18" r="2" />
+            </svg>
+            <span>Delivery</span>
+        </div>
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-banknote">
+                <rect width="20" height="12" x="2" y="6" rx="2" />
+                <circle cx="12" cy="12" r="2" />
+                <path d="M6 12h.01M18 12h.01" />
+            </svg>
+            <span>COD</span>
+        </div>
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-rotate-ccw">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+            </svg>
+            <span>Return policies</span>
+        </div>
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-tag">
+                <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+                <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+            </svg>
+            <span>Offers</span>
+        </div>
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                class="lucide lucide-headset">
+                <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3v-7a9 9 0 0 1 18 0v7h-3a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />
+            </svg>
+            <span>Customer service</span>
+        </div>
+    </section>
+
+    <!-- Step 3a: Shop by Category (dynamic loop) -->
+    <section class="section">
+        <div class="section-heading">
+            <h2>Shop by Category</h2>
+            <div class="slider-arrows">
+                <button aria-label="Previous">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                </button>
+                <button aria-label="Next">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="category-grid" id="categoryGrid">
+            {% for category in categories %}
+            <div class="category-card category-card--{{ forloop.counter }}">
+                {% if category.image %}
+                    <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-img">
+                {% else %}
+                    <img src="{% static 'images/fruits.jpg' %}" alt="{{ category.name }}" class="category-img">
+                {% endif %}
+                <p>{{ category.name }}</p>
+            </div>
+            {% empty %}
+            <p class="product-empty-msg">No categories available.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Step 3b: Featured Products (dynamic loop) -->
+    <section class="section">
+        <div class="section-heading">
+            <h2>Feature Products</h2>
+            <div class="slider-arrows">
+                <button aria-label="Previous" id="featurePrev">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                </button>
+                <button aria-label="Next" id="featureNext">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="feature-viewport">
+            <div class="feature-track" id="featureTrack">
+                {% for product in featured_products %}
+                <div class="product-card">
+                    <div class="thumb">
+                        <span class="category-tag">{{ product.category.name }}</span>
+                        <button class="wish" aria-label="Add to wishlist">
+                            <svg class="icon-svg" viewBox="0 0 24 24" fill="var(--coral)" stroke="var(--coral)" stroke-width="2">
+                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                            </svg>
+                        </button>
+                        {% with primary_image=product.images.all.first %}
+                        {% if primary_image %}
+                            <img src="{{ primary_image.image.url }}" alt="{{ primary_image.alt_text|default:product.name }}">
+                        {% else %}
+                            <img src="{% static 'images/fruits.jpg' %}" alt="{{ product.name }}">
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="info">
+                        <h3>{{ product.name }}</h3>
+                        {% if product.stock > 0 %}
+                            <p class="stock in">In Stock</p>
+                        {% else %}
+                            <p class="stock out">Out of Stock</p>
+                        {% endif %}
+                        <div class="price-row">
+                            <span>{{ product.unit }}</span>
+                            <strong>rs. {{ product.price }}</strong>
+                        </div>
+                        <div class="actions">
+                            <form method="POST" action="{% url 'cart:add_to_cart' %}" style="display: contents;">
+                                {% csrf_token %}
+                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                <button type="submit" class="add">Add to Cart</button>
+                            </form>
+                            <button class="buy">Buy Now</button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="product-empty-msg">No featured products at the moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Promo banner row -->
+    <section class="promo-row">
+        <div class="promo-card">
+            <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80" alt="Fresh bread">
+            <div class="promo-strip">
+                <h3>Get your fresh Bread</h3>
+                <p>Discover fresh, high-quality products from trusted local farmers</p>
+            </div>
+            <div class="promo-bottom">
+                <div class="promo-stamp">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="var(--sale-red)" stroke="#fff" stroke-width="1.5" stroke-dasharray="3,3" />
+                        <path id="ring1" fill="none" d="M 50,50 m -34,0 a 34,34 0 1,1 68,0 a 34,34 0 1,1 -68,0" />
+                        <text font-size="7.5" font-weight="700" letter-spacing="1.5" fill="#fff">
+                            <textPath href="#ring1" startOffset="0%">SPECIAL DISCOUNT - SPECIAL DISCOUNT -</textPath>
+                        </text>
+                    </svg>
+                    <span class="stamp-center">15%<br>OFF</span>
+                </div>
+                <a href="" class="btn-small">Shop Now</a>
+            </div>
+        </div>
+        <div class="promo-card">
+            <img src="https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600&q=80" alt="Soft drinks">
+            <div class="promo-strip">
+                <h3>Buy 1 Get 2 Free</h3>
+                <p>Soft drinks on festival offer</p>
+            </div>
+            <div class="promo-bottom">
+                <div class="promo-stamp">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="var(--sale-red)" stroke="#fff" stroke-width="1.5" stroke-dasharray="3,3" />
+                        <path id="ring2" fill="none" d="M 50,50 m -34,0 a 34,34 0 1,1 68,0 a 34,34 0 1,1 -68,0" />
+                        <text font-size="7.5" font-weight="700" letter-spacing="1.5" fill="#fff">
+                            <textPath href="#ring2" startOffset="0%">SPECIAL DISCOUNT - SPECIAL DISCOUNT -</textPath>
+                        </text>
+                    </svg>
+                    <span class="stamp-center">15%<br>OFF</span>
+                </div>
+                <a href="" class="btn-small">Shop Now</a>
+            </div>
+        </div>
+        <div class="promo-card">
+            <img src="https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=600&q=80" alt="Fresh vegetables">
+            <div class="promo-strip">
+                <h3>Get fresh harvest</h3>
+                <p>From organic produce to nutritious pantry essentials</p>
+            </div>
+            <div class="promo-bottom">
+                <div class="promo-stamp">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="var(--sale-red)" stroke="#fff" stroke-width="1.5" stroke-dasharray="3,3" />
+                        <path id="ring3" fill="none" d="M 50,50 m -34,0 a 34,34 0 1,1 68,0 a 34,34 0 1,1 -68,0" />
+                        <text font-size="7.5" font-weight="700" letter-spacing="1.5" fill="#fff">
+                            <textPath href="#ring3" startOffset="0%">SPECIAL DISCOUNT - SPECIAL DISCOUNT -</textPath>
+                        </text>
+                    </svg>
+                    <span class="stamp-center">15%<br>OFF</span>
+                </div>
+                <a href="" class="btn-small">Shop Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Step 3c: Most Popular (reuses featured_products for v1) -->
+    <section class="section">
+        <div class="section-heading">
+            <h2>Most Popular</h2>
+            <div class="slider-arrows">
+                <button aria-label="Previous" id="popularPrev">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                </button>
+                <button aria-label="Next" id="popularNext">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="feature-viewport" id="popularSlider">
+            <div class="feature-track" id="popularTrack">
+                {% for product in featured_products %}
+                <div class="product-card">
+                    <div class="thumb">
+                        <span class="category-tag">{{ product.category.name }}</span>
+                        <button class="wish" aria-label="Add to wishlist">
+                            <svg class="icon-svg" viewBox="0 0 24 24" fill="var(--coral)" stroke="var(--coral)" stroke-width="2">
+                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                            </svg>
+                        </button>
+                        {% with primary_image=product.images.all.first %}
+                        {% if primary_image %}
+                            <img src="{{ primary_image.image.url }}" alt="{{ primary_image.alt_text|default:product.name }}">
+                        {% else %}
+                            <img src="{% static 'images/fruits.jpg' %}" alt="{{ product.name }}">
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="info">
+                        <h3>{{ product.name }}</h3>
+                        {% if product.stock > 0 %}
+                            <p class="stock in">In Stock</p>
+                        {% else %}
+                            <p class="stock out">Out of Stock</p>
+                        {% endif %}
+                        <div class="price-row">
+                            <span>{{ product.unit }}</span>
+                            <strong>rs. {{ product.price }}</strong>
+                        </div>
+                        <div class="actions">
+                            <form method="POST" action="{% url 'cart:add_to_cart' %}" style="display: contents;">
+                                {% csrf_token %}
+                                <input type="hidden" name="product_id" value="{{ product.id }}">
+                                <button type="submit" class="add">Add to Cart</button>
+                            </form>
+                            <button class="buy">Buy Now</button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="product-empty-msg">No popular products at the moment.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!--Festival Banner-->
+    <section class="festival-section">
+        <div class="festival-top">
+            <div class="festival-text">
+                <p class="tag">Celebrate the Festival with Up to 40% OFF</p>
+                <p class="sub">Enjoy amazing discounts on fresh groceries, daily essentials, and your favorite products.
+                    Shop now and make your celebrations even more special.</p>
+            </div>
+            <div class="festival-badge">
+                <span class="burst"></span>
+                <span class="burst burst--2"></span>
+                <span class="burst burst--3"></span>
+                <div class="badge-text">
+                    <span>UP TO</span>
+                    <strong>40 %</strong>
+                    <span>OFF</span>
+                </div>
+            </div>
+        </div>
+        <div class="festival-photos">
+            <img src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=300&q=80" alt="Fresh produce">
+            <img src="{% static 'images/fruits and vegetables.jpg' %}" alt="Vegetables">
+            <img src="{% static 'images/baby product.jpg' %}" alt="Baby care products">
+            <img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?auto=format&fit=crop&w=300&q=80" alt="Fresh groceries">
+            <img src="{% static 'images/Grocery.jpg' %}" alt="Grocery shelves">
+        </div>
+    </section>
+
+    <!-- Join / Rewards strip -->
+    <section class="join-strip">
+        <div class="join-left-content">
+            <span class="join-icon">
+                <img src="{% static 'images/join plus.png' %}" alt="plus" class="join">
+            </span>
+            <div class="join-text">
+                <h2>Join <span class="highlight-green">GoCart</span> Today</h2>
+                <p>Create your free account and get access to exclusive offers, exciting discounts, and a seamless shopping experience.</p>
+                <div class="join-brush-swoosh">
+                    <svg viewBox="0 0 340 30" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                        <path d="M 16 16 C 95 26, 230 27, 328 12" stroke="#16502c" stroke-width="3" stroke-linecap="round"/>
+                        <path d="M 65 23 C 135 28, 225 28, 290 20" stroke="#1b5e34" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <form class="join-form" onsubmit="event.preventDefault();">
+            <span class="phone-prefix">+977</span>
+            <input type="tel" placeholder="Phone Number" class="join-phone-input" required>
+            <button type="submit" class="join-sub-btn">Sub</button>
+        </form>
+    </section>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/home2.js' %}"></script>
+<script src="{% static 'js/dev/home.js' %}"></script>
+{% endblock %}

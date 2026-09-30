@@ -4,7 +4,10 @@ from products.models import Category, Product
 
 
 def home(request):
-    categories = Category.objects.filter(parent__isnull=True)
+    categories = Category.objects.filter(
+        parent__isnull=True
+    ).select_related("parent")  # defensive; parent IS null but avoids deferred load
+
     featured_products = Product.objects.filter(
         is_available=True,
         stock__gt=0,
@@ -13,7 +16,7 @@ def home(request):
 
     return render(
         request,
-        "home.html",
+        "dev/home.html",   # switched from home.html to the new dynamic template
         {
             "categories": categories,
             "featured_products": featured_products,

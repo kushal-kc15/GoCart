@@ -10,7 +10,7 @@ class SignupView(View):
 
     def get(self, request):
         form = SignUpForm()
-        return render(request, "signup.html", {"form": form})
+        return render(request, "dev/signup.html", {"form": form})
 
     def post(self, request):
         form = SignUpForm(request.POST)
@@ -18,14 +18,14 @@ class SignupView(View):
             user = form.save()
             login(request, user)
             return redirect("home")
-        return render(request, "signup.html", {"form": form})
+        return render(request, "dev/signup.html", {"form": form})
 
 
 class LoginView(View):
     """Display and process the login form."""
 
     def get(self, request):
-        return render(request, "login.html", {"next": request.GET.get("next", "")})
+        return render(request, "dev/login.html", {"next": request.GET.get("next", "")})
 
     def post(self, request):
         email = request.POST.get("email", "").strip().lower()
@@ -35,7 +35,7 @@ class LoginView(View):
             login(request, user)
             next_url = request.POST.get("next") or "/"
             return redirect(next_url)
-        return render(request, "login.html", {
+        return render(request, "dev/login.html", {
             "error": "Invalid email or password.",
             "next": request.POST.get("next", ""),
         })
