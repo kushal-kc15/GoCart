@@ -58,6 +58,25 @@
       radial-gradient(circle at 55% 55%, #d4b077 0 45px, transparent 46px),
       #a98042;
   }
+  /* main image switching */
+  .main-image{transition:opacity .2s ease;cursor:pointer;}
+  .main-image.fade{opacity:0;}
+  .main-image.v2{
+    background:
+      radial-gradient(circle at 25% 35%, #5c4a35 0 50px, transparent 51px),
+      radial-gradient(circle at 65% 25%, #4a3b29 0 60px, transparent 61px),
+      radial-gradient(circle at 75% 65%, #6b573f 0 55px, transparent 56px),
+      radial-gradient(circle at 35% 75%, #4f402d 0 48px, transparent 49px),
+      #3d3527;
+  }
+  .main-image.v3{
+    background:
+      radial-gradient(circle at 20% 30%, #a68585 0 45px, transparent 46px),
+      radial-gradient(circle at 60% 20%, #987676 0 58px, transparent 59px),
+      radial-gradient(circle at 80% 60%, #b39494 0 52px, transparent 53px),
+      radial-gradient(circle at 40% 70%, #927070 0 50px, transparent 51px),
+      #8a6f6f;
+  }
   .thumb-row{display:flex;gap:12px;margin-top:12px;}
   .thumb{width:80px;height:80px;border-radius:6px;background:#5c4a35;flex-shrink:0;cursor:pointer;border:2px solid transparent;}
   .thumb.t2{background:#3d3527;}
@@ -491,11 +510,28 @@
     }
   }
 
-  // ---- Gallery thumbnails ----
+  // ---- Gallery: thumbnails + main image switching ----
+  const mainImg = document.querySelector('.main-image');
+  const thumbs  = [...document.querySelectorAll('.thumb')];
+
   function selectThumb(el){
-    document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active-thumb'));
+    const i = thumbs.indexOf(el);
+    thumbs.forEach(t => t.classList.remove('active-thumb'));
     el.classList.add('active-thumb');
+
+    mainImg.classList.add('fade');                 // fade out
+    setTimeout(() => {
+      mainImg.classList.remove('v2','v3');         // image 1 = default style
+      if(i > 0) mainImg.classList.add('v' + (i + 1));
+      mainImg.classList.remove('fade');            // fade in
+    }, 200);
   }
+
+  // click the main image to go to the next one
+  mainImg.addEventListener('click', () => {
+    const cur = thumbs.findIndex(t => t.classList.contains('active-thumb'));
+    selectThumb(thumbs[(cur + 1) % thumbs.length]);
+  });
 
   // ---- Cart ----
   let cartCount = 0;
