@@ -72,3 +72,14 @@ Django 6.0 project split between a Django backend and template/static assets tha
   clever one-liners. Plain functions and clear names are fine.
 - Add short comments only where the reason isn't obvious.
 - Optimizations, refactors and advanced features wait for the final phase.
+
+## Later (final phase)
+- Product detail: make page wider/larger image, shrink SHOP banner,
+  clickable breadcrumb, bigger qty/Buy Now/Add to Cart controls.
+- Product detail: ratings and reviews are static; wire to Review model.
+- Product list: frontend team to polish styling; search is scoped to one department.
+- Home page: Most Popular is static; footer SHOP links are placeholders.
+- Header: cart count badge is empty; wishlist link is "#".
+- Header search dropdown uses a hardcoded name list.
+- Slider: resizing the window can leave the index past the end until Prev is clicked.
+- Old accounts with mixed-case emails can't log in (login lowercases the email).

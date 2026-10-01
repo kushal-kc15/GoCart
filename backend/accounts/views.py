@@ -79,5 +79,10 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    """Read-only account overview."""
-    return render(request, "dev/profile.html", {"profile_user": request.user})
+    """Read-only account overview with the user's order history."""
+    orders = request.user.orders.prefetch_related("items")
+    return render(
+        request,
+        "dev/profile.html",
+        {"profile_user": request.user, "orders": orders},
+    )
