@@ -30,8 +30,6 @@
   .topbar-icons{display:flex;align-items:center;gap:18px;}
   .icon-btn{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;position:relative;}
   .heart-icon{color:#c0392b;}
-  .heart-icon.active{color:#c0392b;}
-  .heart-icon.inactive{color:#b9b6a8;}
   .user-chip{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
   .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e8b98c,#c9895a);}
 
@@ -48,10 +46,7 @@
   /* ===== PRODUCT SECTION ===== */
   .product-wrap{display:flex;gap:40px;max-width:1000px;margin:0 auto;padding:0 5% 40px;flex-wrap:wrap;}
   .product-gallery{flex:1;min-width:280px;}
-  .main-image{
-    width:100%;aspect-ratio:1/0.95;border-radius:6px;overflow:hidden;background:#e9e4d3;
-    transition:opacity .2s ease;cursor:pointer;
-  }
+  .main-image{width:100%;aspect-ratio:1/0.95;border-radius:6px;overflow:hidden;background:#e9e4d3;transition:opacity .2s ease;cursor:pointer;}
   .main-image img{width:100%;height:100%;object-fit:cover;display:block;}
   .main-image.fade{opacity:0;}
   .thumb-row{display:flex;gap:12px;margin-top:12px;}
@@ -65,17 +60,17 @@
   .prod-title-row{display:flex;align-items:center;gap:12px;margin-top:6px;}
   .prod-title-row h2{font-size:26px;font-weight:700;}
   .stock-badge{font-size:11px;color:var(--green);background:#e5f3ea;padding:4px 10px;border-radius:20px;font-weight:600;white-space:nowrap;}
-  .price{margin-top:14px;font-size:22px;font-weight:800;transition:color 2s ease;}
+  .price{margin-top:14px;font-size:22px;font-weight:800;transition:color .4s ease;}
   .price span{font-size:13px;font-weight:400;color:var(--muted);}
   .price.price-pulse{color:var(--green);}
   .desc{margin-top:14px;font-size:13px;line-height:1.7;color:#6d6a5f;max-width:400px;}
   .divider{height:1px;background:var(--border);margin:22px 0;}
   .weight-label{font-size:13px;color:var(--muted);margin-bottom:10px;}
-  .weight-opts{display:flex;gap:10px;position:relative;}
+  .weight-opts{display:flex;gap:10px;position:relative;flex-wrap:wrap;}
   .weight-opts button{
     padding:8px 16px;border:1px solid var(--border);background:var(--white);color:var(--text);
     border-radius:4px;font-size:13px;cursor:pointer;
-    transition:background-color .25s ease,color .25s ease,border-color .25s ease,transform 1.5 ease,box-shadow .25s ease;
+    transition:background-color .25s ease,color .25s ease,border-color .25s ease,transform .15s ease,box-shadow .25s ease;
   }
   .weight-opts button:hover{border-color:var(--green);transform:translateY(-1px);}
   .weight-opts button:active{transform:translateY(0) scale(.96);}
@@ -125,18 +120,19 @@
   .rev-likes{margin-top:10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;}
   .rev-likes.liked{color:var(--green);font-weight:700;}
 
-  /* ===== RELATED PRODUCTS ===== */
+  /* ===== RELATED PRODUCTS (scrollable carousel) ===== */
   .related-heading-row{max-width:1100px;margin:60px auto 20px;padding:0 5%;display:flex;justify-content:space-between;align-items:center;}
   .related-heading-row h3{font-size:18px;font-weight:700;}
   .related-nav{display:flex;gap:8px;}
   .related-nav button{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--white);cursor:pointer;}
-  .related-grid{max-width:1100px;margin:0 auto;padding:0 5% 60px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
-  .rp-card{background:var(--white);border-radius:8px;overflow:hidden;border:1px solid var(--border);}
-  .rp-image{position:relative;aspect-ratio:1/0.9;background:#a98042;}
-  .rp-image.meat{background:#c76b5e;}
-  .rp-image.baby{background:#dfe6ea;}
-  .rp-image.atta{background:#d8cbb0;}
-  .rp-image.potato{background:url('images/alu.jpg') center/cover;}
+  .related-grid{
+    max-width:1100px;margin:0 auto 60px;padding:0 5%;
+    display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;
+  }
+  .related-grid::-webkit-scrollbar{display:none;}
+  .rp-card{flex:0 0 calc((100% - 60px) / 4);scroll-snap-align:start;background:var(--white);border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+  .rp-image{position:relative;aspect-ratio:1/0.9;background:#e9e4d3;overflow:hidden;}
+  .rp-image img{width:100%;height:100%;object-fit:cover;display:block;}
   .rp-fav{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-size:13px;color:#c0392b;cursor:pointer;}
   .rp-body{padding:12px 14px 16px;}
   .rp-cat{font-size:10px;color:var(--muted);}
@@ -169,13 +165,13 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
   @media (max-width:900px){
-    .related-grid{grid-template-columns:repeat(2,1fr);}
+    .rp-card{flex-basis:calc((100% - 20px) / 2);}
     .footer-grid{grid-template-columns:1fr 1fr;}
   }
   @media (max-width:600px){
     .topbar-search{display:none;}
     .hero h1{font-size:32px;}
-    .related-grid{grid-template-columns:1fr;}
+    .rp-card{flex-basis:100%;}
     .footer-grid{grid-template-columns:1fr;}
   }
 </style>
@@ -192,7 +188,7 @@
     <div class="icon-btn heart-icon" id="wishlistIcon" title="Wishlist">♥</div>
     <div class="icon-btn" id="cartIcon" title="Cart">
       <a href="./cart.html">🛒</a>
-      <span id="cartBadge" style="display:none;position:absolute;top:-8px;right:-10px;background:var(--green);color:#fff;font-size:10px;font-weight:700;border-radius:50%;width:16px;height:16px;align-items:center;justify-content:center;">0</span>
+      <span id="cartBadge" style="display:none;position:absolute;top:-8px;right:-10px;background:var(--green);color:#fff;font-size:10px;font-weight:700;border-radius:50%;min-width:16px;height:16px;align-items:center;justify-content:center;">0</span>
     </div>
     <div class="user-chip">
       <div class="avatar"></div>
@@ -215,12 +211,22 @@
 
 <section class="product-wrap">
   <div class="product-gallery">
-    <div class="main-image"><img id="mainImgEl" src="GoCart\frontend\static\images\alu.jpg" alt="Local Potato"></div>
+    <div class="main-image">
+      <img id="mainImgEl" src="../static/images/alu.jpg" alt="Local Potato">
+    </div>
     <div class="thumb-row">
-      <div class="thumb active-thumb" onclick="selectThumb(this)"><img src="GoCart\frontend\static\images\alu.jpg" alt="Local Potato 1"></div>
-      <div class="thumb" onclick="selectThumb(this)"><img src="alu2.jpg" alt="Local Potato 2"></div>
-      <div class="thumb" onclick="selectThumb(this)"><img src="alu3.jpg" alt="Local Potato 3"></div>
-      <div class="thumb" onclick="selectThumb(this)"><img src="alu4.jpg" alt="Local Potato 4"></div>
+      <div class="thumb active-thumb" onclick="selectThumb(this)">
+        <img src="../static/images/alu.jpg" alt="Local Potato 1">
+      </div>
+      <div class="thumb" onclick="selectThumb(this)">
+        <img src="../static/images/alu2.jpg" alt="Local Potato 2">
+      </div>
+      <div class="thumb" onclick="selectThumb(this)">
+        <img src="../static/images/alu3.jpg" alt="Local Potato 3">
+      </div>
+      <div class="thumb" onclick="selectThumb(this)">
+        <img src="../static/images/alu4.jpg" alt="Local Potato 4">
+      </div>
     </div>
   </div>
 
@@ -241,8 +247,8 @@
       <button data-price="60" onclick="selectWeight(this)">500 g</button>
       <button data-price="120" class="active" onclick="selectWeight(this)">1 kg</button>
       <button data-price="240" onclick="selectWeight(this)">2 kg</button>
-      <button data-price="240" onclick="selectWeight(this)">4 kg</button>
-      <button data-price="300" onclick="selectWeight(this)">5 kg</button>
+      <button data-price="480" onclick="selectWeight(this)">4 kg</button>
+      <button data-price="600" onclick="selectWeight(this)">5 kg</button>
     </div>
 
     <div class="buy-row">
@@ -252,7 +258,7 @@
         <button id="qtyPlus" onclick="changeQty(1)">+</button>
       </div>
       <button class="btn btn-buy" onclick="buyNow('Local Potato')">Buy Now</button>
-      <button class="btn btn-cart" onclick="addToCart('Local Potato')">Add to Cart</button>
+      <button class="btn btn-cart" onclick="addToCart('Local Potato', qty)">Add to Cart</button>
     </div>
     <div class="stock-note" id="stockNote"></div>
 
@@ -292,7 +298,7 @@
     <div class="rev-body">
       <div class="rev-top">
         <div class="rev-name">Asmit Sharma</div>
-        <div class="rev-date">Posted 1 months ago</div>
+        <div class="rev-date">Posted 1 month ago</div>
       </div>
       <div class="rev-stars">★★★★☆</div>
       <p class="rev-text">Excellent service from start to finish. The potatoes looked freshly harvested and had a natural flavor that made our meals taste even better. Delivery was quick, and the products arrived exactly as shown on the website. It's convenient to shop from home without worrying about freshness. Highly recommended!</p>
@@ -330,14 +336,14 @@
 <div class="related-heading-row">
   <h3>You may also like</h3>
   <div class="related-nav">
-    <button onclick="scrollRelated(-1)">‹</button>
-    <button onclick="scrollRelated(1)">›</button>
+    <button onclick="scrollRelated(-1)" aria-label="Previous">‹</button>
+    <button onclick="scrollRelated(1)" aria-label="Next">›</button>
   </div>
 </div>
 
 <div class="related-grid" id="relatedGrid">
   <div class="rp-card">
-    <div class="rp-image meat"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
+    <div class="rp-image"><img src="../static/images/cat_meat_fish.jpg" alt="Tuna Fish"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Meat , Egg and Fish</div>
       <div class="rp-title-row"><span class="name">Tuna Fish</span><span class="rp-stock">In Stock</span></div>
@@ -350,7 +356,7 @@
   </div>
 
   <div class="rp-card">
-    <div class="rp-image baby"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
+    <div class="rp-image"><img src="../static/images/baby product.jpg" alt="Baby shampoo"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Baby care</div>
       <div class="rp-title-row"><span class="name">Baby shampoo</span><span class="rp-stock out">Out of Stock</span></div>
@@ -363,11 +369,11 @@
   </div>
 
   <div class="rp-card">
-    <div class="rp-image potato"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
+    <div class="rp-image"><img src="../static/images/alu.jpg" alt="Local Potato"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Vegetables and fruits</div>
       <div class="rp-title-row"><span class="name">Local Potato</span><span class="rp-stock">In Stock</span></div>
-      <div class="rp-price-row"><span>Price</span><span class="price">rs. 1200</span></div>
+      <div class="rp-price-row"><span>Price</span><span class="price">rs. 120</span></div>
       <div class="rp-actions">
         <button class="add" onclick="addToCart('Local Potato')">Add to Cart</button>
         <button class="buy" onclick="buyNow('Local Potato')">Buy Now</button>
@@ -376,7 +382,7 @@
   </div>
 
   <div class="rp-card">
-    <div class="rp-image atta"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
+    <div class="rp-image"><img src="../static/images/aata.jpg" alt="Chaaki Atta"><div class="rp-fav" onclick="toggleFav(this)">♡</div></div>
     <div class="rp-body">
       <div class="rp-cat">Atta and Rice</div>
       <div class="rp-title-row"><span class="name">Chaaki Atta</span><span class="rp-stock">In Stock</span></div>
@@ -490,19 +496,19 @@
   }
 
   // ---- Gallery: thumbnails + main image switching ----
-  const mainImg   = document.querySelector('.main-image');
+  const mainImg = document.querySelector('.main-image');
   const mainImgEl = document.getElementById('mainImgEl');
-  const thumbs    = [...document.querySelectorAll('.thumb')];
+  const thumbs = [...document.querySelectorAll('.thumb')];
 
   function selectThumb(el){
     thumbs.forEach(t => t.classList.remove('active-thumb'));
     el.classList.add('active-thumb');
 
     const src = el.querySelector('img').getAttribute('src');
-    mainImg.classList.add('fade');                 // fade out
+    mainImg.classList.add('fade');
     setTimeout(() => {
-      mainImgEl.src = src;                         // swap image
-      mainImg.classList.remove('fade');            // fade in
+      mainImgEl.src = src;
+      mainImg.classList.remove('fade');
     }, 200);
   }
 
@@ -515,11 +521,12 @@
   // ---- Cart ----
   let cartCount = 0;
   const cartBadge = document.getElementById('cartBadge');
-  function addToCart(name){
-    cartCount++;
+  function addToCart(name, count){
+    const n = count || 1;
+    cartCount += n;
     cartBadge.textContent = cartCount;
     cartBadge.style.display = 'flex';
-    showToast(name + ' added to cart');
+    showToast(n + ' × ' + name + ' added to cart');
   }
   function buyNow(name){
     showToast('Proceeding to checkout for ' + name);
@@ -558,7 +565,7 @@
   }
 </script>
 
-<!-- COOKIE PERSISTENCE -->
+<!-- COOKIE PERSISTENCE (works when served via Live Server / a web server, not file://) -->
 <script>
 (function(){
   const COOKIE = 'lp_state', DAYS = 30;
@@ -574,21 +581,27 @@
   // ---- RESTORE on page load ----
   const wBtns = $$('.weight-opts button');
   if(wBtns[s.w]) selectWeight(wBtns[s.w]);
-  qty = Math.min(Math.max(1, s.q), MAX_STOCK); renderQty();   // clamp saved qty to current stock
+  qty = Math.min(Math.max(1, s.q), MAX_STOCK);
+  renderQty();
   if(s.c > 0){ cartCount = s.c; cartBadge.textContent = cartCount; cartBadge.style.display = 'flex'; }
-  wishlistOn = !!s.wl; wishlistIcon.style.color = wishlistOn ? '#c0392b' : '#b9b6a8';
+  wishlistOn = !!s.wl;
+  wishlistIcon.style.color = wishlistOn ? '#c0392b' : '#b9b6a8';
   $$('.rp-fav').forEach((el,i)=>{ if(s.f.includes(i)) el.textContent = '♥'; });
   $$('.rev-likes').forEach((el,i)=>{ if(s.l.includes(i)) toggleLike(el, parseInt(el.textContent.replace(/\D/g,''),10)); });
 
   // ---- SAVE on every change ----
   const save = ()=>setCookie(COOKIE, JSON.stringify(s), DAYS);
-  const _sw = selectWeight; selectWeight = function(b){ _sw(b); s.w = $$('.weight-opts button').indexOf(b); save(); };
-  const _cq = changeQty;    changeQty    = function(d){ _cq(d); s.q = qty; save(); };
-  const _ac = addToCart;    addToCart    = function(n){ _ac(n); s.c = cartCount; save(); };
-  const _tl = toggleLike;   toggleLike   = function(el,b){ _tl(el,b); s.l = $$('.rev-likes').map((e,i)=>e.classList.contains('liked')?i:-1).filter(i=>i>=0); save(); };
-  const _tf = toggleFav;    toggleFav    = function(el){ _tf(el); s.f = $$('.rp-fav').map((e,i)=>e.textContent.trim()==='♥'?i:-1).filter(i=>i>=0); save(); };
+  const _sw = selectWeight;
+  selectWeight = function(b){ _sw(b); s.w = $$('.weight-opts button').indexOf(b); save(); };
+  const _cq = changeQty;
+  changeQty = function(d){ _cq(d); s.q = qty; save(); };
+  const _ac = addToCart;
+  addToCart = function(n,c){ _ac(n,c); s.c = cartCount; save(); };
+  const _tl = toggleLike;
+  toggleLike = function(el,b){ _tl(el,b); s.l = $$('.rev-likes').map((e,i)=>e.classList.contains('liked')?i:-1).filter(i=>i>=0); save(); };
+  const _tf = toggleFav;
+  toggleFav = function(el){ _tf(el); s.f = $$('.rp-fav').map((e,i)=>e.textContent.trim()==='♥'?i:-1).filter(i=>i>=0); save(); };
   wishlistIcon.addEventListener('click', ()=>{ s.wl = wishlistOn ? 1 : 0; save(); });
-
 })();
 </script>
 <!-- END COOKIE PERSISTENCE -->

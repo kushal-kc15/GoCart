@@ -763,6 +763,22 @@ input[type=checkbox] {
   justify-content: space-between;
   padding: 12px;
   color: #fff;
+  overflow: hidden;
+  background: #e9e4d3;
+}
+
+.rec-img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rec-img .rec-tag,
+.rec-img .heart {
+  position: relative;
+  z-index: 1;
 }
 
 .rec-tag {
@@ -1177,6 +1193,7 @@ footer {
   <div class="rec-grid" id="recGrid">
     <div class="rec-card" data-product-id="101">
       <div class="rec-img img-fish">
+        <img src="../static/images/cat_meat_fish.jpg" alt="Tuna Fish">
         <span class="rec-tag">Meat , Egg and Fish</span>
         <button type="button" class="heart" data-wishlist="101" aria-label="Add Tuna Fish to wishlist">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1199,6 +1216,7 @@ footer {
 
     <div class="rec-card" data-product-id="102">
       <div class="rec-img img-baby">
+        <img src="../static/images/baby product.jpg" alt="Baby shampoo">
         <span class="rec-tag">Baby care</span>
         <button type="button" class="heart" data-wishlist="102" aria-label="Add Baby shampoo to wishlist">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1221,6 +1239,7 @@ footer {
 
     <div class="rec-card" data-product-id="103">
       <div class="rec-img img-potato">
+        <img src="../static/images/alu.jpg" alt="Local Potato">
         <span class="rec-tag">Vegetables and fruits</span>
         <button type="button" class="heart" data-wishlist="103" aria-label="Add Local Potato to wishlist">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1243,6 +1262,7 @@ footer {
 
     <div class="rec-card" data-product-id="104">
       <div class="rec-img img-atta">
+        <img src="../static/images/aata.jpg" alt="Chaaki Atta">
         <span class="rec-tag">Atta and Rice</span>
         <button type="button" class="heart" data-wishlist="104" aria-label="Add Chaaki Atta to wishlist">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1389,22 +1409,22 @@ async function tryBackend(label, fn) {
 
 const products = [
   {
-    id: 1, name: 'Sprite', image: 'sprite.jpg', badge: '15% off',
+    id: 1, name: 'Sprite', image: '../static/images/sprite.jpg', badge: '15% off',
     oldPrice: 2000, price: 150, qty: 1,
     weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
   },
   {
-    id: 2, name: 'Ketchup', image: 'tomato_sauce.jpg', badge: null,
+    id: 2, name: 'Ketchup', image: '../static/images/tomato_sauce.jpg', badge: null,
     oldPrice: null, price: 280, qty: 1,
     weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
   },
   {
-    id: 3, name: 'Shin-Ramen', image: 'cup_noodles.jpg', badge: null,
+    id: 3, name: 'Shin-Ramen', image: '../static/images/cup_noodles.jpg', badge: null,
     oldPrice: null, price: 180, qty: 1,
     weights: ['500gm', '1kg', '2kg', '3kg'], activeWeight: 1
   },
   {
-    id: 4, name: 'Green Tea', image: 'images/green_tea.jpg', badge: null,
+    id: 4, name: 'Green Tea', image: '../static/images/green_tea.jpg', badge: null,
     oldPrice: null, price: 1200, qty: 1,
     weights: ['500 ml', '1 liter', '2 liter', '3 liter'], activeWeight: 1
   }
