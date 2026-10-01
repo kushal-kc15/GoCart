@@ -5,7 +5,7 @@ from .models import Category, Product
 
 def product_list(request):
     category_slug = request.GET.get("category", "").strip()
-    subcategory_slug = request.GET.get("subcategory", "").strip()
+    subcategory_slug = request.GET.get("sub", "").strip()
     sort = request.GET.get("sort", "").strip()
     query = request.GET.get("q", "").strip()
 
@@ -66,5 +66,29 @@ def product_list(request):
             "products": products,
             "selected_sort": sort,
             "query": query,
+        },
+    )
+
+
+def product_detail(request, slug):
+    product = get_object_or_404(
+        Product.objects.select_related("category__parent").prefetch_related("images"),
+        slug=slug,
+        is_available=True,
+    )
+
+    # Other in-stock products from the same department (excludes this one)
+    related_products = Product.objects.filter(
+        category__parent=product.category.parent,
+        is_available=True,
+        stock__gt=0,
+    ).exclude(pk=product.pk).select_related("category").prefetch_related("images")[:4]
+
+    return render(
+        request,
+        "dev/item.html",
+        {
+            "product": product,
+            "related_products": related_products,
         },
     )
