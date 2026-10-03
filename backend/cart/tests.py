@@ -30,6 +30,42 @@ class CartViewsTests(TestCase):
         res = self.client.post(self.add_url, {"product_id": self.product.id})
         self.assertEqual(res.status_code, 302)
         self.assertIn("/accounts/login", res.url)
+        self.assertFalse(CartItem.objects.exists())
+
+    def test_anonymous_add_redirects_to_login_with_page_as_next(self):
+        res = self.client.post(
+            self.add_url, {"product_id": self.product.id, "next": "/products/?page=2"}
+        )
+        # next is the page they were on, not the POST-only add URL.
+        self.assertEqual(
+            res.url, reverse("accounts:login") + "?next=%2Fproducts%2F%3Fpage%3D2"
+        )
+
+    def test_anonymous_add_shows_login_message(self):
+        res = self.client.post(
+            self.add_url, {"product_id": self.product.id, "next": "/products/"},
+            follow=True,
+        )
+        self.assertContains(res, "Please log in to add items to your cart.")
+
+    def test_anonymous_add_ignores_external_next(self):
+        res = self.client.post(
+            self.add_url,
+            {"product_id": self.product.id, "next": "http://evil.example.com/"},
+        )
+        self.assertNotIn("evil.example.com", res.url)
+
+    def test_login_after_anonymous_add_returns_to_page_not_add_url(self):
+        self.client.post(
+            self.add_url, {"product_id": self.product.id, "next": "/products/"}
+        )
+        res = self.client.post(
+            reverse("accounts:login"),
+            {"email": "alice@example.com", "password": "pass12345", "next": "/products/"},
+        )
+        # Lands on the product list (a GET), so no 405, and nothing was auto-added.
+        self.assertEqual(res.url, "/products/")
+        self.assertFalse(CartItem.objects.exists())
 
     def test_add_uses_quantity(self):
         self._login()

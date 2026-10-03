@@ -6,7 +6,10 @@ from products.models import Product
 class Order(models.Model):
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
+        CONFIRMED = 'confirmed', 'Confirmed'
         PROCESSING = 'processing', 'Processing'
+        OUT_FOR_DELIVERY = 'out_for_delivery', 'Out for delivery'
+        DELIVERED = 'delivered', 'Delivered'
         COMPLETED = 'completed', 'Completed'
         CANCELLED = 'cancelled', 'Cancelled'
 

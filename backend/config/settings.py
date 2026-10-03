@@ -1,6 +1,8 @@
 
 from pathlib import Path
 
+from django.urls import reverse_lazy
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -15,6 +17,9 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '*']
 # Application definition
 
 INSTALLED_APPS = [
+    'unfold',                   # must come before django.contrib.admin
+    'unfold.contrib.filters',   # styled list filters
+    'unfold.contrib.forms',     # styled form widgets
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -116,3 +121,24 @@ AUTH_USER_MODEL = 'accounts.User'
 
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "/"
+
+
+# django-unfold admin theme
+UNFOLD = {
+    "SITE_TITLE": "GoCart Admin",
+    "SITE_HEADER": "GoCart Admin",
+    "SIDEBAR": {
+        "show_search": True,
+        "navigation": [
+            {
+                "title": "Shop",
+                "items": [
+                    {"title": "Orders", "link": reverse_lazy("admin:orders_order_changelist")},
+                    {"title": "Products", "link": reverse_lazy("admin:products_product_changelist")},
+                    {"title": "Categories", "link": reverse_lazy("admin:products_category_changelist")},
+                    {"title": "Customers", "link": reverse_lazy("admin:accounts_user_changelist")},
+                ],
+            },
+        ],
+    },
+}

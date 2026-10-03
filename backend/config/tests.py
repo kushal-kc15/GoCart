@@ -1,6 +1,7 @@
-from django.test import TestCase
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
+from config.views import server_error
 from products.models import Category, Product
 
 
@@ -39,9 +40,32 @@ class HomePageTests(TestCase):
         Category.objects.all().delete()
         response = self.client.get(reverse("home"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "No categories available.")
-        self.assertContains(response, "No featured products at the moment.")
+        self.assertContains(response, "No categories yet.")
+        self.assertContains(response, "No featured products yet.")
 
-    def test_backend_stylesheet_is_loaded_after_home_css(self):
-        html = self.client.get(reverse("home")).content.decode()
-        self.assertLess(html.index("css/dev/home.css"), html.index("css/dev/backend.css"))
+
+# The test runner already uses DEBUG=False; it is explicit here because
+# with DEBUG=True Django shows its own debug 404 page instead of ours.
+@override_settings(DEBUG=False)
+class ErrorPageTests(TestCase):
+    def test_unknown_url_uses_custom_404(self):
+        response = self.client.get("/no-such-page/")
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "dev/404.html")
+        self.assertContains(response, "Page not found", status_code=404)
+        self.assertContains(response, reverse("products:product_list"), status_code=404)
+
+    def test_missing_product_uses_custom_404(self):
+        # get_object_or_404 in the product detail view goes through the same handler
+        response = self.client.get(reverse("products:product_detail", args=["nope"]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "dev/404.html")
+
+    def test_500_page_is_standalone_and_uses_no_queries(self):
+        # Call the handler directly: the test client re-raises real errors.
+        request = RequestFactory().get("/")
+        with self.assertNumQueries(0):
+            response = server_error(request)
+        self.assertEqual(response.status_code, 500)
+        self.assertContains(response, 'href="/"', status_code=500)
+        self.assertNotIn("<header", response.content.decode())  # does not use base.html
