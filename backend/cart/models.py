@@ -32,3 +32,8 @@ class CartItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product}"
+
+    @property
+    def line_total(self):
+        """Price x quantity, using the product's current price."""
+        return self.product.price * self.quantity

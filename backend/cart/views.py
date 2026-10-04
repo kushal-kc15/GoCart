@@ -73,6 +73,9 @@ def add_to_cart(request):
     cart_item.save()
 
     messages.success(request, f"{product.name} added to your cart.")
+    # Buy Now goes straight to checkout; Add to Cart returns to the page.
+    if request.POST.get("buy_now"):
+        return redirect("orders:checkout")
     return redirect(_safe_next(request))
 
 

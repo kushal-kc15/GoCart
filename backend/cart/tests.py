@@ -41,6 +41,17 @@ class CartViewsTests(TestCase):
             res.url, reverse("accounts:login") + "?next=%2Fproducts%2F%3Fpage%3D2"
         )
 
+    def test_anonymous_add_keeps_card_anchor_in_next(self):
+        res = self.client.post(
+            self.add_url,
+            {"product_id": self.product.id, "next": "/products/?page=2#product-5"},
+        )
+        # The # is encoded inside next, so it survives the trip through login.
+        self.assertEqual(
+            res.url,
+            reverse("accounts:login") + "?next=%2Fproducts%2F%3Fpage%3D2%23product-5",
+        )
+
     def test_anonymous_add_shows_login_message(self):
         res = self.client.post(
             self.add_url, {"product_id": self.product.id, "next": "/products/"},
@@ -99,6 +110,30 @@ class CartViewsTests(TestCase):
             {"product_id": self.product.id, "next": "http://evil.example.com/"},
         )
         self.assertEqual(res.url, self.cart_url)
+
+    # ---- Buy Now (same form as Add to Cart, extra buy_now field) ----
+    def test_buy_now_adds_item_and_goes_to_checkout(self):
+        self._login()
+        res = self.client.post(self.add_url, {
+            "product_id": self.product.id, "quantity": 2,
+            "next": "/products/apple/", "buy_now": "1",
+        })
+        self.assertEqual(res.url, reverse("orders:checkout"))
+        item = CartItem.objects.get(cart__user=self.user, product=self.product)
+        self.assertEqual(item.quantity, 2)
+
+    def test_add_without_buy_now_returns_to_page(self):
+        self._login()
+        res = self.client.post(
+            self.add_url, {"product_id": self.product.id, "next": "/products/apple/"}
+        )
+        self.assertEqual(res.url, "/products/apple/")
+
+    # ---- line_total ----
+    def test_line_total_is_price_times_quantity(self):
+        cart = Cart.objects.create(user=self.user)
+        item = CartItem.objects.create(cart=cart, product=self.product, quantity=3)
+        self.assertEqual(item.line_total, 300)  # Rs. 100 x 3
 
     # ---- update_quantity ----
     def test_update_increments_and_decrements(self):

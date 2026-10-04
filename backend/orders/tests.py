@@ -8,6 +8,7 @@ from products.models import Category, Product
 from cart.models import Cart, CartItem
 from accounts.models import Address
 from .admin import OrderAdmin
+from .forms import AddressForm
 from .models import Order, OrderItem, Payment
 
 User = get_user_model()
@@ -114,11 +115,49 @@ class CheckoutTests(TestCase):
         self.assertEqual(order.shipping_fee, 100)
         self.assertEqual(order.total, 200)
 
+    # ---- line totals on the summaries ----
+    def test_checkout_summary_shows_line_total(self):
+        self.client.force_login(self.user)
+        self._fill_cart(quantity=2)
+        res = self.client.get(self.url)
+        self.assertContains(res, '<span class="s-price">Rs. 200</span>')  # 2 x Rs. 100
+
+    def test_order_success_shows_line_total(self):
+        self.client.force_login(self.user)
+        self._fill_cart(quantity=2)
+        res = self._post()
+        res = self.client.get(res.url)
+        self.assertContains(res, '<span class="s-price">Rs. 200</span>')
+
     # ---- empty cart ----
     def test_checkout_get_with_empty_cart_redirects_to_cart(self):
         self.client.force_login(self.user)
         res = self.client.get(self.url)
         self.assertRedirects(res, reverse("cart:cart_detail"))
+
+
+class LineTotalAndFormTests(TestCase):
+    def test_order_item_line_total_uses_saved_price(self):
+        user = User.objects.create_user(username="asha", email="asha@example.com", password="pass12345")
+        category = Category.objects.create(name="Fruits", slug="fruits")
+        product = Product.objects.create(category=category, name="Apple", slug="apple", price=100, stock=5)
+        order = Order.objects.create(user=user, total=300, address="Kathmandu")
+        item = OrderItem.objects.create(order=order, product=product, quantity=3, price=100)
+
+        # A later price change must not change what the customer paid.
+        product.price = 150
+        product.save()
+        item.refresh_from_db()
+        self.assertEqual(item.line_total, 300)
+
+    def test_address_form_has_autofill_and_keyboard_hints(self):
+        form = AddressForm()
+        self.assertIn('autocomplete="name"', str(form["recipient_name"]))
+        self.assertIn('autocomplete="tel"', str(form["phone"]))
+        self.assertIn('inputmode="tel"', str(form["phone"]))
+        self.assertIn('autocomplete="address-line1"', str(form["address_line"]))
+        self.assertIn('autocomplete="address-level2"', str(form["city"]))
+        self.assertIn('autocomplete="address-line2"', str(form["area"]))
 
 
 class OrderSuccessTests(TestCase):

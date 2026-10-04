@@ -43,6 +43,11 @@ class OrderItem(models.Model):
     def __str__(self):
         return f'{self.quantity} x {self.product.name} in Order #{self.order.pk}'
 
+    @property
+    def line_total(self):
+        """Price x quantity, using the price saved when the order was placed."""
+        return self.price * self.quantity
+
 
 class Payment(models.Model):
     class Method(models.TextChoices):
