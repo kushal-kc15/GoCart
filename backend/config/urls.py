@@ -13,6 +13,7 @@ urlpatterns = [
     path("products/", include("products.urls")),
     path("cart/", include("cart.urls")),
     path("orders/", include("orders.urls")),
+    path("wishlist/", include("wishlist.urls")),
 ]
 
 handler404 = "config.views.page_not_found"
