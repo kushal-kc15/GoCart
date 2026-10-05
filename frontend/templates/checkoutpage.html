@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout</title>
+<style>
+:root{--bg:#f8f5ea;--card:#fff;--green:#0b5a31;--green2:#4cc57a;--ink:#111;--muted:#8a8a82;--line:#d9d6c9;--red:#e4505a}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+header{border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:16px;padding:32px 0 16px}
+.logo{width:80px;height:58px;background:#d9d9d9;display:grid;place-items:center;font-size:15px}
+.pill{flex:1;background:#fffdf7;border-radius:30px;padding:12px 22px;color:#bbb;font-size:12px}
+.user{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.user i{width:36px;height:36px;border-radius:50%;background:#c9a98a;display:block}
+nav{display:flex;justify-content:center;gap:72px;padding:14px 0 22px;font-size:13px}
+h1{font-size:52px;text-align:center;margin:44px 0 12px;letter-spacing:.5px}
+.crumb{text-align:center;font-size:19px;color:var(--muted);margin-bottom:40px}
+.crumb b{color:var(--green2);font-weight:400}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:12px;align-items:start}
+.panel{background:var(--card);padding:24px}
+.panel+.panel{margin-top:12px}
+.panel h2{font-size:17px;margin:0 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);background:var(--bg);font:inherit;font-size:13px;border-radius:2px}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
+.f{margin-bottom:14px}
+.search{display:flex;gap:8px;margin-bottom:10px}
+.btn{background:var(--green);color:#fff;border:0;padding:11px 18px;font:inherit;font-weight:600;font-size:13px;cursor:pointer;border-radius:3px}
+.btn.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
+#map{height:340px;border:1px solid var(--line);background:#e8e6dc}
+.hint a{color:var(--green);text-decoration:underline}
+.hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+.opt{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);margin-bottom:10px;cursor:pointer;background:var(--bg)}
+.opt input{width:auto;accent-color:var(--green)}
+.opt small{margin-left:auto;color:var(--muted)}
+.opt:has(input:checked){border-color:var(--green);background:#eef7f0}
+.item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item i{width:46px;height:46px;border-radius:4px;flex:none}
+.item span{flex:1}.item small{display:block;color:var(--muted);font-size:11px}
+.sum div.l{display:flex;justify-content:space-between;padding:7px 0;color:#666}
+.sum .disc{color:var(--red)}
+.cp{display:flex;margin:14px 0}
+.cp input{border-right:0}.cp .btn{border-radius:0}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);margin-top:10px;padding-top:18px;font-size:24px;font-weight:700}
+.total span{color:var(--green2)}
+.pay{width:100%;margin-top:20px;padding:16px;font-size:16px;border-radius:4px}
+.err{color:var(--red);font-size:12px;display:none;margin-top:4px}
+ 
+.steps{display:flex;justify-content:center;align-items:center;gap:14px;margin:-18px 0 36px;font-size:13px;color:var(--muted)}
+.steps span{display:flex;align-items:center;gap:8px}
+.steps i{font-style:normal;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;background:#fff}
+.steps .on{color:var(--ink);font-weight:600}.steps .on i{background:var(--green);border-color:var(--green);color:#fff}
+.steps .dn i{background:var(--green2);border-color:var(--green2);color:#fff}
+.steps u{width:36px;height:1.5px;background:var(--line)}
+@media(max-width:600px){.steps u{width:14px}.steps span b{display:none}}
+body.pickup .dOnly{display:none!important}.pOnly{display:none}body.pickup .pOnly{display:block}
+body.typed .mapOnly{display:none}.typeOnly{display:none}body.typed .typeOnly{display:block}
+body.typed:not(.pickup) #mapBox{display:none}
+.seg{display:flex;border:1px solid var(--green);border-radius:3px;overflow:hidden;margin-bottom:16px}
+.seg button{flex:1;padding:11px 10px;border:0;background:#fff;color:var(--green);font:inherit;font-weight:600;font-size:13px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--green);color:#fff}
+.store{background:var(--bg);border:1px solid var(--line);padding:12px 14px;margin:0 0 12px;line-height:1.6;color:#555;font-size:13px}
+footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-align:center;font-size:13px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}nav{gap:22px;flex-wrap:wrap}.pill{display:none}.row2{grid-template-columns:1fr}h1{font-size:38px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top"><div class="logo">Logo</div><div class="pill">Phone number</div><div class="pill">Search ......</div><div class="user"><i></i><span id="uname">Guest</span></div></div>
+  <nav><a href="#">HOME</a><a href="#">CATEGORIES</a><a href="#">ABOUT US</a><a href="#">CONTACT US</a></nav>
+</div></header>
+ 
+<main class="wrap">
+<h1>CHECKOUT</h1>
+<div class="crumb">Home / <a href="#">Cart</a> / <b>Checkout</b></div>
+ 
+<div class="steps"><span class="on"><i>1</i><b>Checkout</b></span><u></u><span class=""><i>2</i><b>Payment</b></span><u></u><span class=""><i>3</i><b>Confirmation</b></span></div>
+<div class="grid">
+<div>
+  <section class="panel">
+    <h2>Contact details</h2>
+    <p class="hint" id="acct" style="margin:-6px 0 16px"></p>
+    <div class="row2">
+      <div class="f"><label for="name">Full name</label><input id="name" autocomplete="name"></div>
+      <div class="f"><label for="phone">Phone number</label><input id="phone" type="tel" autocomplete="tel"></div>
+    </div>
+    <div class="f"><label for="email">Email (optional)</label><input id="email" type="email" autocomplete="email"></div>
+  </section>
+ 
+  <section class="panel" id="deliveryPanel">
+    <h2 id="dpTitle">Delivery location</h2>
+    <div class="pOnly">
+      <div class="f"><label for="store">Pick up store</label><select id="store"><option value="">Select a store</option></select></div>
+      <div class="store" id="storeInfo">Choose the store you'll collect your order from.</div>
+    </div>
+    <div class="seg dOnly" role="group" aria-label="How to give your delivery address">
+      <button type="button" id="mMap" aria-pressed="true">Pin on map</button>
+      <button type="button" id="mType" aria-pressed="false">Type my address</button>
+    </div>
+    <div class="search mapOnly dOnly">
+      <input id="q" placeholder="Search your area or street" aria-label="Search location">
+      <button class="btn" id="go" type="button">Search</button>
+      <button class="btn ghost" id="loc" type="button">Use my location</button>
+    </div>
+    <div id="mapBox">
+      <div id="map" role="application" aria-label="Delivery map"></div>
+      <p class="hint" id="locText" style="color:var(--green);font-weight:600;margin:10px 0 0"></p>
+      <p class="hint mapOnly dOnly">Search your area, use your location or tap the map, then drag the pin to your exact spot.</p>
+    </div>
+    <div class="typeOnly dOnly">
+      <div class="row2">
+        <div class="f"><label for="prov">Province</label><select id="prov"><option value="">Select province</option></select></div>
+        <div class="f"><label for="area">District / city</label><select id="area" disabled><option value="">Select province first</option></select></div>
+      </div>
+      <div class="f"><label for="addr">Street, tole or house number</label><input id="addr" autocomplete="street-address" placeholder="e.g. Lakeside Road, Ward 6"></div>
+    </div>
+    <div class="f dOnly" style="margin-top:14px"><label for="landmark">House number, landmark or instructions (optional)</label><input id="landmark" placeholder="Near the blue gate, call on arrival"></div>
+    <div class="err" id="mapErr">Please set your delivery location on the map.</div>
+  </section>
+ 
+</div>
+ 
+<aside>
+  <section class="panel sum">
+    <h2 style="text-align:center">Order Summary</h2>
+    <div id="items"></div>
+    <div style="margin-top:12px">
+      <div class="l"><span>Sub-total</span><span id="sub"></span></div>
+      <div class="l disc"><span>Discount</span><span id="dis">-Rs. 0</span></div>
+      <div class="l"><span>VAT / TAX</span><span>Rs. 0</span></div>
+      <div class="l"><span>Shipping charge</span><span id="ship"></span></div>
+    </div>
+    <div class="cp"><input id="coupon" placeholder="Enter coupon" aria-label="Coupon code"><button class="btn" id="apply" type="button">Apply</button></div>
+    <div class="hint" id="cpMsg" style="margin:-8px 0 12px"></div>
+ 
+    <div style="color:var(--muted);margin:16px 0 10px">Choose delivery service</div>
+    <label class="opt"><input type="radio" name="svc" value="home" checked> Home delivery <small>Varies by area</small></label>
+    <label class="opt"><input type="radio" name="svc" value="pick"> Pick up at store <small>Free</small></label>
+ 
+    <div class="total">Total <span id="tot"></span></div>
+    <button class="btn pay" id="place" type="button">Continue to payment</button>
+  </section>
+</aside>
+</div>
+</main>
+ 
+<footer>Everything You Need, All in One Cart. Fresh Groceries, Delivered with Care.</footer>
+ 
+<script>
+// ---- Config: replace with your store location and real cart data ----
+var STORE={lat:27.7172,lng:85.3240};    // map starting point
+var ITEMS=[
+ {n:"Sprite",w:"1 liter",q:1,p:1200,c:"#7fb96a"},
+ {n:"Tomato saus",w:"1 liter",q:1,p:1200,c:"#c4472f"},
+ {n:"Cup Noodles",w:"1 liter",q:1,p:1200,c:"#d9a441"},
+ {n:"Green Tea",w:"1 liter",q:1,p:1200,c:"#8a5a3c"}
+];
+var COUPONS={SAVE15:0.15};
+// ---------------------------------------------------------------------
+var $=function(i){return document.getElementById(i)},rs=function(n){return "Rs. "+Math.round(n).toLocaleString()};
+var rate=0,T={};
+var map=null,pin=null,spin=null,info=null,geocoder=null;   // Google Maps objects (set in initMap)
+var how="map";                                    // "map" = pin on map, "type" = typed address
+var geo={province:"",area:"",address:""},rq=0;    // what we know about the pin's location
+ 
+$("items").innerHTML=ITEMS.map(function(i){return '<div class="item"><i style="background:'+i.c+'"></i><span>'+i.n+'<small>'+i.w+' × '+i.q+'</small></span><b>'+rs(i.p*i.q)+'</b></div>'}).join("");
+ 
+function calc(){
+  var sub=ITEMS.reduce(function(s,i){return s+i.p*i.q},0),home=document.querySelector('[name=svc]:checked').value==="home";
+  var dis=sub*rate,ship=home?(fee()||0):0;T={sub:sub,dis:dis,ship:ship,total:sub-dis+ship};
+  $("sub").textContent=rs(sub);$("dis").textContent="-"+rs(dis);$("ship").textContent=home&&fee()==null?(how==="map"?"Drop a pin":"Select area"):rs(ship);$("tot").textContent=rs(sub-dis+ship);
+}
+document.querySelectorAll('[name=svc]').forEach(function(r){r.onchange=function(){calc();applyMode()}});
+$("apply").onclick=function(){
+  var c=COUPONS[$("coupon").value.trim().toUpperCase()];
+  rate=c||0;$("cpMsg").textContent=c?(c*100)+"% discount applied.":"That coupon code isn't valid.";calc();
+};
+ 
+// ---- Google Map ----
+// Turns a google.maps.LatLng or {lat,lng} into a plain {lat,lng} object
+function LL(p){return p?{lat:typeof p.lat==="function"?p.lat():+p.lat,lng:typeof p.lng==="function"?p.lng():+p.lng}:null}
+function pinPos(){return pin?LL(pin.position):null}
+function view(ll,z){if(!map)return;map.setCenter(ll);if(z)map.setZoom(z)}
+function showErr(m){$("mapErr").textContent=m;$("mapErr").style.display="block"}
+ 
+// Called by Google if the API key is missing, wrong or not allowed on this site
+window.gm_authFailure=function(){showErr("The map couldn't load. Check the Google Maps API key.")};
+ 
+// Called by the Google Maps script once it has loaded (see the script tag at the bottom)
+window.initMap=function(){
+  map=new google.maps.Map($("map"),{
+    center:STORE,zoom:14,
+    mapId:"DEMO_MAP_ID",          // replace with your own Map ID for production
+    streetViewControl:false,mapTypeControl:false,fullscreenControl:false,clickableIcons:false
+  });
+  info=new google.maps.InfoWindow();
+  geocoder=new google.maps.Geocoder();
+  map.addListener("click",function(e){
+    if(document.body.classList.contains("pickup"))return;
+    setPin(e.latLng);reverse(LL(e.latLng));
+  });
+  applyMode();
+};
+ 
+function setPin(ll,zoom){
+  if(!map)return;
+  ll=LL(ll);
+  if(pin)pin.position=ll;
+  else{
+    pin=new google.maps.marker.AdvancedMarkerElement({map:map,position:ll,gmpDraggable:true,title:"Delivery location"});
+    pin.addListener("dragend",function(){moved();reverse(pinPos())});
+  }
+  if(zoom)view(ll,zoom);
+  moved();
+  $("mapErr").style.display="none";
+}
+// Pin moved: guess the province from the nearest listed city until the address lookup answers
+function moved(){
+  var n=nearest(pinPos());rq++;
+  geo={province:n?n[0]:"",area:"",address:""};
+  updateLoc();calc();
+}
+function nearest(ll){
+  var best=null,d=Infinity,k=Math.cos(ll.lat*Math.PI/180);
+  Object.keys(PROV).forEach(function(p){PROV[p].a.forEach(function(x){
+    var dd=Math.pow(x[1]-ll.lat,2)+Math.pow((x[2]-ll.lng)*k,2);
+    if(dd<d){d=dd;best=[p,x[0]]}
+  })});
+  return best;
+}
+// Coordinates -> address name, province and area
+function reverse(ll){
+  if(!geocoder)return;
+  var my=rq;
+  geocoder.geocode({location:ll}).then(function(r){
+    if(my!==rq)return;   // the pin moved again since this lookup started
+    var res=r.results||[],g=res.filter(function(x){return x.types.indexOf("plus_code")<0})[0]||res[0];
+    if(g)fillFrom(g);
+  }).catch(function(){});
+}
+// Address -> coordinates
+function search(){
+  var q=$("q").value.trim();if(!q||!geocoder)return;
+  geocoder.geocode({address:q,componentRestrictions:{country:"NP"}}).then(function(r){
+    var g=r.results[0];setPin(g.geometry.location,17);fillFrom(g);
+  }).catch(function(){showErr("We couldn't find that place. Try a nearby landmark.")});
+}
+$("go").onclick=search;
+$("q").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();search()}});
+$("loc").onclick=function(){
+  if(!navigator.geolocation){showErr("Your browser can't share its location. Search or tap the map instead.");return}
+  navigator.geolocation.getCurrentPosition(function(p){
+    var ll={lat:p.coords.latitude,lng:p.coords.longitude};setPin(ll,17);reverse(ll);
+  },function(){showErr("Location access was blocked. Search or tap the map instead.")});
+};
+ 
+// ---- Place order ----
+$("place").onclick=function(){
+  var home=document.querySelector('[name=svc]:checked').value==="home",ok=true;
+  ["name","phone"].forEach(function(i){var e=$(i);if(!e.value.trim()){e.style.borderColor="var(--red)";ok=false}else e.style.borderColor=""});
+  if(home){
+    var em=how==="map"
+      ?(!pin?"Drop a pin on the map, or switch to Type my address.":"")
+      :(!$("prov").value?"Select your province.":!$("area").value?"Select your district or city.":!$("addr").value.trim()?"Enter your street, tole or house number.":"");
+    if(em){showErr(em);ok=false}
+  }
+  if(!home&&!$("store").value){showErr("Select the store you'll pick up from.");ok=false}
+  if(!ok)return;
+  var st=STORES[$("store").value]||null,pp=pinPos();
+  var order={
+    customer:{name:$("name").value,phone:$("phone").value,email:$("email").value,userId:USER?USER.id:null},
+    service:home?"home":"pickup",
+    delivery:!home?null:how==="map"
+      ?{method:"map",address:geo.address,province:geo.province,area:geo.area,street:"",landmark:$("landmark").value,lat:pp.lat,lng:pp.lng}
+      :{method:"typed",address:fullAddr(),province:$("prov").value,area:areaName(),street:$("addr").value,landmark:$("landmark").value,lat:null,lng:null},
+    pickup:home?null:{name:st.name,address:st.address,hours:st.hours,lat:st.lat,lng:st.lng},items:ITEMS,totals:T,coupon:rate?"SAVE15":""
+  };
+  try{sessionStorage.setItem("gc_order",JSON.stringify(order))}catch(e){}
+  location.href="payment.html";
+};
+// ---- Logged-in user: fills name and contact details ----
+// Your login should save the user like this: localStorage.setItem("gc_user", JSON.stringify({id:"u1",username:"Ross95",name:"Ross Geller",phone:"9800000000",email:"ross@example.com"}))
+// and remove "gc_user" on logout. Replace getUser() with a call to your auth API if you prefer.
+function getUser(){try{return JSON.parse(localStorage.getItem("gc_user"))}catch(e){return null}}
+var USER=getUser();
+(function(){
+  var a=$("acct");
+  if(USER){
+    $("name").value=USER.name||"";$("phone").value=USER.phone||"";$("email").value=USER.email||"";
+    $("uname").textContent="@"+(USER.username||USER.name);
+    a.textContent="Signed in as "+(USER.name||USER.username)+". We filled in your details, and you can edit them for this order.";
+  }else{
+    a.innerHTML='Have an account? <a href="login.html">Log in</a> to fill these in automatically.';
+  }
+})();
+// ---- Provinces, areas and delivery charge ----
+// fee = delivery charge (Rs.) for the whole province. Edit areas and fees to match your coverage.
+var PROV={
+ "Koshi":{fee:150,c:[26.9,87.3],a:[["Biratnagar",26.4525,87.2718],["Dharan",26.8065,87.2846],["Itahari",26.6637,87.2718],["Damak",26.66,87.7],["Birtamod",26.644,87.997]]},
+ "Madhesh":{fee:150,c:[26.85,85.9],a:[["Janakpur",26.7288,85.9266],["Birgunj",27.0104,84.877],["Kalaiya",27.027,85.004],["Rajbiraj",26.54,86.75]]},
+ "Bagmati":{fee:100,c:[27.7,85.3],a:[["Kathmandu",27.7172,85.324],["Lalitpur",27.6644,85.3188],["Bhaktapur",27.671,85.4298],["Hetauda",27.4287,85.0322],["Bharatpur (Chitwan)",27.6833,84.4333]]},
+ "Gandaki":{fee:150,c:[28.2,84.2],a:[["Pokhara",28.2096,83.9856],["Baglung",28.27,83.59],["Gorkha",28.0,84.63],["Damauli",27.98,84.27]]},
+ "Lumbini":{fee:150,c:[27.9,82.8],a:[["Butwal",27.7006,83.4483],["Bhairahawa",27.5,83.45],["Nepalgunj",28.05,81.6167],["Tulsipur",28.13,82.3]]},
+ "Karnali":{fee:250,c:[29.0,82.0],a:[["Birendranagar (Surkhet)",28.6,81.6167],["Jumla",29.2747,82.1838],["Dailekh",28.84,81.71]]},
+ "Sudurpashchim":{fee:250,c:[29.0,80.8],a:[["Dhangadhi",28.6833,80.6],["Mahendranagar",28.964,80.176],["Tikapur",28.53,81.13]]}
+};
+var OTHER="Other area in this province";
+function updateLoc(){
+  if(document.body.classList.contains("pickup"))return;
+  var t=$("locText"),ll=pinPos();
+  if(!ll){t.textContent="";return}
+  var where=[geo.address||geo.area,geo.province?geo.province+" Province":""].filter(Boolean).join(", ");
+  t.textContent="Delivery location: "+where+" ("+ll.lat.toFixed(5)+", "+ll.lng.toFixed(5)+")";
+}
+function fee(){var p=how==="map"?(pin?geo.province:""):$("prov").value;return p?PROV[p].fee:null}
+function areaName(){var v=$("area").value;return v==="__other"?"":v}
+function fullAddr(){var p=$("prov").value;return [$("addr").value.trim(),areaName(),p?p+" Province":""].filter(Boolean).join(", ")}
+function fillAreas(p,sel){
+  var a=$("area");a.innerHTML="";
+  if(!p){a.disabled=true;a.innerHTML='<option value="">Select province first</option>';return}
+  a.disabled=false;a.add(new Option("Select district / city",""));
+  PROV[p].a.forEach(function(x){a.add(new Option(x[0],x[0]))});
+  a.add(new Option(OTHER,"__other"));
+  if(sel)a.value=sel;
+}
+Object.keys(PROV).forEach(function(p){$("prov").add(new Option(p,p))});
+$("prov").onchange=function(){fillAreas(this.value);$("mapErr").style.display="none";calc()};
+$("area").onchange=function(){$("mapErr").style.display="none"};
+// ---- Switch between "Pin on map" and "Type my address" ----
+function setHow(h){
+  how=h;
+  document.body.classList.toggle("typed",h==="type");
+  $("mMap").setAttribute("aria-pressed",h==="map");
+  $("mType").setAttribute("aria-pressed",h==="type");
+  $("mapErr").style.display="none";
+  if(h==="map"&&map&&pin)map.setCenter(pinPos());
+  calc();
+}
+$("mMap").onclick=function(){setHow("map")};
+$("mType").onclick=function(){setHow("type")};
+// Google geocoder result -> place name, province and area for the pin
+function fillFrom(g){
+  var comp=g.address_components||[],prov="",area="";
+  var txt=((g.formatted_address||"")+" "+comp.map(function(c){return c.long_name}).join(" ")).toLowerCase();
+  Object.keys(PROV).forEach(function(p){if(!prov&&txt.indexOf(p.toLowerCase())>-1)prov=p});
+  Object.keys(PROV).forEach(function(p){PROV[p].a.forEach(function(x){
+    if(!area&&(!prov||prov===p)&&txt.indexOf(x[0].split(" (")[0].toLowerCase())>-1){area=x[0];prov=prov||p}
+  })});
+  if(prov)geo.province=prov;
+  geo.area=area;
+  geo.address=g.formatted_address||"";
+  updateLoc();calc();
+}
+// ---- Pick up stores (edit to match your branches) ----
+var STORES=[
+ {name:"Go Cart New Road",address:"New Road, Kathmandu",hours:"9:00 am to 8:00 pm",lat:27.704,lng:85.3131},
+ {name:"Go Cart Lakeside",address:"Lakeside Road, Pokhara",hours:"9:00 am to 8:00 pm",lat:28.2096,lng:83.959},
+ {name:"Go Cart Butwal",address:"Traffic Chowk, Butwal",hours:"9:00 am to 8:00 pm",lat:27.7006,lng:83.4483},
+ {name:"Go Cart Biratnagar",address:"Main Road, Biratnagar",hours:"9:00 am to 8:00 pm",lat:26.4525,lng:87.2718}
+];
+STORES.forEach(function(x,i){$("store").add(new Option(x.name+" ("+x.address+")",i))});
+function showStore(){
+  var v=$("store").value,t=$("locText");
+  if(spin){spin.map=null;spin=null}
+  if(info)info.close();
+  if(v===""){t.textContent="";$("storeInfo").textContent="Choose the store you'll collect your order from.";return}
+  var x=STORES[v],ll={lat:x.lat,lng:x.lng};
+  if(map){
+    spin=new google.maps.marker.AdvancedMarkerElement({map:map,position:ll,title:x.name});
+    info.setContent("<b>"+x.name+"</b><br>"+x.address);
+    info.open({anchor:spin,map:map});
+    view(ll,15);
+  }
+  $("storeInfo").innerHTML="<b></b><br>"+x.address+"<br>Open "+x.hours;
+  $("storeInfo").firstChild.textContent=x.name;
+  t.textContent="Pick up location: "+x.name+" ("+x.lat.toFixed(5)+", "+x.lng.toFixed(5)+")";
+  $("mapErr").style.display="none";
+}
+$("store").onchange=showStore;
+function applyMode(){
+  var home=document.querySelector('[name=svc]:checked').value==="home";
+  document.body.classList.toggle("pickup",!home);
+  $("dpTitle").textContent=home?"Delivery location":"Pick up location";
+  $("mapErr").style.display="none";
+  if(home){
+    if(spin){spin.map=null;spin=null}
+    if(info)info.close();
+    if(pin&&map){pin.map=map;map.setCenter(pinPos())}
+    updateLoc();
+  }else{
+    if(pin)pin.map=null;
+    showStore();
+  }
+}
+calc();applyMode();
+</script>
+ 
+<!-- Google Maps: replace YOUR_API_KEY with your key. Keep this tag AFTER the script above. -->
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeL8RrOk_a1dxIDdDHbcYgSYsn4roQz_A&libraries=marker&loading=async&callback=initMap"></script>
+</body>
+</html>
