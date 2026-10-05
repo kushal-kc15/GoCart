@@ -1,7 +1,19 @@
-from django.test import TestCase
-from django.urls import reverse
+from datetime import timedelta
 
-from .models import Category, Product
+from django.contrib import admin
+from django.contrib.auth import get_user_model
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.db import IntegrityError, connection, transaction
+from django.test import RequestFactory, TestCase
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from django.utils import timezone
+
+from orders.models import Order, OrderItem
+from .admin import ReviewAdmin
+from .models import Category, Product, Review
+
+User = get_user_model()
 
 
 class ProductListPaginationTests(TestCase):
@@ -107,19 +119,13 @@ class ProductListPolishTests(TestCase):
         Product.objects.create(category=self.sub, name="Pear", slug="pear", price=60, stock=9)
         self.assertContains(self.client.get(self.url), "2 products")
 
-    def test_breadcrumb_links_department_when_subcategory_selected(self):
-        response = self.client.get(self.url, {"category": "fruits-veg", "sub": "fruits"})
-        html = response.content.decode()
-        crumb = html.split('class="pl-breadcrumb"', 1)[1].split("</nav>", 1)[0]
-        self.assertIn('href="/"', crumb)
-        self.assertIn(f'href="{self.url}?category=fruits-veg"', crumb)
-        self.assertIn('<span class="current">Fruits</span>', crumb)
-        self.assertContains(response, '<h1 class="pl-title">')
-
-    def test_search_breadcrumb(self):
-        html = self.client.get(self.url, {"q": "apple"}).content.decode()
-        crumb = html.split('class="pl-breadcrumb"', 1)[1].split("</nav>", 1)[0]
-        self.assertIn('<span class="current">Search</span>', crumb)
+    def test_no_breadcrumb_but_title_and_count_stay(self):
+        for params in ({"category": "fruits-veg", "sub": "fruits"}, {"q": "apple"}):
+            with self.subTest(params=params):
+                response = self.client.get(self.url, params)
+                self.assertNotContains(response, "pl-breadcrumb")
+                self.assertContains(response, '<h1 class="pl-title">')
+                self.assertContains(response, '<p class="pl-count">')
 
     # ---- step 6: pagination, sort anchor, empty states ----
     def test_page_links_jump_to_the_grid(self):
@@ -170,6 +176,183 @@ class ProductDetailTests(TestCase):
         response = self.client.get(self.url)
         self.assertContains(response, "Rating and Reviews")
         self.assertContains(response, "Write a review")
+
+
+class ReviewTests(TestCase):
+    def setUp(self):
+        dept = Category.objects.create(name="Fruits & Veg", slug="fruits-veg")
+        sub = Category.objects.create(name="Fruits", slug="fruits", parent=dept)
+        self.product = Product.objects.create(
+            category=sub, name="Apple", slug="apple", price=100, stock=10,
+        )
+        self.user = self._user(1, first="Asha", last="Sharma")
+        self.url = reverse("products:product_detail", args=["apple"])
+        self.submit_url = reverse("products:submit_review", args=["apple"])
+
+    def _user(self, n, first="", last=""):
+        return User.objects.create_user(
+            username=f"u{n}", email=f"u{n}@example.com", password="pass12345",
+            first_name=first, last_name=last,
+        )
+
+    def _order(self, user, status):
+        order = Order.objects.create(user=user, status=status, total=100, address="Kathmandu")
+        OrderItem.objects.create(order=order, product=self.product, quantity=1, price=100)
+
+    def _review(self, user, rating, **extra):
+        return Review.objects.create(user=user, product=self.product, rating=rating, comment="Nice", **extra)
+
+    def _post(self, rating=5, comment="Fresh and tasty."):
+        return self.client.post(self.submit_url, {"rating": rating, "comment": comment})
+
+    # ---- who can review ----
+    def test_logged_out_sees_login_link_back_to_reviews(self):
+        res = self.client.get(self.url)
+        self.assertContains(res, "?next=/products/apple/%23reviews")
+        self.assertNotContains(res, self.submit_url)
+
+    def test_logged_out_post_goes_to_login(self):
+        res = self._post()
+        self.assertIn("/accounts/login", res.url)
+        self.assertFalse(Review.objects.exists())
+
+    def test_no_order_or_pending_order_cannot_review(self):
+        self.client.force_login(self.user)
+        for status in (None, Order.Status.PENDING, Order.Status.OUT_FOR_DELIVERY):
+            with self.subTest(status=status):
+                if status:
+                    self._order(self.user, status)
+                res = self.client.get(self.url)
+                self.assertContains(res, "You can review this after it's delivered.")
+                self.assertNotContains(res, self.submit_url)
+                self.assertRedirects(self._post(), self.url + "#reviews", fetch_redirect_response=False)
+                self.assertFalse(Review.objects.exists())
+
+    def test_delivered_or_completed_buyer_can_review(self):
+        for n, status in enumerate((Order.Status.DELIVERED, Order.Status.COMPLETED), start=2):
+            with self.subTest(status=status):
+                buyer = self._user(n)
+                self._order(buyer, status)
+                self.client.force_login(buyer)
+                self.assertContains(self.client.get(self.url), self.submit_url)
+                res = self._post(rating=4)
+                self.assertRedirects(res, self.url + "#reviews", fetch_redirect_response=False)
+                self.assertEqual(Review.objects.get(user=buyer).rating, 4)
+
+    # ---- one review per user ----
+    def test_second_post_edits_the_same_review(self):
+        self._order(self.user, Order.Status.DELIVERED)
+        self.client.force_login(self.user)
+        self._post(rating=5)
+        self._post(rating=2, comment="Changed my mind.")
+        review = Review.objects.get()
+        self.assertEqual((review.rating, review.comment), (2, "Changed my mind."))
+
+    def test_editing_a_hidden_review_keeps_it_hidden(self):
+        self._order(self.user, Order.Status.DELIVERED)
+        self._review(self.user, 5, is_visible=False)
+        self.client.force_login(self.user)
+        self._post(rating=4)
+        self.assertFalse(Review.objects.get().is_visible)
+
+    def test_delete_removes_only_own_review(self):
+        other = self._user(2)
+        self._review(self.user, 5)
+        self._review(other, 4)
+        self.client.force_login(self.user)
+        self.client.post(reverse("products:delete_review", args=["apple"]))
+        self.assertEqual(list(Review.objects.values_list("user", flat=True)), [other.pk])
+
+    # ---- rating range ----
+    def test_rating_outside_1_to_5_is_rejected(self):
+        self._order(self.user, Order.Status.DELIVERED)
+        self.client.force_login(self.user)
+        for rating in (0, 6, "x", ""):
+            with self.subTest(rating=rating):
+                self._post(rating=rating)
+                self.assertFalse(Review.objects.exists())
+
+    def test_database_rejects_rating_6(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            self._review(self.user, 6)
+
+    # ---- numbers and list ----
+    def test_average_count_and_bars(self):
+        for n, rating in enumerate((5, 5, 4, 1), start=2):
+            self._review(self._user(n), rating)
+        res = self.client.get(self.url)
+        self.assertEqual(res.context["review_total"], 4)
+        self.assertEqual(res.context["review_average"], 3.75)
+        self.assertEqual([b["percent"] for b in res.context["rating_bars"]], [50, 25, 0, 0, 25])
+        self.assertContains(res, '<div class="num">3.8</div>', html=True)
+        self.assertContains(res, "( 4 Reviews )")
+
+    def test_empty_state(self):
+        res = self.client.get(self.url)
+        self.assertContains(res, "No reviews yet.")
+        self.assertContains(res, "( 0 Reviews )")
+
+    def test_hidden_reviews_are_not_shown_or_counted(self):
+        self._review(self._user(2), 5)
+        self._review(self._user(3), 1, is_visible=False)
+        res = self.client.get(self.url)
+        self.assertEqual(res.context["review_total"], 1)
+        self.assertEqual(res.context["review_average"], 5)
+        self.assertEqual(len(res.context["reviews"]), 1)
+
+    def test_name_is_first_name_and_last_initial(self):
+        self._review(self.user, 5)
+        self._review(self._user(2, first="Bikash"), 4)
+        res = self.client.get(self.url)
+        self.assertContains(res, "Asha S.")
+        self.assertContains(res, '<div class="rev-name">Bikash</div>', html=True)
+        self.assertNotContains(res, "u1@example.com")
+
+    def test_newest_first_and_only_ten_shown(self):
+        now = timezone.now()
+        for n in range(2, 14):  # 12 reviews
+            review = self._review(self._user(n), 5)
+            Review.objects.filter(pk=review.pk).update(created_at=now - timedelta(days=n))
+        reviews = self.client.get(self.url).context["reviews"]
+        self.assertEqual(len(reviews), 10)
+        self.assertEqual(reviews[0].user.username, "u2")  # 2 days ago = newest
+
+    def test_like_button_is_disabled_without_a_count(self):
+        self._review(self.user, 5)
+        res = self.client.get(self.url)
+        self.assertContains(
+            res, '<button type="button" class="rev-likes" disabled title="Coming soon">👍 Like</button>', html=True
+        )
+        self.assertNotRegex(res.content.decode(), r"\d+ likes")  # no made-up counts
+
+    def test_no_extra_queries_per_review(self):
+        self._review(self._user(2), 5)
+        with CaptureQueriesContext(connection) as one:
+            self.client.get(self.url)
+        for n in range(3, 8):
+            self._review(self._user(n), 4)
+        with CaptureQueriesContext(connection) as six:
+            self.client.get(self.url)
+        self.assertEqual(len(six), len(one))
+
+
+class ReviewAdminTests(TestCase):
+    def test_hide_and_show_actions(self):
+        user = User.objects.create_user(username="asha", email="asha@example.com", password="pass12345")
+        category = Category.objects.create(name="Fruits", slug="fruits")
+        product = Product.objects.create(category=category, name="Apple", slug="apple", price=100)
+        Review.objects.create(user=user, product=product, rating=5, comment="Nice")
+
+        request = RequestFactory().post("/admin/products/review/")
+        request.user = user
+        setattr(request, "session", "session")
+        setattr(request, "_messages", FallbackStorage(request))
+        review_admin = ReviewAdmin(Review, admin.site)
+
+        review_admin.hide_reviews(request, Review.objects.all())
+        self.assertFalse(Review.objects.get().is_visible)
+        review_admin.show_reviews(request, Review.objects.all())
+        self.assertTrue(Review.objects.get().is_visible)
 
 
 class SearchTests(TestCase):

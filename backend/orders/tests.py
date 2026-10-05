@@ -185,11 +185,128 @@ class OrderSuccessTests(TestCase):
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, f"#{self.order.pk}")
+        # Links on to the order detail / tracking page.
+        self.assertContains(res, reverse("orders:order_detail", args=[self.order.pk]))
 
     def test_other_user_gets_404(self):
         self.client.force_login(self.other)
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, 404)
+
+
+class OrderDetailTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="asha", email="asha@example.com", password="pass12345"
+        )
+        self.other = User.objects.create_user(
+            username="bob", email="bob@example.com", password="pass12345"
+        )
+        self.category = Category.objects.create(name="Fruits", slug="fruits")
+        # Stock is 3 as if 2 units were already sold on this order.
+        self.product = Product.objects.create(
+            category=self.category, name="Apple", slug="apple", price=100, stock=3
+        )
+        self.order = Order.objects.create(
+            user=self.user, status=Order.Status.PENDING,
+            delivery_method=Order.DeliveryMethod.DELIVERY,
+            subtotal=200, shipping_fee=100, total=300, address="Asha, Kathmandu",
+        )
+        OrderItem.objects.create(
+            order=self.order, product=self.product, product_name="Apple", quantity=2, price=100
+        )
+        self.payment = Payment.objects.create(
+            order=self.order, method=Payment.Method.COD,
+            status=Payment.Status.PENDING, amount=300,
+        )
+        self.url = reverse("orders:order_detail", args=[self.order.pk])
+        self.cancel_url = reverse("orders:cancel_order", args=[self.order.pk])
+
+    def _set_status(self, status):
+        Order.objects.filter(pk=self.order.pk).update(status=status)
+
+    # ---- access ----
+    def test_login_required(self):
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("/accounts/login", res.url)
+
+    def test_other_user_gets_404(self):
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+        self.assertEqual(self.client.post(self.cancel_url).status_code, 404)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 3)
+
+    def test_owner_sees_order_details(self):
+        self.client.force_login(self.user)
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, f"ORDER #{self.order.pk}")
+        self.assertContains(res, '<span class="s-price">Rs. 200</span>')
+        self.assertContains(res, "Cash on Delivery")
+        self.assertContains(res, "Asha, Kathmandu")
+
+    # ---- tracker ----
+    def test_tracker_shows_the_right_step(self):
+        self.client.force_login(self.user)
+        expected = {
+            Order.Status.PENDING: "Pending",
+            Order.Status.PROCESSING: "Confirmed",
+            Order.Status.OUT_FOR_DELIVERY: "Out for delivery",
+            Order.Status.COMPLETED: "Delivered",
+        }
+        for status, label in expected.items():
+            with self.subTest(status=status):
+                self._set_status(status)
+                steps = self.client.get(self.url).context["steps"]
+                self.assertEqual([s["label"] for s in steps if s["current"]], [label])
+
+    def test_cancelled_order_shows_cancelled_state(self):
+        self._set_status(Order.Status.CANCELLED)
+        self.client.force_login(self.user)
+        res = self.client.get(self.url)
+        self.assertContains(res, "track-cancelled")
+        self.assertNotContains(res, 'class="tracker"')
+        self.assertNotContains(res, self.cancel_url)
+
+    # ---- cancel ----
+    def test_cancel_button_only_while_pending(self):
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(self.url), self.cancel_url)
+        self._set_status(Order.Status.CONFIRMED)
+        self.assertNotContains(self.client.get(self.url), self.cancel_url)
+
+    def test_cancel_pending_order_restores_stock(self):
+        self.client.force_login(self.user)
+        res = self.client.post(self.cancel_url)
+        self.assertRedirects(res, self.url)
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.payment.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.CANCELLED)
+        self.assertEqual(self.product.stock, 5)  # 3 + 2 restored
+        self.assertEqual(self.payment.status, Payment.Status.FAILED)
+
+    def test_cancel_twice_restores_stock_once(self):
+        self.client.force_login(self.user)
+        self.client.post(self.cancel_url)
+        self.client.post(self.cancel_url)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)  # not 7
+
+    def test_cannot_cancel_after_confirmed(self):
+        self._set_status(Order.Status.CONFIRMED)
+        self.client.force_login(self.user)
+        self.client.post(self.cancel_url)
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.CONFIRMED)
+        self.assertEqual(self.product.stock, 3)
+
+    def test_cancel_requires_post(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.cancel_url).status_code, 405)
 
 
 class OrderAdminActionTests(TestCase):

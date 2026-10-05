@@ -165,7 +165,9 @@ class HeartTests(WishlistTestBase):
         self.client.force_login(self.user)
         url = reverse("products:product_detail", args=["apple"])
         res = self.client.get(url)
-        self.assertContains(res, 'class="rp-fav rp-fav--main"')
-        self.assertContains(res, "♥")  # apple (main) is saved
-        self.assertContains(res, "♡")  # mango (related) is not
+        html = res.content.decode()
+        # Same SVG heart as the other pages: main image (apple, saved) + related card (mango, not saved)
+        self.assertEqual(html.count('class="wish"'), 2)
+        self.assertRegex(html, r'aria-label="Save Apple to wishlist"\s+aria-pressed="true"')
+        self.assertRegex(html, r'aria-label="Save Mango to wishlist"\s+aria-pressed="false"')
         self.assertContains(res, f'value="{url}#relatedGrid"')

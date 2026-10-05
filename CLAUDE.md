@@ -16,6 +16,7 @@ python manage.py createsuperuser    # admin login (uses email as USERNAME_FIELD)
 python manage.py test               # run all app tests
 python manage.py test orders.tests  # run one app's tests
 python seed_catalog_data.py         # populate Category/Product from CATALOG dict; safe to re-run (uses update_or_create)
+python seed_reviews.py              # LOCAL ONLY: demo customers + sample reviews; safe to re-run, refuses if DEBUG is off
 ```
 
 `seed_catalog_data.py` calls `django.setup()` itself, so run it as a plain script from `backend/`, not via `manage.py`.
@@ -76,7 +77,10 @@ Django 6.0 project split between a Django backend and template/static assets tha
 ## Later (final phase)
 - Product detail: make page wider/larger image, shrink SHOP banner,
   clickable breadcrumb, bigger qty/Buy Now/Add to Cart controls.
-- Product detail: ratings and reviews are static; wire to Review model.
+- Review likes: buttons are disabled ("Coming soon"); needs a like model + view.
+- Reviews: product page shows the newest 10; add a "Show all" page.
+- Product cards: average rating + count (annotate on the list; home "Most Popular"
+  already sums order items, so use a Subquery there to avoid inflated sums).
 - Product list: frontend team to polish styling; search is scoped to one department.
 - Home page: Most Popular is static; footer SHOP links are placeholders.
 - Header: cart count badge is empty; wishlist link is "#".

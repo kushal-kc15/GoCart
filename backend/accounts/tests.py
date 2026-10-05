@@ -231,7 +231,7 @@ class ProfileOrdersTests(TestCase):
         return order
 
     def _order_link(self, order):
-        return f'href="{reverse("orders:order_success", args=[order.pk])}"'
+        return f'href="{reverse("orders:order_detail", args=[order.pk])}"'
 
     def test_shows_only_own_orders_each_linking_to_its_page(self):
         mine = self._order(self.user, 300)

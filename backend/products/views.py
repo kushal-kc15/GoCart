@@ -1,12 +1,19 @@
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_POST
 
-from .models import Category, Product
+from orders.models import Order, OrderItem
+from .forms import ReviewForm
+from .models import Category, Product, Review, star_text
 
 PRODUCTS_PER_PAGE = 20
 SUGGESTION_LIMIT = 6
+REVIEWS_SHOWN = 10  # newest first; a "Show all" page can come later
 
 
 def product_list(request):
@@ -114,11 +121,85 @@ def product_detail(request, slug):
         stock__gt=0,
     ).exclude(pk=product.pk).select_related("category").prefetch_related("images")[:4]
 
+    # Ratings summary from one grouped query: {5: 3, 4: 1, ...}
+    visible = product.reviews.filter(is_visible=True)
+    counts = dict(visible.values_list("rating").annotate(n=Count("id")).order_by())
+    total = sum(counts.values())
+    average = sum(rating * n for rating, n in counts.items()) / total if total else 0
+    bars = [
+        {
+            "stars": stars,
+            "count": counts.get(stars, 0),
+            "percent": round(counts.get(stars, 0) * 100 / total) if total else 0,
+        }
+        for stars in (5, 4, 3, 2, 1)
+    ]
+
+    my_review = None
+    if request.user.is_authenticated:
+        my_review = Review.objects.filter(user=request.user, product=product).first()
+
     return render(
         request,
         "dev/item.html",
         {
             "product": product,
             "related_products": related_products,
+            "reviews": visible.select_related("user")[:REVIEWS_SHOWN],
+            "review_total": total,
+            "review_average": average,
+            "average_stars": star_text(int(average + 0.5)),  # 4.5 -> 5 stars (round() would give 4)
+            "rating_bars": bars,
+            "can_review": _can_review(request.user, product),
+            "my_review": my_review,
+            "review_form": ReviewForm(instance=my_review),
         },
     )
+
+
+def _can_review(user, product):
+    """Only customers who have received this product can review it."""
+    return user.is_authenticated and OrderItem.objects.filter(
+        order__user=user,
+        product=product,
+        order__status__in=[Order.Status.DELIVERED, Order.Status.COMPLETED],
+    ).exists()
+
+
+def _reviews_url(product):
+    return reverse("products:product_detail", args=[product.slug]) + "#reviews"
+
+
+@require_POST
+@login_required
+def submit_review(request, slug):
+    """Create the user's review of this product, or update it if they wrote one before."""
+    product = get_object_or_404(Product, slug=slug, is_available=True)
+    if not _can_review(request.user, product):
+        messages.error(request, "You can review this after it's delivered.")
+        return redirect(_reviews_url(product))
+
+    my_review = Review.objects.filter(user=request.user, product=product).first()
+    form = ReviewForm(request.POST, instance=my_review)
+    if form.is_valid():
+        review = form.save(commit=False)
+        review.user = request.user
+        review.product = product
+        review.save()  # is_visible is not in the form, so a hidden review stays hidden
+        if my_review:
+            messages.success(request, "Your review is updated.")
+        else:
+            messages.success(request, "Thanks, your review is posted.")
+    else:
+        messages.error(request, "Please pick 1 to 5 stars and write a short comment.")
+    return redirect(_reviews_url(product))
+
+
+@require_POST
+@login_required
+def delete_review(request, slug):
+    """Delete the user's own review of this product."""
+    product = get_object_or_404(Product, slug=slug)
+    Review.objects.filter(user=request.user, product=product).delete()
+    messages.success(request, "Your review is deleted.")
+    return redirect(_reviews_url(product))
