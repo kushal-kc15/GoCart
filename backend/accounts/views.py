@@ -1,10 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.decorators.http import require_POST
+
+from orders.models import Order
 
 from .forms import SignUpForm
 
@@ -80,9 +83,30 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     """Read-only account overview with the user's order history."""
+    # Newest first (Order.Meta.ordering); items prefetched for the item counts.
     orders = request.user.orders.prefetch_related("items")
+
+    # Quick stats: money spent on orders that weren't cancelled.
+    total_spent = orders.exclude(status=Order.Status.CANCELLED).aggregate(
+        total=Sum("total")
+    )["total"] or 0
+
+    # "Location" = city of the default (or most recent) saved address.
+    address = request.user.addresses.order_by("-is_default", "-created_at").first()
+
+    # Initials for the avatar circles (no photo upload yet).
+    initials = (request.user.first_name[:1] + request.user.last_name[:1]).upper()
+    if not initials:
+        initials = request.user.email[:1].upper()
+
     return render(
         request,
         "dev/profile.html",
-        {"profile_user": request.user, "orders": orders},
+        {
+            "profile_user": request.user,
+            "orders": orders,
+            "total_spent": total_spent,
+            "location": address.city if address else "",
+            "initials": initials,
+        },
     )

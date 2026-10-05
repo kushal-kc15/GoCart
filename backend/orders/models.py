@@ -6,7 +6,10 @@ from products.models import Product
 class Order(models.Model):
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
+        CONFIRMED = 'confirmed', 'Confirmed'
         PROCESSING = 'processing', 'Processing'
+        OUT_FOR_DELIVERY = 'out_for_delivery', 'Out for delivery'
+        DELIVERED = 'delivered', 'Delivered'
         COMPLETED = 'completed', 'Completed'
         CANCELLED = 'cancelled', 'Cancelled'
 
@@ -39,6 +42,11 @@ class OrderItem(models.Model):
     price=models.DecimalField(max_digits=10, decimal_places=2)
     def __str__(self):
         return f'{self.quantity} x {self.product.name} in Order #{self.order.pk}'
+
+    @property
+    def line_total(self):
+        """Price x quantity, using the price saved when the order was placed."""
+        return self.price * self.quantity
 
 
 class Payment(models.Model):

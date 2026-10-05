@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 
 from products.models import Product
 from .models import Cart, CartItem
@@ -16,6 +17,13 @@ def _safe_next(request, fallback="cart:cart_detail"):
     ):
         return next_url
     return redirect(fallback).url
+
+
+def _login_redirect(request):
+    """Send a logged-out user to login, then back to the page they were on."""
+    messages.info(request, "Please log in to add items to your cart.")
+    query = urlencode({"next": _safe_next(request, "home")})
+    return redirect(f"{reverse('accounts:login')}?{query}")
 
 
 @login_required
@@ -38,9 +46,12 @@ def cart_detail(request):
 
 
 @require_POST
-@login_required
 def add_to_cart(request):
     """Add a product to the cart, honouring a requested quantity (capped at stock)."""
+    # Not @login_required: its redirect would send the user back to this POST-only URL (405).
+    if not request.user.is_authenticated:
+        return _login_redirect(request)
+
     product_id = request.POST.get("product_id")
     product = get_object_or_404(Product, id=product_id)
 
@@ -62,6 +73,9 @@ def add_to_cart(request):
     cart_item.save()
 
     messages.success(request, f"{product.name} added to your cart.")
+    # Buy Now goes straight to checkout; Add to Cart returns to the page.
+    if request.POST.get("buy_now"):
+        return redirect("orders:checkout")
     return redirect(_safe_next(request))
 
 

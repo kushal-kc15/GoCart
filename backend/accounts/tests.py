@@ -1,6 +1,12 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+
+from orders.models import Order, OrderItem
+from products.models import Category, Product
 
 User = get_user_model()
 
@@ -200,3 +206,70 @@ class ProfileTests(TestCase):
             {"email": "asha@example.com", "password": STRONG_PASSWORD, "next": self.url},
         )
         self.assertRedirects(response, self.url)
+
+
+class ProfileOrdersTests(TestCase):
+    url = reverse("accounts:profile")
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD,
+        )
+        self.other = User.objects.create_user(
+            username="bob", email="bob@example.com", password=STRONG_PASSWORD,
+        )
+        category = Category.objects.create(name="Fruits", slug="fruits")
+        self.product = Product.objects.create(
+            category=category, name="Apple", slug="apple", price=100, stock=50,
+        )
+        self.client.force_login(self.user)
+
+    def _order(self, user, total, status=Order.Status.PENDING, items=1):
+        order = Order.objects.create(user=user, status=status, total=total, address="Kathmandu")
+        for _ in range(items):
+            OrderItem.objects.create(order=order, product=self.product, quantity=1, price=100)
+        return order
+
+    def _order_link(self, order):
+        return f'href="{reverse("orders:order_success", args=[order.pk])}"'
+
+    def test_shows_only_own_orders_each_linking_to_its_page(self):
+        mine = self._order(self.user, 300)
+        theirs = self._order(self.other, 500)
+        response = self.client.get(self.url)
+        self.assertContains(response, self._order_link(mine))
+        self.assertNotContains(response, self._order_link(theirs))
+        self.assertNotContains(response, "order history will appear here")
+
+    def test_newest_order_first(self):
+        old = self._order(self.user, 100)
+        Order.objects.filter(pk=old.pk).update(created_at=timezone.now() - timedelta(days=2))
+        new = self._order(self.user, 200)
+        html = self.client.get(self.url).content.decode()
+        self.assertLess(html.index(self._order_link(new)), html.index(self._order_link(old)))
+
+    def test_status_badge_colours_and_item_count(self):
+        self._order(self.user, 300, status=Order.Status.DELIVERED, items=2)
+        self._order(self.user, 200, status=Order.Status.CANCELLED)
+        response = self.client.get(self.url)
+        self.assertContains(response, "gc-badge--success")
+        self.assertContains(response, "gc-badge--danger")
+        self.assertContains(response, "2 items")
+        self.assertRegex(response.content.decode(), r"\b1 item\b(?!s)")  # singular
+
+    def test_quick_stats_skip_cancelled_orders(self):
+        self._order(self.user, 300)
+        self._order(self.user, 200, status=Order.Status.DELIVERED)
+        self._order(self.user, 1000, status=Order.Status.CANCELLED)
+        response = self.client.get(self.url)
+        self.assertContains(response, "Rs. 500")   # 300 + 200, not the cancelled 1000
+        self.assertEqual(len(response.context["orders"]), 3)
+
+    def test_coming_soon_items_are_kept_and_disabled(self):
+        response = self.client.get(self.url)
+        for label in ("Wishlist", "Addresses", "Change Password", "Upload Photo", "Edit Profile"):
+            self.assertContains(response, label)
+        self.assertContains(
+            response, '<button type="button" class="pf-btn" disabled title="Coming soon">✎ Edit Profile</button>',
+            html=True,
+        )
