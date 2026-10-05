@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from products.models import Category, Product
@@ -119,3 +121,51 @@ class WishlistPageTests(WishlistTestBase):
         self.client.force_login(self.user)
         res = self.client.get(reverse("accounts:profile"))
         self.assertContains(res, f'href="{self.page_url}"')
+
+
+class HeartTests(WishlistTestBase):
+    def setUp(self):
+        super().setUp()
+        # Put the products under a department so the list and item pages find them.
+        dept = Category.objects.create(name="Food", slug="food")
+        Category.objects.filter(slug="fruits").update(parent=dept)
+        Product.objects.filter(pk=self.apple.pk).update(is_featured=True)
+
+    def test_product_list_fills_only_saved_hearts(self):
+        self._save(self.user, self.apple)
+        self.client.force_login(self.user)
+        html = self.client.get(reverse("products:product_list")).content.decode()
+        self.assertEqual(html.count('aria-pressed="true"'), 1)
+        self.assertEqual(html.count('aria-pressed="false"'), 1)  # mango
+        self.assertIn(f'value="/products/#product-{self.apple.id}"', html)
+
+    def test_no_extra_queries_per_saved_card(self):
+        self.client.force_login(self.user)
+        url = reverse("products:product_list")
+        with CaptureQueriesContext(connection) as none_saved:
+            self.client.get(url)
+        self._save(self.user, self.apple)
+        self._save(self.user, self.mango)
+        with CaptureQueriesContext(connection) as two_saved:
+            self.client.get(url)
+        self.assertEqual(len(two_saved), len(none_saved))
+
+    def test_logged_out_hearts_are_outlines(self):
+        res = self.client.get(reverse("products:product_list"))
+        self.assertNotContains(res, 'aria-pressed="true"')
+        self.assertContains(res, 'aria-pressed="false"', count=2)
+
+    def test_home_heart_returns_to_its_slider(self):
+        self.client.force_login(self.user)
+        res = self.client.get(reverse("home"))
+        self.assertContains(res, 'value="/#featured"')
+
+    def test_item_page_main_and_related_hearts(self):
+        self._save(self.user, self.apple)
+        self.client.force_login(self.user)
+        url = reverse("products:product_detail", args=["apple"])
+        res = self.client.get(url)
+        self.assertContains(res, 'class="rp-fav rp-fav--main"')
+        self.assertContains(res, "♥")  # apple (main) is saved
+        self.assertContains(res, "♡")  # mango (related) is not
+        self.assertContains(res, f'value="{url}#relatedGrid"')
