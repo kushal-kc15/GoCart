@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+{# Printable packing slip, opened from "Print packing slip" on the admin order page (OrderAdmin.packing_slip). #}
+{# A standalone page (not the admin layout) so it prints cleanly. Shop details come from settings.SHOP_INFO. #}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing slip – Order #{{ order.pk }}</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #222; margin: 0; padding: 24px; font-size: 14px; }
+        .slip { max-width: 720px; margin: 0 auto; }
+        .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #222; padding-bottom: 12px; }
+        .shop-name { font-size: 20px; font-weight: bold; }
+        h1 { font-size: 20px; margin: 0 0 4px; text-align: right; }
+        .meta { text-align: right; }
+        .cancelled { border: 2px solid #b3261e; color: #b3261e; font-weight: bold; padding: 8px 12px; margin-top: 16px; }
+        h2 { font-size: 15px; margin: 20px 0 6px; }
+        p { margin: 2px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th, td { border-bottom: 1px solid #ccc; padding: 6px 4px; text-align: left; }
+        .num { text-align: right; }
+        .totals td { border: none; padding: 3px 4px; }
+        .totals .grand td { font-weight: bold; border-top: 2px solid #222; }
+        .payment { margin-top: 16px; padding: 10px 12px; border: 1px solid #222; font-size: 16px; font-weight: bold; }
+        .sign { display: flex; gap: 32px; margin-top: 48px; }
+        .sign div { flex: 1; border-top: 1px solid #222; padding-top: 4px; }
+        .note { margin-top: 24px; font-size: 12px; color: #666; }
+        .print-btn { margin-bottom: 16px; padding: 8px 16px; font-size: 14px; cursor: pointer; }
+        @media print {
+            body { padding: 0; }
+            .print-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="slip">
+    <button type="button" class="print-btn" onclick="window.print()">Print</button>
+
+    <div class="top">
+        <div>
+            <div class="shop-name">{{ shop.name }}</div>
+            <p>{{ shop.address }}</p>
+            <p>Phone: {{ shop.phone }}</p>
+        </div>
+        <div class="meta">
+            <h1>Packing slip</h1>
+            <p>Order #{{ order.pk }}</p>
+            <p>Placed {{ order.created_at|date:"j M Y, g:i A" }}</p>
+            <p>{{ order.get_delivery_method_display }}</p>
+        </div>
+    </div>
+
+    {% if order.status == "cancelled" %}
+        <div class="cancelled">This order is cancelled. Do not pack or deliver it.</div>
+    {% endif %}
+
+    <h2>Customer</h2>
+    <p>{{ order.shipping_address.recipient_name|default:order.user.get_full_name|default:order.user.email }}</p>
+    {% if order.shipping_address %}<p>Phone: {{ order.shipping_address.phone }}</p>{% endif %}
+    {% if order.is_pickup %}
+        <p>Collects the order from the shop.</p>
+    {% else %}
+        <p>Deliver to: {{ order.address }}</p>
+    {% endif %}
+
+    <h2>Items</h2>
+    <table>
+        <thead>
+            <tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr>
+        </thead>
+        <tbody>
+            {% for item in order.items.all %}
+                <tr>
+                    {# The name and price saved when the order was placed. #}
+                    <td>{{ item.product_name|default:item.product.name }}</td>
+                    <td class="num">{{ item.quantity }}</td>
+                    <td class="num">Rs. {{ item.price }}</td>
+                    <td class="num">Rs. {{ item.line_total }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="totals">
+        <tr><td class="num">Subtotal</td><td class="num">Rs. {{ order.subtotal }}</td></tr>
+        <tr><td class="num">Shipping</td><td class="num">Rs. {{ order.shipping_fee }}</td></tr>
+        <tr class="grand"><td class="num">Total</td><td class="num">Rs. {{ order.total }}</td></tr>
+    </table>
+
+    <div class="payment">
+        {% if payment.method == "cod" and payment.status == "pending" %}
+            Cash on Delivery: collect Rs. {{ order.total }}
+        {% elif payment.method == "cod" and payment.status == "paid" %}
+            Cash on Delivery: paid{% if payment.collected_by %}, collected by {{ payment.collector_name }}{% endif %}{% if payment.paid_at %} on {{ payment.paid_at|date:"j M Y, g:i A" }}{% endif %}
+        {% elif payment %}
+            {{ payment.get_method_display }}: {{ payment.get_status_display }}
+        {% else %}
+            Payment: not recorded
+        {% endif %}
+    </div>
+
+    <div class="sign">
+        <div>Received by (name and signature)</div>
+        <div>Date</div>
+    </div>
+
+    <p class="note">This is a packing slip, not a tax invoice.</p>
+</div>
+</body>
+</html>

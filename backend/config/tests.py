@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from config.views import server_error
 from orders.models import Order, OrderItem
 from products.models import Category, Product
+from products.popular import popular_products
 
 
 class HomePageTests(TestCase):
@@ -109,6 +110,13 @@ class MostPopularTests(TestCase):
             )
             self._order(Order.Status.PENDING, (product, 1))
         self.assertEqual(len(self._popular_names()), 8)
+
+    def test_exclude_ids_skips_given_products(self):
+        # The cart page leaves out what is already in the cart
+        self._order(Order.Status.PENDING, (self.apple, 5))
+        self._order(Order.Status.PENDING, (self.banana, 2))
+        names = [p.name for p in popular_products(exclude_ids=[self.apple.id])]
+        self.assertEqual(names, ["Banana"])
 
     def test_cards_have_buy_now_inside_the_cart_form(self):
         html = self.client.get(reverse("home")).content.decode()

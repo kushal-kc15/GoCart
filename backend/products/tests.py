@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.db import IntegrityError, connection, transaction
 from django.test import RequestFactory, TestCase
@@ -11,7 +12,7 @@ from django.utils import timezone
 
 from orders.models import Order, OrderItem
 from .admin import ReviewAdmin
-from .models import Category, Product, Review
+from .models import LOW_STOCK_LIMIT, Category, Product, ProductImage, Review
 
 User = get_user_model()
 
@@ -195,8 +196,11 @@ class ReviewTests(TestCase):
             first_name=first, last_name=last,
         )
 
-    def _order(self, user, status):
-        order = Order.objects.create(user=user, status=status, total=100, address="Kathmandu")
+    def _order(self, user, status, delivery_method=Order.DeliveryMethod.DELIVERY):
+        order = Order.objects.create(
+            user=user, status=status, delivery_method=delivery_method,
+            total=100, address="Kathmandu",
+        )
         OrderItem.objects.create(order=order, product=self.product, quantity=1, price=100)
 
     def _review(self, user, rating, **extra):
@@ -218,7 +222,11 @@ class ReviewTests(TestCase):
 
     def test_no_order_or_pending_order_cannot_review(self):
         self.client.force_login(self.user)
-        for status in (None, Order.Status.PENDING, Order.Status.OUT_FOR_DELIVERY):
+        not_received = (
+            None, Order.Status.PENDING, Order.Status.PACKED, Order.Status.OUT_FOR_DELIVERY,
+            Order.Status.READY_FOR_PICKUP, Order.Status.CANCELLED,
+        )
+        for status in not_received:
             with self.subTest(status=status):
                 if status:
                     self._order(self.user, status)
@@ -228,11 +236,12 @@ class ReviewTests(TestCase):
                 self.assertRedirects(self._post(), self.url + "#reviews", fetch_redirect_response=False)
                 self.assertFalse(Review.objects.exists())
 
-    def test_delivered_or_completed_buyer_can_review(self):
-        for n, status in enumerate((Order.Status.DELIVERED, Order.Status.COMPLETED), start=2):
-            with self.subTest(status=status):
+    def test_delivered_or_picked_up_buyer_can_review(self):
+        methods = (Order.DeliveryMethod.DELIVERY, Order.DeliveryMethod.PICKUP)
+        for n, method in enumerate(methods, start=2):
+            with self.subTest(method=method):
                 buyer = self._user(n)
-                self._order(buyer, status)
+                self._order(buyer, Order.Status.DELIVERED, delivery_method=method)
                 self.client.force_login(buyer)
                 self.assertContains(self.client.get(self.url), self.submit_url)
                 res = self._post(rating=4)
@@ -438,3 +447,163 @@ class SearchTests(TestCase):
     def test_suggest_skips_unavailable_and_out_of_stock(self):
         names = self.client.get(self.suggest_url, {"q": "tea"}).json()["results"]
         self.assertEqual(names, ["Black Tea", "Green Tea", "Tea Biscuit"])
+
+
+class AdminTestBase(TestCase):
+    """A superuser logged in to the admin, and a department with a subcategory."""
+
+    def setUp(self):
+        self.boss = User.objects.create_superuser(
+            username="boss", email="boss@example.com", password="pass12345"
+        )
+        self.client.force_login(self.boss)
+        self.dept = Category.objects.create(name="Fruits & Veg", slug="fruits-veg")
+        self.sub = Category.objects.create(name="Fruits", slug="fruits", parent=self.dept)
+
+    def _product(self, name, stock=50, category=None, available=True):
+        return Product.objects.create(
+            category=category or self.sub, name=name, slug=name.lower().replace(" ", "-"),
+            price=100, stock=stock, is_available=available,
+        )
+
+    def _queries(self, url):
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        return response, len(queries)
+
+
+class CategoryAdminTests(AdminTestBase):
+    url = reverse("admin:products_category_changelist")
+
+    def test_department_counts_its_own_and_its_subcategories_products(self):
+        other = Category.objects.create(name="Veg", slug="veg", parent=self.dept)
+        for i in range(3):
+            self._product(f"Apple {i}")
+        for i in range(2):
+            self._product(f"Carrot {i}", category=other)
+        self._product("Loose Basket", category=self.dept)  # directly in the department
+        res, _ = self._queries(self.url)
+        counts = {c.name: c._product_count for c in res.context["cl"].result_list}
+        self.assertEqual(counts, {"Fruits & Veg": 6, "Fruits": 3, "Veg": 2})
+
+    def test_department_column_shows_the_parent(self):
+        res, _ = self._queries(self.url)
+        self.assertContains(res, "Department")
+        parents = {c.name: c.parent for c in res.context["cl"].result_list}
+        self.assertIsNone(parents["Fruits & Veg"])
+        self.assertEqual(parents["Fruits"], self.dept)
+
+    def test_query_count_does_not_grow_with_categories(self):
+        _, small = self._queries(self.url)
+        for i in range(30):
+            Category.objects.create(name=f"Sub {i}", slug=f"sub-{i}", parent=self.dept)
+        _, big = self._queries(self.url)
+        self.assertEqual(big, small)
+
+
+class ProductAdminTests(AdminTestBase):
+    url = reverse("admin:products_product_changelist")
+
+    def _image(self, product, name, sort_order=0):
+        return ProductImage.objects.create(
+            product=product, image=f"products/gallery/{name}.jpg", sort_order=sort_order
+        )
+
+    # ---- thumbnail ----
+    def test_thumbnail_is_the_first_image_by_sort_order(self):
+        apple = self._product("Apple")
+        self._image(apple, "second", sort_order=2)
+        self._image(apple, "first", sort_order=1)
+        res, _ = self._queries(self.url)
+        self.assertContains(res, "/media/products/gallery/first.jpg")
+        self.assertNotContains(res, "/media/products/gallery/second.jpg")
+
+    def test_no_image_shows_a_dash(self):
+        self._product("Apple")
+        res, _ = self._queries(self.url)
+        self.assertNotContains(res, 'width="40" height="40"')
+
+    def test_query_count_does_not_grow_with_products(self):
+        apple = self._product("Apple")
+        self._image(apple, "apple")
+        _, small = self._queries(self.url)
+        for i in range(20):
+            product = self._product(f"Fruit {i}", stock=i)
+            self._image(product, f"fruit-{i}-a")
+            self._image(product, f"fruit-{i}-b", sort_order=1)
+        res, big = self._queries(self.url)
+        self.assertEqual(len(res.context["cl"].result_list), 21)
+        self.assertEqual(big, small)
+
+    # ---- stock badge ----
+    def test_stock_badge(self):
+        # (stock, expected badge colour and text, or None for no badge)
+        cases = [
+            (0, ("bg-red-100", "Out of stock")),
+            (LOW_STOCK_LIMIT - 1, ("bg-orange-100", "Low")),
+            (LOW_STOCK_LIMIT, None),
+            (LOW_STOCK_LIMIT + 40, None),
+        ]
+        for stock, badge in cases:
+            with self.subTest(stock=stock):
+                Product.objects.all().delete()
+                self._product("Apple", stock=stock)
+                html = self.client.get(self.url).content.decode()
+                if badge is None:
+                    self.assertNotRegex(html, r"(?s)bg-(red|orange)-100[^>]*>\s*(Out of stock|Low)\s*</span>")
+                else:
+                    colour, text = badge
+                    self.assertRegex(html, rf"(?s){colour}.*?>\s*{text}\s*</span>")
+
+    # ---- show / hide in bulk ----
+    def _run_action(self, action, products):
+        return self.client.post(
+            self.url,
+            {"action": action, "_selected_action": [p.pk for p in products]},
+            follow=True,
+        )
+
+    def test_hide_and_show_selected_products(self):
+        apple, banana, cherry = self._product("Apple"), self._product("Banana"), self._product("Cherry")
+        res = self._run_action("hide_from_site", [apple, banana])
+        self.assertContains(res, "2 product(s) now hidden from the site.")
+        self.assertEqual(
+            list(Product.objects.order_by("name").values_list("is_available", flat=True)),
+            [False, False, True],
+        )
+        res = self._run_action("show_on_site", [apple])
+        self.assertContains(res, "1 product(s) now shown on the site.")
+        apple.refresh_from_db()
+        banana.refresh_from_db()
+        self.assertTrue(apple.is_available)
+        self.assertFalse(banana.is_available)
+        self.assertTrue(Product.objects.get(pk=cherry.pk).is_available)
+
+    def test_hidden_products_leave_the_shop(self):
+        apple = self._product("Apple")
+        self._run_action("hide_from_site", [apple])
+        self.assertEqual(self.client.get(reverse("products:product_detail", args=["apple"])).status_code, 404)
+
+    def test_view_only_staff_have_no_show_hide_actions(self):
+        staff = User.objects.create_user(
+            username="viewer", email="viewer@example.com", password="pass12345", is_staff=True
+        )
+        staff.user_permissions.add(Permission.objects.get(codename="view_product"))
+        self._product("Apple")
+        self.client.force_login(staff)
+        res = self.client.get(self.url)
+        self.assertNotContains(res, "hide_from_site")
+        self.assertNotContains(res, "show_on_site")
+
+    # ---- quick editing still works ----
+    def test_quick_editing_of_price_stock_and_available(self):
+        apple = self._product("Apple", stock=5)
+        res = self.client.post(self.url, {
+            "form-TOTAL_FORMS": "1", "form-INITIAL_FORMS": "1",
+            "form-0-id": apple.pk, "form-0-price": "150.00", "form-0-stock": "7",
+            "_save": "Save",  # is_available left out: unticked
+        })
+        self.assertEqual(res.status_code, 302)
+        apple.refresh_from_db()
+        self.assertEqual((apple.price, apple.stock, apple.is_available), (150, 7, False))

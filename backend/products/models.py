@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.db import models
 
+# A product with stock under this counts as "low stock" (admin filter and dashboard).
+LOW_STOCK_LIMIT = 10
+
 # Create your models here.
 class Category(models.Model):
     name=models.CharField(max_length=200)

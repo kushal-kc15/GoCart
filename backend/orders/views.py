@@ -3,24 +3,37 @@ from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Prefetch
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from cart.models import Cart
+from products.models import ProductImage
 from .forms import AddressForm
-from .models import Order, OrderItem, Payment
+from .models import Order, OrderItem, OrderStatusChange, Payment
 
 SHIPPING_FEE = 100
+ORDERS_PER_PAGE = 10
 
-TRACKER_STEPS = ["Pending", "Confirmed", "Out for delivery", "Delivered"]
-# Where each status sits on the tracker (processing shows as confirmed, completed as delivered).
-STEP_FOR_STATUS = {
-    Order.Status.PENDING: 0,
-    Order.Status.CONFIRMED: 1,
-    Order.Status.PROCESSING: 1,
-    Order.Status.OUT_FOR_DELIVERY: 2,
-    Order.Status.DELIVERED: 3,
-    Order.Status.COMPLETED: 3,
+# My Orders tabs, picked with ?status=<key>. "all" (or anything unknown) shows every order.
+ORDER_TABS = [
+    ("all", "All"),
+    ("active", "Active"),
+    ("delivered", "Delivered"),
+    ("cancelled", "Cancelled"),
+]
+STATUSES_FOR_TAB = {
+    "active": [
+        Order.Status.PENDING,
+        Order.Status.CONFIRMED,
+        Order.Status.PACKED,
+        Order.Status.OUT_FOR_DELIVERY,
+        Order.Status.READY_FOR_PICKUP,
+    ],
+    "delivered": [Order.Status.DELIVERED],
+    "cancelled": [Order.Status.CANCELLED],
 }
 
 
@@ -111,6 +124,11 @@ class CheckoutView(LoginRequiredMixin, View):
             total=grand_total,
             address=address_line,
         )
+        # First row of the status history (no "from" status yet).
+        OrderStatusChange.objects.create(
+            order=order, to_status=Order.Status.PENDING,
+            changed_by=request.user, note="Order placed",
+        )
 
         # Order items + stock decrement.
         for item in cart_items:
@@ -140,6 +158,36 @@ class CheckoutView(LoginRequiredMixin, View):
 
 
 @login_required
+def order_list(request):
+    """My Orders: the current user's orders, newest first, with status tabs and pages."""
+    tab = request.GET.get("status", "all")
+    if tab not in STATUSES_FOR_TAB:
+        tab = "all"
+
+    # Items, their products and the products' images load in 3 queries for the
+    # whole page, so the thumbnails cost no extra queries per order.
+    orders = request.user.orders.prefetch_related(
+        Prefetch(
+            "items__product__images",
+            queryset=ProductImage.objects.order_by("sort_order", "id"),
+        )
+    )
+    if tab != "all":
+        orders = orders.filter(status__in=STATUSES_FOR_TAB[tab])
+
+    paginator = Paginator(orders, ORDERS_PER_PAGE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
+
+    return render(request, "dev/order_list.html", {
+        "page_obj": page_obj,
+        "page_range": page_range,
+        "tabs": ORDER_TABS,
+        "tab": tab,
+    })
+
+
+@login_required
 def order_success(request, pk):
     """Confirmation page for an order the current user owns."""
     order = get_object_or_404(
@@ -155,12 +203,10 @@ def order_detail(request, pk):
         Order.objects.select_related("payment").prefetch_related("items"),
         pk=pk, user=request.user,
     )
-    current = STEP_FOR_STATUS.get(order.status, 0)
-    steps = [
-        {"label": label, "done": i <= current, "current": i == current}
-        for i, label in enumerate(TRACKER_STEPS)
-    ]
-    return render(request, "dev/order_detail.html", {"order": order, "steps": steps})
+    return render(request, "dev/order_detail.html", {
+        "order": order,
+        "steps": order.tracker_steps(),
+    })
 
 
 @require_POST
@@ -168,8 +214,18 @@ def order_detail(request, pk):
 def cancel_order(request, pk):
     """Let the customer cancel their own order while it is still pending."""
     order = get_object_or_404(Order, pk=pk, user=request.user)
-    if order.status == Order.Status.PENDING and order.cancel():
+    # Staff may cancel later in the flow, but customers only while pending.
+    if order.status == Order.Status.PENDING and order.change_status(
+        Order.Status.CANCELLED, changed_by=request.user, note="Cancelled by customer"
+    ):
         messages.success(request, f"Order #{order.pk} has been cancelled.")
     else:
         messages.error(request, "This order can no longer be cancelled.")
+
+    # From My Orders, go back to the same list (tab and page); otherwise to the order.
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(next_url)
     return redirect("orders:order_detail", pk=order.pk)

@@ -162,7 +162,7 @@ def _can_review(user, product):
     return user.is_authenticated and OrderItem.objects.filter(
         order__user=user,
         product=product,
-        order__status__in=[Order.Status.DELIVERED, Order.Status.COMPLETED],
+        order__status=Order.Status.DELIVERED,
     ).exists()
 
 

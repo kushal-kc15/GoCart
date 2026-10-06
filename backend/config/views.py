@@ -1,12 +1,10 @@
 from django.shortcuts import render
 
-from django.db.models import Prefetch, Q, Sum
+from django.db.models import Prefetch
 from django.views import defaults
 
-from orders.models import Order
 from products.models import Category, Product, ProductImage
-
-POPULAR_LIMIT = 8
+from products.popular import popular_products
 
 
 def home(request):
@@ -24,28 +22,14 @@ def home(request):
 
     featured_products = in_stock.filter(is_featured=True)
 
-    # Most Popular: total quantity sold, not counting cancelled orders.
-    popular_products = list(
-        in_stock.annotate(
-            sold=Sum(
-                "orderitem__quantity",
-                filter=~Q(orderitem__order__status=Order.Status.CANCELLED),
-            ),
-        ).filter(sold__gt=0).order_by("-sold", "name")[:POPULAR_LIMIT]
-    )
-    # No sales yet: show the featured products, or else the newest ones.
-    if not popular_products:
-        popular_products = list(featured_products[:POPULAR_LIMIT])
-    if not popular_products:
-        popular_products = list(in_stock.order_by("-created_at", "-id")[:POPULAR_LIMIT])
-
     return render(
         request,
         "dev/home.html",   # switched from home.html to the new dynamic template
         {
             "categories": categories,
             "featured_products": featured_products,
-            "popular_products": popular_products,
+            # Best sellers; the query is shared with the cart page (products/popular.py)
+            "popular_products": popular_products(),
         },
     )
 

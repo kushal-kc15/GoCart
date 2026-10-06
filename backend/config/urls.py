@@ -5,6 +5,11 @@ from django.urls import include, path
 
 from config import views
 
+# The admin home page is our dashboard (orders/templates/admin/dashboard.html,
+# data from orders/dashboard.py). A different name from unfold's own
+# admin/index.html, so the dashboard can extend it.
+admin.site.index_template = "admin/dashboard.html"
+
 
 urlpatterns = [
     path("", views.home, name="home"),
