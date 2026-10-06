@@ -100,7 +100,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Dates are stored in UTC (USE_TZ) and shown in Nepal time.
+TIME_ZONE = 'Asia/Kathmandu'
 
 USE_I18N = True
 
@@ -122,6 +123,14 @@ AUTH_USER_MODEL = 'accounts.User'
 
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "/"
+
+# Shop details printed on the packing slip.
+# TODO: fill these in with the real shop name, address and phone.
+SHOP_INFO = {
+    "name": "SHOP NAME (fill in config/settings.py)",
+    "address": "SHOP ADDRESS (fill in config/settings.py)",
+    "phone": "SHOP PHONE (fill in config/settings.py)",
+}
 
 
 # django-unfold admin theme

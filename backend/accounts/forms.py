@@ -3,13 +3,16 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 
+from .validators import normalize_nepali_phone
+
 User = get_user_model()
 
 class SignUpForm(UserCreationForm):
     first_name = forms.CharField(max_length=150)
     last_name = forms.CharField(max_length=150)
     email = forms.EmailField()
-    phone = forms.CharField(max_length=15, required=False)
+    # Longer than the 10 digits we store, so "+977 981 234 5678" reaches clean_phone.
+    phone = forms.CharField(max_length=20, required=False)
 
     class Meta:
         model = User
@@ -45,6 +48,13 @@ class SignUpForm(UserCreationForm):
 
         return email
 
+    def clean_phone(self):
+        # Optional; when filled in, same Nepali mobile check as the profile and checkout.
+        phone = self.cleaned_data["phone"]
+        if not phone:
+            return phone
+        return normalize_nepali_phone(phone)
+
     def _unique_username(self, email):
         base = (slugify(email.split("@")[0]) or "user")[:140]
         candidate, suffix = base, 1
@@ -60,6 +70,39 @@ class SignUpForm(UserCreationForm):
         if commit:
             user.save()
         return user
+
+
+class ProfileForm(forms.ModelForm):
+    """Edit profile: name and phone. The email is the login, so it is not a field here."""
+
+    first_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={"class": "gc-input", "autocomplete": "given-name"}),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={"class": "gc-input", "autocomplete": "family-name"}),
+    )
+    # Longer than the 10 digits we store, so "+977 981 234 5678" reaches clean_phone.
+    phone = forms.CharField(
+        max_length=20,
+        required=False,
+        label="Phone (optional)",
+        widget=forms.TextInput(attrs={
+            "class": "gc-input", "placeholder": "98XXXXXXXX",
+            "autocomplete": "tel", "inputmode": "tel",
+        }),
+    )
+
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "phone")
+
+    def clean_phone(self):
+        phone = self.cleaned_data["phone"]
+        if not phone:
+            return phone  # optional: leaving it empty is fine
+        return normalize_nepali_phone(phone)
 
 
 class LoginForm(forms.Form):

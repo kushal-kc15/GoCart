@@ -195,8 +195,11 @@ class ReviewTests(TestCase):
             first_name=first, last_name=last,
         )
 
-    def _order(self, user, status):
-        order = Order.objects.create(user=user, status=status, total=100, address="Kathmandu")
+    def _order(self, user, status, delivery_method=Order.DeliveryMethod.DELIVERY):
+        order = Order.objects.create(
+            user=user, status=status, delivery_method=delivery_method,
+            total=100, address="Kathmandu",
+        )
         OrderItem.objects.create(order=order, product=self.product, quantity=1, price=100)
 
     def _review(self, user, rating, **extra):
@@ -218,7 +221,11 @@ class ReviewTests(TestCase):
 
     def test_no_order_or_pending_order_cannot_review(self):
         self.client.force_login(self.user)
-        for status in (None, Order.Status.PENDING, Order.Status.OUT_FOR_DELIVERY):
+        not_received = (
+            None, Order.Status.PENDING, Order.Status.PACKED, Order.Status.OUT_FOR_DELIVERY,
+            Order.Status.READY_FOR_PICKUP, Order.Status.CANCELLED,
+        )
+        for status in not_received:
             with self.subTest(status=status):
                 if status:
                     self._order(self.user, status)
@@ -228,11 +235,12 @@ class ReviewTests(TestCase):
                 self.assertRedirects(self._post(), self.url + "#reviews", fetch_redirect_response=False)
                 self.assertFalse(Review.objects.exists())
 
-    def test_delivered_or_completed_buyer_can_review(self):
-        for n, status in enumerate((Order.Status.DELIVERED, Order.Status.COMPLETED), start=2):
-            with self.subTest(status=status):
+    def test_delivered_or_picked_up_buyer_can_review(self):
+        methods = (Order.DeliveryMethod.DELIVERY, Order.DeliveryMethod.PICKUP)
+        for n, method in enumerate(methods, start=2):
+            with self.subTest(method=method):
                 buyer = self._user(n)
-                self._order(buyer, status)
+                self._order(buyer, Order.Status.DELIVERED, delivery_method=method)
                 self.client.force_login(buyer)
                 self.assertContains(self.client.get(self.url), self.submit_url)
                 res = self._post(rating=4)

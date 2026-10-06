@@ -1,0 +1,7 @@
+{# Line above the order list (OrderAdmin.list_before_template). order_totals comes from OrderAdmin.changelist_view. #}
+{% if order_totals %}
+<p class="mb-4 font-medium">
+    {{ order_totals.count }} order{{ order_totals.count|pluralize }} · Rs. {{ order_totals.amount }}
+    <span class="text-subtle">(matching the current filters, cancelled orders not counted)</span>
+</p>
+{% endif %}

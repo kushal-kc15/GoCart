@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 
 from products.models import Product
+from products.popular import popular_products
 from .models import Cart, CartItem
 
 
@@ -41,6 +42,10 @@ def cart_detail(request):
         "subtotal": subtotal,
         "shipping": shipping,
         "grand_total": grand_total,
+        # "You may also like": best sellers that are not already in the cart
+        "recommended_products": popular_products(
+            exclude_ids=[item.product_id for item in cart_items]
+        ),
     }
     return render(request, "dev/cart.html", context)
 

@@ -1,0 +1,68 @@
+{% comment %}
+Status panel above the read-only order page (OrderAdmin.change_form_outer_before_template).
+It sits outside the admin's form, so it can have its own forms.
+Context from OrderAdmin.change_view: next_steps, can_cancel, can_collect_cash, can_change_status.
+{% endcomment %}
+{% if original %}
+<div class="bg-white border border-base-200 rounded-default shadow-xs p-6 mb-6 dark:bg-base-900 dark:border-base-800">
+    <h2 class="font-semibold text-[15px] text-important mb-4">Order status</h2>
+
+    <p class="mb-4">
+        Current status:
+        {% include "unfold/helpers/label.html" with type=original_status_colour text=original.status_label %}
+    </p>
+
+    {% if not can_change_status %}
+        <p class="text-subtle">You can view this order but not change it.</p>
+    {% else %}
+        {% if next_steps %}
+            {# Forward steps share one optional note. #}
+            <form method="post" action="{% url 'admin:orders_order_status' original.pk %}" class="mb-6">
+                {% csrf_token %}
+                <label for="step-note" class="block font-medium mb-2">Note (optional)</label>
+                <input type="text" id="step-note" name="note" maxlength="255"
+                       class="border border-base-200 bg-white font-medium rounded-default shadow-xs text-sm px-3 py-2 w-full max-w-2xl mb-3 dark:bg-base-900 dark:border-base-700">
+                <div class="flex flex-wrap gap-2">
+                    {% for step in next_steps %}
+                        <button type="submit" name="status" value="{{ step.status }}"
+                                class="font-medium inline-flex items-center rounded-default px-3 py-2 cursor-pointer border border-transparent bg-primary-600 text-white hover:bg-primary-600/80">
+                            {{ step.label }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </form>
+        {% endif %}
+
+        {% if can_collect_cash %}
+            <form method="post" action="{% url 'admin:orders_order_cash_collected' original.pk %}" class="mb-6">
+                {% csrf_token %}
+                <button type="submit"
+                        class="font-medium inline-flex items-center rounded-default px-3 py-2 cursor-pointer border border-transparent bg-primary-600 text-white hover:bg-primary-600/80">
+                    Mark cash collected (Rs. {{ original.payment.amount }})
+                </button>
+            </form>
+        {% endif %}
+
+        {% if can_cancel %}
+            {# Cancelling puts the stock back, so it needs a reason. #}
+            <form method="post" action="{% url 'admin:orders_order_status' original.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="status" value="cancelled">
+                <label for="cancel-note" class="block font-medium mb-2">Reason for cancelling (required)</label>
+                <textarea id="cancel-note" name="note" rows="2" maxlength="255" required
+                          class="border border-base-200 bg-white font-medium rounded-default shadow-xs text-sm px-3 py-2 w-full max-w-2xl mb-3 dark:bg-base-900 dark:border-base-700"></textarea>
+                <div>
+                    <button type="submit"
+                            class="font-medium inline-flex items-center rounded-default px-3 py-2 cursor-pointer border border-transparent bg-red-600 text-white hover:bg-red-600/80">
+                        Cancel order
+                    </button>
+                </div>
+            </form>
+        {% endif %}
+
+        {% if not next_steps and not can_cancel and not can_collect_cash %}
+            <p class="text-subtle">This order is finished. There is nothing more to do.</p>
+        {% endif %}
+    {% endif %}
+</div>
+{% endif %}

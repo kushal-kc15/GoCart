@@ -1,4 +1,6 @@
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
@@ -193,3 +195,100 @@ class CartViewsTests(TestCase):
         )
         self.assertEqual(res.status_code, 404)
         self.assertTrue(CartItem.objects.filter(id=other_item.id).exists())
+
+
+class CartPageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="alice", email="alice@example.com", password="pass12345"
+        )
+        self.client.force_login(self.user)
+        self.category = Category.objects.create(name="Fruits", slug="fruits")
+        self.apple = Product.objects.create(
+            category=self.category, name="Apple", slug="apple", price=100, stock=5
+        )
+        self.banana = Product.objects.create(
+            category=self.category, name="Banana", slug="banana", price=50, stock=5
+        )
+        self.cart = Cart.objects.create(user=self.user)
+        self.url = reverse("cart:cart_detail")
+
+    def _add(self, product, quantity=1):
+        CartItem.objects.create(cart=self.cart, product=product, quantity=quantity)
+
+    # ---- slim heading ----
+    def test_heading_shows_item_count(self):
+        self._add(self.apple, 3)
+        response = self.client.get(self.url)
+        self.assertContains(response, '<h1 class="cart-title">Shopping Cart</h1>', html=True)
+        self.assertContains(response, "3 items")
+        self.assertNotContains(response, "cart-hero")
+
+    def test_heading_count_is_singular_for_one_item(self):
+        self._add(self.apple)
+        html = self.client.get(self.url).content.decode()
+        self.assertRegex(html, r"\b1 item\b(?!s)")
+
+    # ---- You may also like ----
+    def _suggested(self, response):
+        return [p.name for p in response.context["recommended_products"]]
+
+    def test_suggestions_exclude_cart_items(self):
+        self._add(self.apple)
+        response = self.client.get(self.url)
+        self.assertEqual(self._suggested(response), ["Banana"])
+        self.assertContains(response, 'id="recs"')
+        self.assertContains(response, "You may also like")
+
+    def test_suggestions_hidden_when_nothing_to_show(self):
+        self._add(self.apple)
+        self._add(self.banana)
+        response = self.client.get(self.url)
+        self.assertEqual(self._suggested(response), [])
+        self.assertNotContains(response, 'id="recs"')
+        self.assertNotContains(response, "You may also like")
+
+    def test_no_extra_queries_per_card(self):
+        self._add(self.apple)
+        with CaptureQueriesContext(connection) as one_card:
+            self.client.get(self.url)  # suggests Banana only
+        for i in range(4):
+            Product.objects.create(
+                category=self.category, name=f"Extra {i}", slug=f"extra-{i}", price=10, stock=5
+            )
+        with CaptureQueriesContext(connection) as five_cards:
+            response = self.client.get(self.url)
+        self.assertEqual(len(self._suggested(response)), 5)
+        self.assertEqual(len(five_cards), len(one_card))
+
+    def test_empty_cart_page_still_works(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Your cart is empty.")
+        self.assertContains(response, "0 items")
+        self.assertContains(response, 'class="pay-btn disabled"')
+        self.assertEqual(self._suggested(response), ["Banana", "Apple"])  # newest first
+
+        # No products at all: the page still works, just without the section
+        Product.objects.all().delete()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="recs"')
+
+    def test_suggestion_card_forms_work(self):
+        self._add(self.apple)
+        html = self.client.get(self.url).content.decode()
+        recs = html.split('id="recs"', 1)[1]
+        self.assertIn(f'name="product_id" value="{self.banana.id}"', recs)
+        self.assertIn('name="buy_now"', recs)
+        self.assertIn(f'name="next" value="{self.url}#recs"', recs)  # heart comes back here
+
+        # Add to Cart returns to the cart, where Banana moves into the cart list
+        response = self.client.post(
+            reverse("cart:add_to_cart"),
+            {"product_id": self.banana.id, "next": self.url},
+            follow=True,
+        )
+        names = sorted(item.product.name for item in response.context["cart_items"])
+        self.assertEqual(names, ["Apple", "Banana"])
+        self.assertEqual(self._suggested(response), [])

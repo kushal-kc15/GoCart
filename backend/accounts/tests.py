@@ -1,12 +1,17 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core.exceptions import ValidationError
+from django.db import connection
+from django.test import Client, TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
 from orders.models import Order, OrderItem
 from products.models import Category, Product
+from wishlist.models import Wishlist, WishlistItem
+from .validators import normalize_nepali_phone
 
 User = get_user_model()
 
@@ -84,6 +89,22 @@ class SignupTests(TestCase):
         errors = response.context["form"].errors
         self.assertIn("first_name", errors)
         self.assertIn("email", errors)
+
+    def test_phone_with_country_code_is_stored_as_ten_digits(self):
+        self.client.post(self.url, signup_data(phone="+977 981 234 5678"))
+        self.assertEqual(User.objects.get(email="asha@example.com").phone, "9812345678")
+
+    def test_invalid_phone_is_rejected(self):
+        for phone in ("12345", "9612345678", "98123456789"):
+            with self.subTest(phone=phone):
+                response = self.client.post(self.url, signup_data(phone=phone))
+                self.assertIn("phone", response.context["form"].errors)
+                self.assertContains(response, "Enter a 10-digit mobile number starting with 97 or 98.")
+                self.assertFalse(User.objects.exists())
+
+    def test_phone_is_optional(self):
+        self.client.post(self.url, signup_data(phone=""))
+        self.assertTrue(User.objects.filter(email="asha@example.com").exists())
 
     def test_authenticated_user_is_redirected_away(self):
         self.client.post(self.url, signup_data())
@@ -178,6 +199,37 @@ class LogoutTests(TestCase):
         self.assertContains(response, f'<form method="POST" action="{self.url}"')
 
 
+class HeaderAccountMenuTests(TestCase):
+    def test_menu_shows_initials_and_first_name_but_not_email(self):
+        user = User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD,
+            first_name="Asha", last_name="Sharma",
+        )
+        self.client.force_login(user)
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, '<span class="account-avatar" aria-hidden="true">AS</span>', html=True)
+        self.assertContains(response, "Hi, Asha")
+        self.assertNotContains(response, "asha@example.com")
+
+    def test_menu_links_and_logout_form(self):
+        user = User.objects.create_user(username="asha", email="asha@example.com", password=STRONG_PASSWORD)
+        self.client.force_login(user)
+        html = self.client.get(reverse("home")).content.decode()
+        menu = html.split('<details class="account-menu">', 1)[1].split("</details>", 1)[0]
+        profile = reverse("accounts:profile")
+        for href in (profile, reverse("orders:order_list"), reverse("wishlist:wishlist_detail")):
+            self.assertIn(f'href="{href}"', menu)
+        self.assertIn(f'<form method="POST" action="{reverse("accounts:logout")}"', menu)
+        self.assertIn('name="csrfmiddlewaretoken"', menu)
+        self.assertIn(">A</span>", menu)        # no first name: initial from the email
+        self.assertIn("Hi, there", menu)
+
+    def test_logged_out_header_keeps_login_link(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, f'href="{reverse("accounts:login")}" class="user-chip"')
+        self.assertNotContains(response, "account-menu")
+
+
 class ProfileTests(TestCase):
     url = reverse("accounts:profile")
 
@@ -197,7 +249,7 @@ class ProfileTests(TestCase):
         self.assertContains(response, "Asha Sharma")
         self.assertContains(response, "asha@example.com")
         self.assertContains(response, "9800000000")
-        self.assertContains(response, "order history will appear here")
+        self.assertContains(response, "You haven't placed any orders yet.")
 
     def test_login_then_next_lands_on_profile(self):
         User.objects.create_user(username="asha", email="asha@example.com", password=STRONG_PASSWORD)
@@ -239,7 +291,19 @@ class ProfileOrdersTests(TestCase):
         response = self.client.get(self.url)
         self.assertContains(response, self._order_link(mine))
         self.assertNotContains(response, self._order_link(theirs))
-        self.assertNotContains(response, "order history will appear here")
+        self.assertNotContains(response, "You haven't placed any orders yet.")
+
+    def test_only_the_latest_three_with_a_link_to_all_orders(self):
+        oldest = self._order(self.user, 100)
+        Order.objects.filter(pk=oldest.pk).update(created_at=timezone.now() - timedelta(days=2))
+        newer = [self._order(self.user, 200) for _ in range(3)]
+        response = self.client.get(self.url)
+        for order in newer:
+            self.assertContains(response, self._order_link(order))
+        self.assertNotContains(response, self._order_link(oldest))
+        self.assertContains(
+            response, f'<a href="{reverse("orders:order_list")}" class="pf-link">View all orders ›</a>', html=True
+        )
 
     def test_newest_order_first(self):
         old = self._order(self.user, 100)
@@ -257,19 +321,206 @@ class ProfileOrdersTests(TestCase):
         self.assertContains(response, "2 items")
         self.assertRegex(response.content.decode(), r"\b1 item\b(?!s)")  # singular
 
-    def test_quick_stats_skip_cancelled_orders(self):
+    def _save_to_wishlist(self, count):
+        wishlist, _ = Wishlist.objects.get_or_create(user=self.user)
+        start = Product.objects.count()  # unique slugs across calls
+        for i in range(start, start + count):
+            product = Product.objects.create(
+                category=self.product.category, name=f"Saved {i}", slug=f"saved-{i}", price=10, stock=5,
+            )
+            WishlistItem.objects.create(wishlist=wishlist, product=product)
+
+    def _tiles(self, response):
+        html = response.content.decode()
+        return html.split('<div class="pf-tiles">', 1)[1].split("<!-- Recent orders", 1)[0]
+
+    def test_tiles_show_order_and_wishlist_counts(self):
         self._order(self.user, 300)
         self._order(self.user, 200, status=Order.Status.DELIVERED)
-        self._order(self.user, 1000, status=Order.Status.CANCELLED)
-        response = self.client.get(self.url)
-        self.assertContains(response, "Rs. 500")   # 300 + 200, not the cancelled 1000
-        self.assertEqual(len(response.context["orders"]), 3)
+        self._order(self.user, 1000, status=Order.Status.CANCELLED)  # still an order
+        self._save_to_wishlist(2)
+        tiles = self._tiles(self.client.get(self.url))
+        self.assertIn(f'<a href="{reverse("orders:order_list")}" class="pf-tile">', tiles)
+        self.assertIn(f'<a href="{reverse("wishlist:wishlist_detail")}" class="pf-tile">', tiles)
+        self.assertIn("<span>3 orders</span>", tiles)
+        self.assertIn("<span>2 items</span>", tiles)
 
-    def test_coming_soon_items_are_kept_and_disabled(self):
+    def test_tile_counts_are_singular_for_one(self):
+        self._order(self.user, 300)
+        self._save_to_wishlist(1)
+        tiles = self._tiles(self.client.get(self.url))
+        self.assertIn("<span>1 order</span>", tiles)
+        self.assertIn("<span>1 item</span>", tiles)
+
+    def test_template_parts_are_gone(self):
         response = self.client.get(self.url)
-        for label in ("Wishlist", "Addresses", "Change Password", "Upload Photo", "Edit Profile"):
-            self.assertContains(response, label)
+        for text in ("Change Password", "Upload Photo", "About Me", "Coming soon",
+                     "pf-hero", "pf-stats", "pf-banner", "Total Spent"):
+            self.assertNotContains(response, text)
         self.assertContains(
-            response, '<button type="button" class="pf-btn" disabled title="Coming soon">✎ Edit Profile</button>',
-            html=True,
+            response, f'<a href="{reverse("accounts:edit_profile")}" class="pf-btn">Edit profile</a>', html=True,
         )
+
+    def test_help_line_has_shop_phone_link(self):
+        html = self.client.get(self.url).content.decode()
+        help_line = html.split('<p class="pf-help">', 1)[1].split("</p>", 1)[0]
+        self.assertIn('<a href="tel:+9779707046738">+9779707046738</a>', help_line)
+
+    def test_no_extra_queries_per_order_or_wishlist_item(self):
+        self._order(self.user, 100, items=2)
+        self._save_to_wishlist(1)
+        with CaptureQueriesContext(connection) as small:
+            self.client.get(self.url)
+        for _ in range(4):
+            self._order(self.user, 100, items=2)
+        Wishlist.objects.all().delete()
+        self._save_to_wishlist(5)
+        with CaptureQueriesContext(connection) as large:
+            self.client.get(self.url)
+        self.assertEqual(len(large), len(small))
+
+
+class AccountSidebarTests(TestCase):
+    """The shared sidebar (dev/_account_sidebar.html) highlights the current page."""
+
+    def setUp(self):
+        user = User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD, first_name="Asha",
+        )
+        self.client.force_login(user)
+        self.links = {
+            "account": reverse("accounts:profile"),
+            "orders": reverse("orders:order_list"),
+        }
+
+    def _sidebar(self, url):
+        html = self.client.get(url).content.decode()
+        return html.split('<aside class="pf-sidebar">', 1)[1].split("</aside>", 1)[0]
+
+    def test_only_the_current_page_is_active(self):
+        for page, url in self.links.items():
+            with self.subTest(page=page):
+                sidebar = self._sidebar(url)
+                self.assertEqual(sidebar.count('class="active"'), 1)
+                self.assertIn(f'<a href="{url}" class="active" aria-current="page">', sidebar)
+
+    def test_links_and_logout_form(self):
+        sidebar = self._sidebar(self.links["orders"])
+        for url in self.links.values():
+            self.assertIn(f'href="{url}"', sidebar)
+        self.assertIn(f'<form method="POST" action="{reverse("accounts:logout")}" class="pf-logout">', sidebar)
+        self.assertIn('name="csrfmiddlewaretoken"', sidebar)
+        self.assertIn("Log out", sidebar)
+
+    def test_removed_items_and_emoji_are_gone(self):
+        sidebar = self._sidebar(self.links["account"])
+        for text in ("Wishlist", "Addresses", "Notifications", "Settings", "Coming soon",
+                     "pf-social", "👤", "📦", "📷"):
+            self.assertNotIn(text, sidebar)
+
+    def test_wishlist_page_has_no_account_sidebar(self):
+        response = self.client.get(reverse("wishlist:wishlist_detail"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "pf-sidebar")
+
+
+class PhoneValidatorTests(TestCase):
+    """accounts/validators.py: shared by the profile and checkout forms."""
+
+    def test_accepted_numbers_are_stored_as_ten_digits(self):
+        cases = {
+            "9812345678": "9812345678",
+            "9712345678": "9712345678",
+            "98 1234 5678": "9812345678",
+            "+9779812345678": "9812345678",
+            "+977 981 234 5678": "9812345678",
+            "9779812345678": "9812345678",
+            "977 9812345678": "9812345678",
+            "9771234567": "9771234567",  # a real 97 number, not a country code
+        }
+        for raw, stored in cases.items():
+            with self.subTest(raw=raw):
+                self.assertEqual(normalize_nepali_phone(raw), stored)
+
+    def test_rejected_numbers(self):
+        for raw in ("12345", "9612345678", "98123456789", "981234567", "98123abc78",
+                    "", "+977", "+1 9812345678", "+977 96 1234 5678", "९८१२३४५६७८"):
+            with self.subTest(raw=raw):
+                with self.assertRaises(ValidationError):
+                    normalize_nepali_phone(raw)
+
+
+class EditProfileTests(TestCase):
+    url = reverse("accounts:edit_profile")
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD,
+            first_name="Asha", last_name="Sharma", phone="9800000000",
+        )
+        self.client.force_login(self.user)
+
+    def _post(self, **overrides):
+        data = {"first_name": "Asha", "last_name": "Karki", "phone": "9812345678"}
+        data.update(overrides)
+        return self.client.post(self.url, data)
+
+    def test_login_required(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+    def test_form_is_filled_in_with_csrf_and_data_once(self):
+        response = self.client.get(self.url)
+        self.assertTemplateUsed(response, "dev/profile_edit.html")
+        self.assertContains(response, 'value="Asha"')
+        self.assertContains(response, 'value="9800000000"')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+        self.assertContains(response, "data-once")
+        # Email is shown read-only and has no name, so it is never sent
+        self.assertContains(response, 'value="asha@example.com" readonly')
+        self.assertNotContains(response, 'name="email"')
+
+    def test_valid_change_is_saved_with_a_message(self):
+        response = self.client.post(
+            self.url, {"first_name": "Asha", "last_name": "Karki", "phone": "+977 981 234 5678"}, follow=True,
+        )
+        self.assertRedirects(response, reverse("accounts:profile"))
+        self.assertContains(response, "Your profile has been updated.")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.last_name, "Karki")
+        self.assertEqual(self.user.phone, "9812345678")  # only the 10 digits
+
+    def test_phone_is_optional(self):
+        self._post(phone="")
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.phone)
+
+    def test_invalid_phone_is_rejected_and_nothing_saved(self):
+        for phone in ("12345", "9612345678", "98123456789"):
+            with self.subTest(phone=phone):
+                response = self._post(phone=phone)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Enter a 10-digit mobile number starting with 97 or 98.")
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.phone, "9800000000")
+                self.assertEqual(self.user.last_name, "Sharma")
+
+    def test_names_are_required(self):
+        response = self._post(first_name="")
+        self.assertIn("first_name", response.context["form"].errors)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Asha")
+
+    def test_email_cannot_be_changed(self):
+        self._post(email="new@example.com")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "asha@example.com")
+
+    def test_post_without_csrf_token_is_refused(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
+        response = client.post(self.url, {"first_name": "X", "last_name": "Y", "phone": ""})
+        self.assertEqual(response.status_code, 403)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Asha")
