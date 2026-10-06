@@ -69,6 +69,19 @@ footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-al
 @media(max-width:860px){.grid{grid-template-columns:1fr}nav{gap:22px;flex-wrap:wrap}.pill{display:none}.row2{grid-template-columns:1fr}h1{font-size:38px}}
 </style>
 <link rel="stylesheet" href="../static/css/navbar.css">
+<!-- Leaflet OpenStreetMap (Street View Map) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  #map { height: 360px; border: 1px solid var(--line); background: #e8e6dc; border-radius: 6px; position: relative; z-index: 1; }
+  .leaflet-container { font-family: inherit; font-size: 12px; }
+  .custom-map-pin { display: flex; align-items: center; justify-content: center; }
+  #landmark.highlight-auto {
+    border-color: var(--green) !important;
+    box-shadow: 0 0 0 3px rgba(11, 90, 49, 0.2) !important;
+    transition: all 0.3s ease;
+  }
+</style>
 </head>
 <body>
 <header class="site">
@@ -173,7 +186,14 @@ footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-al
       </div>
       <div class="f"><label for="addr">Street, tole or house number</label><input id="addr" autocomplete="street-address" placeholder="e.g. Lakeside Road, Ward 6"></div>
     </div>
-    <div class="f dOnly" style="margin-top:14px"><label for="landmark">House number, landmark or instructions (optional)</label><input id="landmark" placeholder="Near the blue gate, call on arrival"></div>
+    <div class="f dOnly" style="margin-top:14px">
+      <label for="landmark" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>House number, landmark or instructions</span>
+        <span id="landmarkTag" style="font-size:11px;color:var(--green);font-weight:600;display:none;">📍 Nearest landmark auto-filled (editable)</span>
+      </label>
+      <input id="landmark" placeholder="Near the blue gate, call on arrival">
+      <small class="hint" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;">Select or tap location on the map to auto-fill the nearest landmark, or customize it anytime.</small>
+    </div>
     <div class="err" id="mapErr">Please set your delivery location on the map.</div>
   </section>
  
