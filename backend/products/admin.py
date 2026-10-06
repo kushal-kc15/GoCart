@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db.models import Count
 from unfold.admin import ModelAdmin, TabularInline
 
-from .models import Category, Product, ProductImage
+from .models import Category, Product, ProductImage, Review
 # Register your models here.
 
 
@@ -54,3 +54,29 @@ class ProductAdmin(ModelAdmin):
     search_fields = ('name', 'slug', 'description')
     prepopulated_fields = {'slug': ('name',)}
     inlines = [ProductImageInline]
+
+
+@admin.register(Review)
+class ReviewAdmin(ModelAdmin):
+    list_display = ('product', 'reviewer_email', 'rating', 'is_visible', 'created_at')
+    # Product filter lists only products that have reviews.
+    list_filter = ('rating', 'is_visible', ('product', admin.RelatedOnlyFieldListFilter))
+    search_fields = ('product__name', 'user__email', 'comment')
+    list_select_related = ('product', 'user')
+    # Staff can hide a review but not change what the customer wrote.
+    readonly_fields = ('user', 'product', 'rating', 'comment', 'created_at', 'updated_at')
+    actions = ['hide_reviews', 'show_reviews']
+
+    @admin.display(description="Customer", ordering="user__email")
+    def reviewer_email(self, obj):
+        return obj.user.email
+
+    @admin.action(description="Hide selected reviews")
+    def hide_reviews(self, request, queryset):
+        updated = queryset.update(is_visible=False)
+        self.message_user(request, f"{updated} review(s) hidden.")
+
+    @admin.action(description="Show selected reviews")
+    def show_reviews(self, request, queryset):
+        updated = queryset.update(is_visible=True)
+        self.message_user(request, f"{updated} review(s) shown.")

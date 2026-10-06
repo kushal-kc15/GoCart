@@ -4,12 +4,24 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db import transaction
+from django.views.decorators.http import require_POST
 
 from cart.models import Cart
 from .forms import AddressForm
 from .models import Order, OrderItem, Payment
 
 SHIPPING_FEE = 100
+
+TRACKER_STEPS = ["Pending", "Confirmed", "Out for delivery", "Delivered"]
+# Where each status sits on the tracker (processing shows as confirmed, completed as delivered).
+STEP_FOR_STATUS = {
+    Order.Status.PENDING: 0,
+    Order.Status.CONFIRMED: 1,
+    Order.Status.PROCESSING: 1,
+    Order.Status.OUT_FOR_DELIVERY: 2,
+    Order.Status.DELIVERED: 3,
+    Order.Status.COMPLETED: 3,
+}
 
 
 def _shipping_for(delivery_method, has_items):
@@ -134,3 +146,30 @@ def order_success(request, pk):
         Order.objects.prefetch_related("items"), pk=pk, user=request.user
     )
     return render(request, "dev/order_success.html", {"order": order})
+
+
+@login_required
+def order_detail(request, pk):
+    """Order details and delivery tracker for an order the current user owns."""
+    order = get_object_or_404(
+        Order.objects.select_related("payment").prefetch_related("items"),
+        pk=pk, user=request.user,
+    )
+    current = STEP_FOR_STATUS.get(order.status, 0)
+    steps = [
+        {"label": label, "done": i <= current, "current": i == current}
+        for i, label in enumerate(TRACKER_STEPS)
+    ]
+    return render(request, "dev/order_detail.html", {"order": order, "steps": steps})
+
+
+@require_POST
+@login_required
+def cancel_order(request, pk):
+    """Let the customer cancel their own order while it is still pending."""
+    order = get_object_or_404(Order, pk=pk, user=request.user)
+    if order.status == Order.Status.PENDING and order.cancel():
+        messages.success(request, f"Order #{order.pk} has been cancelled.")
+    else:
+        messages.error(request, "This order can no longer be cancelled.")
+    return redirect("orders:order_detail", pk=order.pk)

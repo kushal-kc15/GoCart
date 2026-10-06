@@ -1,9 +1,5 @@
 from django.contrib import admin
-from django.db import transaction
-from django.db.models import F
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
-
-from products.models import Product
 
 from .models import Order, OrderItem, Payment
 # Register your models here.
@@ -63,19 +59,10 @@ class OrderAdmin(ModelAdmin):
 
     @admin.action(description="Mark selected orders as cancelled (restores stock)")
     def mark_cancelled(self, request, queryset):
-        # Skip orders already cancelled so stock is never restored twice.
-        orders = queryset.exclude(status=Order.Status.CANCELLED)
+        # Order.cancel() skips orders already cancelled, so stock is never restored twice.
         count = 0
-        with transaction.atomic():
-            for order in orders:
-                for item in order.items.all():
-                    Product.objects.filter(pk=item.product_id).update(
-                        stock=F('stock') + item.quantity
-                    )
-                order.status = Order.Status.CANCELLED
-                order.save(update_fields=['status'])
-                # Mark any payment as failed (no dedicated "cancelled" status exists).
-                Payment.objects.filter(order=order).update(status=Payment.Status.FAILED)
+        for order in queryset:
+            if order.cancel():
                 count += 1
         self.message_user(request, f"{count} order(s) cancelled and stock restored.")
 

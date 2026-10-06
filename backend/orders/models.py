@@ -1,4 +1,5 @@
-from django.db import models
+from django.db import models, transaction
+from django.db.models import F
 from django.conf import settings
 from accounts.models import Address
 from products.models import Product
@@ -32,7 +33,26 @@ class Order(models.Model):
         ordering=['-created_at']
 
     def __str__(self):
-        return f'Order #{self.pk} - {self.user.email}'  
+        return f'Order #{self.pk} - {self.user.email}'
+
+    def cancel(self):
+        """Cancel the order, put its stock back and mark the payment failed.
+        Returns False if it was already cancelled, so stock is never restored twice."""
+        with transaction.atomic():
+            changed = (
+                Order.objects.filter(pk=self.pk)
+                .exclude(status=Order.Status.CANCELLED)
+                .update(status=Order.Status.CANCELLED)
+            )
+            if not changed:
+                return False
+            for item in self.items.all():
+                Product.objects.filter(pk=item.product_id).update(
+                    stock=F('stock') + item.quantity
+                )
+            Payment.objects.filter(order=self).update(status=Payment.Status.FAILED)
+        self.status = Order.Status.CANCELLED
+        return True
 
 class OrderItem(models.Model):
     order=models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')

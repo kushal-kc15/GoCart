@@ -19,9 +19,9 @@ def _safe_next(request, fallback="cart:cart_detail"):
     return redirect(fallback).url
 
 
-def _login_redirect(request):
+def _login_redirect(request, message="Please log in to add items to your cart."):
     """Send a logged-out user to login, then back to the page they were on."""
-    messages.info(request, "Please log in to add items to your cart.")
+    messages.info(request, message)
     query = urlencode({"next": _safe_next(request, "home")})
     return redirect(f"{reverse('accounts:login')}?{query}")
 
