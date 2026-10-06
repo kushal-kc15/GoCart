@@ -73,13 +73,24 @@ footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-al
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  #map { height: 360px; border: 1px solid var(--line); background: #e8e6dc; border-radius: 6px; position: relative; z-index: 1; }
-  .leaflet-container { font-family: inherit; font-size: 12px; }
+  #map { height: 380px; border: 1.5px solid var(--line); background: #e8e6dc; border-radius: 8px; position: relative; z-index: 1; cursor: crosshair; }
+  .leaflet-container { font-family: inherit; font-size: 13px; }
   .custom-map-pin { display: flex; align-items: center; justify-content: center; }
   #landmark.highlight-auto {
     border-color: var(--green) !important;
-    box-shadow: 0 0 0 3px rgba(11, 90, 49, 0.2) !important;
+    background-color: #f7fbf8 !important;
+    box-shadow: 0 0 0 3px rgba(31, 107, 58, 0.25) !important;
     transition: all 0.3s ease;
+  }
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    font-family: inherit;
+  }
+  .leaflet-popup-content {
+    margin: 10px 14px;
+    line-height: 1.45;
+    font-size: 12.5px;
   }
 </style>
 </head>
@@ -187,9 +198,9 @@ footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-al
       <div class="f"><label for="addr">Street, tole or house number</label><input id="addr" autocomplete="street-address" placeholder="e.g. Lakeside Road, Ward 6"></div>
     </div>
     <div class="f dOnly" style="margin-top:14px">
-      <label for="landmark" style="display:flex;justify-content:space-between;align-items:center;">
+      <label for="landmark" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
         <span>House number, landmark or instructions</span>
-        <span id="landmarkTag" style="font-size:11px;color:var(--green);font-weight:600;display:none;">📍 Nearest landmark auto-filled (editable)</span>
+        <span id="landmarkTag" style="font-size:11px;color:var(--green);font-weight:600;display:none;background:#eef7f0;padding:2px 8px;border-radius:12px;border:1px solid #c2e2cc;">📍 Nearest landmark auto-filled (editable)</span>
       </label>
       <input id="landmark" placeholder="Near the blue gate, call on arrival">
       <small class="hint" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;">Select or tap location on the map to auto-fill the nearest landmark, or customize it anytime.</small>
