@@ -5,6 +5,8 @@ from django.db.models import Count, Sum
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
+from django.utils import timezone
+from django.utils.formats import date_format
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter, RangeDateFilter
 from unfold.decorators import action, display
@@ -91,11 +93,16 @@ class PaymentInline(StackedInline):
     model = Payment
     extra = 0
     can_delete = False
-    fields = ('method', 'status', 'amount', 'paid_at')
+    fields = ('method', 'status', 'amount', 'paid_at', 'cash_collected_by')
     readonly_fields = fields
 
     def has_add_permission(self, request, obj=None):
         return False
+
+    @admin.display(description="Cash collected by")
+    def cash_collected_by(self, obj):
+        # Plain text, not a link: staff accounts are for superusers to open.
+        return obj.collector_name if obj.status == Payment.Status.PAID else "-"
 
 
 class StatusHistoryInline(TabularInline):
@@ -220,6 +227,10 @@ class OrderAdmin(ModelAdmin):
         # Not a page (e.g. a redirect after a bulk action): nothing to add.
         if not hasattr(response, "context_data") or "cl" not in response.context_data:
             return response
+        # Money sums are only for those allowed to see them: otherwise a date
+        # filter would give packers and riders the same numbers as the dashboard.
+        if not request.user.has_perm("orders.view_money_totals"):
+            return response
         # Same filters and search as the table, without cancelled orders.
         queryset = response.context_data["cl"].queryset
         totals = queryset.exclude(status=Order.Status.CANCELLED).aggregate(
@@ -234,7 +245,7 @@ class OrderAdmin(ModelAdmin):
     # ---- order page: status panel ----
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
-        order = Order.objects.filter(pk=object_id).select_related("payment").first()
+        order = Order.objects.filter(pk=object_id).select_related("payment__collected_by").first()
         if order is not None:
             next_steps = []
             for status in order.allowed_next_statuses():
@@ -251,8 +262,18 @@ class OrderAdmin(ModelAdmin):
                 "next_steps": next_steps,
                 "can_cancel": Order.Status.CANCELLED in order.allowed_next_statuses(),
                 "can_collect_cash": payment is not None and payment.can_collect_cash,
+                "cash_receipt": self._cash_receipt(payment),
             })
         return super().change_view(request, object_id, form_url, extra_context)
+
+    def _cash_receipt(self, payment):
+        """"Cash collected by X on 5 Oct 2026, 2:06 PM", or "" until the cash is recorded."""
+        if payment is None or payment.status != Payment.Status.PAID or payment.paid_at is None:
+            return ""
+        when = date_format(timezone.localtime(payment.paid_at), "j M Y, g:i A")
+        if payment.collected_by is None:
+            return f"Cash collected on {when} (who collected it was not recorded)"
+        return f"Cash collected by {payment.collector_name} on {when}"
 
     def get_urls(self):
         custom_urls = [
@@ -300,7 +321,7 @@ class OrderAdmin(ModelAdmin):
             raise PermissionDenied
         order = get_object_or_404(Order, pk=pk)
         payment = getattr(order, "payment", None)
-        if payment is not None and payment.mark_cash_collected():
+        if payment is not None and payment.mark_cash_collected(collected_by=request.user):
             messages.success(request, f"Cash collected for order #{order.pk}.")
         else:
             messages.error(
@@ -319,7 +340,7 @@ class OrderAdmin(ModelAdmin):
     def packing_slip(self, request, object_id):
         """A printable page to pack the order with and hand over on delivery."""
         order = get_object_or_404(
-            Order.objects.select_related("user", "payment").prefetch_related("items__product"),
+            Order.objects.select_related("user", "payment__collected_by").prefetch_related("items__product"),
             pk=object_id,
         )
         return render(request, "admin/orders/order/packing_slip.html", {

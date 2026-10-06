@@ -1,5 +1,6 @@
 import re
-from datetime import timedelta
+from datetime import date, datetime, timedelta
+from unittest.mock import patch
 
 from django.conf import settings
 from django.contrib import admin
@@ -14,10 +15,11 @@ from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
-from products.models import Category, Product, ProductImage
+from products.models import LOW_STOCK_LIMIT, Category, Product, ProductImage
 from cart.models import Cart, CartItem
 from accounts.models import Address
 from .admin import OrderAdmin
+from .dashboard import day_and_week_start
 from .forms import AddressForm
 from .models import Order, OrderItem, OrderStatusChange, Payment
 
@@ -809,13 +811,18 @@ class StatusFlowTests(TestCase):
         # Newest first by default.
         self.assertEqual(order.status_changes.first().to_status, Order.Status.CANCELLED)
 
-    def test_history_keeps_rows_when_the_staff_user_is_deleted(self):
+    def test_staff_who_changed_a_status_cannot_be_deleted(self):
         order = self._order()
         order.change_status(Order.Status.CONFIRMED, changed_by=self.staff)
-        self.staff.delete()
+        with self.assertRaises(ProtectedError):
+            self.staff.delete()
         change = order.status_changes.get()
-        self.assertIsNone(change.changed_by)
+        self.assertEqual(change.changed_by, self.staff)
         self.assertEqual(change.to_status, Order.Status.CONFIRMED)
+
+    def test_staff_who_changed_nothing_can_be_deleted(self):
+        self.staff.delete()
+        self.assertFalse(User.objects.filter(pk=self.staff.pk).exists())
 
 
 class AdminTestData:
@@ -1211,6 +1218,52 @@ class CashCollectedTests(AdminTestData, TestCase):
         self.client.post(self._cash_url())
         self.assertEqual(self._payment().status, Payment.Status.FAILED)
 
+    # ---- who collected it ----
+    def test_who_collected_the_cash_is_saved_and_shown(self):
+        self.boss.first_name, self.boss.last_name = "Ram", "Thapa"
+        self.boss.save()
+        order = self._order(status=Order.Status.DELIVERED)
+        self.client.post(self._cash_url(order))
+        self.assertEqual(self._payment(order).collected_by, self.boss)
+        page = self.client.get(self._change_url(order))
+        self.assertContains(page, "Cash collected by")          # the payment section
+        self.assertContains(page, "Ram Thapa")
+        self.assertRegex(page.content.decode(), r"Cash collected by Ram Thapa on \d{1,2} \w{3} \d{4}")  # the status panel
+        slip = self.client.get(reverse("admin:orders_order_packing_slip", args=[order.pk]))
+        self.assertContains(slip, "Cash on Delivery: paid, collected by Ram Thapa on")
+        self.assertNotContains(slip, "collect Rs.")
+
+    def test_the_collector_falls_back_to_the_email(self):
+        order = self._order(status=Order.Status.DELIVERED)
+        self.client.post(self._cash_url(order))
+        self.assertContains(self.client.get(self._change_url(order)), "Cash collected by boss@example.com on")
+
+    def test_payments_collected_before_this_was_tracked_say_so(self):
+        order = self._order(status=Order.Status.DELIVERED)
+        Payment.objects.filter(order=order).update(status=Payment.Status.PAID, paid_at=timezone.now())
+        page = self.client.get(self._change_url(order))
+        self.assertContains(page, "who collected it was not recorded")
+        self.assertContains(page, "Not recorded")
+        slip = self.client.get(reverse("admin:orders_order_packing_slip", args=[order.pk]))
+        self.assertContains(slip, "Cash on Delivery: paid on")
+        self.assertNotContains(slip, "collected by")
+
+    def test_nothing_is_shown_before_the_cash_is_collected(self):
+        order = self._order(status=Order.Status.DELIVERED)
+        page = self.client.get(self._change_url(order))
+        self.assertNotContains(page, "Cash collected on")
+        self.assertNotRegex(page.content.decode(), r"Cash collected by \S+ on")
+
+    def test_a_staff_account_that_collected_cash_cannot_be_deleted(self):
+        order = self._order(status=Order.Status.DELIVERED)
+        collector = User.objects.create_user(
+            username="rider", email="rider@example.com", password="pass12345", is_staff=True
+        )
+        self.assertTrue(self._payment(order).mark_cash_collected(collected_by=collector))
+        with self.assertRaises(ProtectedError):
+            collector.delete()
+        self.assertEqual(self._payment(order).collected_by, collector)
+
     def test_model_method(self):
         order = self._order(status=Order.Status.DELIVERED)
         payment = self._payment(order)
@@ -1246,9 +1299,10 @@ class CustomerDeleteTests(AdminTestData, TestCase):
         with self.assertRaises(ProtectedError):
             self.customer.delete()
 
+        # The admin doesn't offer deleting them at all (the customer admin tests
+        # in accounts/tests.py cover the page and the message).
         delete_url = reverse("admin:accounts_user_delete", args=[self.customer.pk])
-        page = self.client.get(delete_url)
-        self.assertContains(page, "Cannot delete")
+        self.assertEqual(self.client.get(delete_url).status_code, 403)
         self.client.post(delete_url, {"post": "yes"})
         self.assertTrue(User.objects.filter(pk=self.customer.pk).exists())
         self.assertTrue(Order.objects.filter(pk=self.order.pk).exists())
@@ -1265,3 +1319,244 @@ class CustomerDeleteTests(AdminTestData, TestCase):
         res = self.client.post(delete_url, {"post": "yes"})
         self.assertRedirects(res, reverse("admin:accounts_user_changelist"))
         self.assertFalse(User.objects.filter(pk=newcomer.pk).exists())
+
+
+class DashboardTests(TestCase):
+    url = reverse("admin:index")
+
+    def setUp(self):
+        self.boss = User.objects.create_superuser(
+            username="boss", email="boss@example.com", password="pass12345"
+        )
+        self.customer = User.objects.create_user(
+            username="asha", email="asha@example.com", password="pass12345",
+            first_name="Asha", last_name="Sharma",
+        )
+        self.category = Category.objects.create(name="Fruits", slug="fruits")
+        self.today_start, self.week_start = day_and_week_start()
+        self.client.force_login(self.boss)
+
+    def _order(self, status=Order.Status.PENDING, method=Order.DeliveryMethod.DELIVERY, total=100,
+               created_at=None, payment_status=Payment.Status.PENDING,
+               payment_method=Payment.Method.COD, paid_at=None):
+        order = Order.objects.create(
+            user=self.customer, status=status, delivery_method=method,
+            total=total, address="Kathmandu",
+        )
+        if created_at:
+            Order.objects.filter(pk=order.pk).update(created_at=created_at)
+        Payment.objects.create(
+            order=order, method=payment_method, status=payment_status, amount=total, paid_at=paid_at,
+        )
+        return order
+
+    def _product(self, name, stock, available=True):
+        return Product.objects.create(
+            category=self.category, name=name, slug=name.lower().replace(" ", "-"),
+            price=100, stock=stock, is_available=available,
+        )
+
+    def _card(self, res, title):
+        cards = res.context["action_cards"] + res.context["order_cards"]
+        return next(card for card in cards if card["title"] == title)
+
+    def _listed(self, url):
+        return {order.pk for order in self.client.get(url).context["cl"].result_list}
+
+    # ---- page ----
+    def test_dashboard_is_the_admin_home_page(self):
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, "admin/dashboard.html")
+        self.assertContains(res, "Needs doing now")
+        self.assertContains(res, f'href="{self.url}"')  # "Dashboard" in the sidebar
+        self.assertContains(res, "Dashboard")
+
+    def test_customers_are_sent_to_the_admin_login(self):
+        self.client.force_login(self.customer)
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn(reverse("admin:login"), res.url)
+
+    def test_sections_follow_permissions(self):
+        staff = User.objects.create_user(
+            username="staff", email="staff@example.com", password="pass12345", is_staff=True
+        )
+        staff.user_permissions.add(Permission.objects.get(codename="view_product"))
+        self.client.force_login(staff)
+        res = self.client.get(self.url)
+        self.assertNotContains(res, "Needs doing now")
+        self.assertNotContains(res, "Latest orders")
+        self.assertContains(res, "Low stock")
+
+        staff.user_permissions.set([Permission.objects.get(codename="view_order")])
+        staff = User.objects.get(pk=staff.pk)  # forget the cached permissions
+        self.client.force_login(staff)
+        res = self.client.get(self.url)
+        self.assertContains(res, "Needs doing now")
+        self.assertNotContains(res, "See all low stock")
+
+    # ---- action cards ----
+    def test_action_cards_count_and_link_to_the_filtered_list(self):
+        expected = {
+            "Pending": {self._order().pk, self._order().pk},
+            "Confirmed": {self._order(Order.Status.CONFIRMED).pk},
+            "Packed": {self._order(Order.Status.PACKED).pk},
+            "Out for delivery": {self._order(Order.Status.OUT_FOR_DELIVERY).pk},
+            "Ready for pickup": {
+                self._order(Order.Status.READY_FOR_PICKUP, Order.DeliveryMethod.PICKUP).pk
+            },
+            "Delivered, cash not collected": {
+                self._order(Order.Status.DELIVERED, total=300).pk,
+                self._order(Order.Status.DELIVERED, Order.DeliveryMethod.PICKUP, total=200).pk,
+            },
+        }
+        # Not counted anywhere: cash already collected, payment failed, cancelled.
+        self._order(Order.Status.DELIVERED, payment_status=Payment.Status.PAID, paid_at=timezone.now())
+        self._order(Order.Status.DELIVERED, payment_status=Payment.Status.FAILED)
+        self._order(Order.Status.CANCELLED, payment_status=Payment.Status.FAILED)
+
+        res = self.client.get(self.url)
+        for title, pks in expected.items():
+            with self.subTest(card=title):
+                card = self._card(res, title)
+                self.assertEqual(card["count"], len(pks))
+                self.assertEqual(self._listed(card["url"]), pks)  # the link shows exactly these
+                self.assertContains(res, f'href="{card["url"]}"'.replace("&", "&amp;"))
+        self.assertEqual(self._card(res, "Delivered, cash not collected")["amount"], 500)
+
+    # ---- orders today / this week (Nepal time) ----
+    def test_orders_today_and_this_week_use_nepal_midnight(self):
+        nepal_offset = timedelta(hours=5, minutes=45)
+        self.assertEqual(self.today_start.utcoffset(), nepal_offset)
+        self.assertEqual((self.today_start.hour, self.today_start.minute), (0, 0))
+
+        minute = timedelta(minutes=1)
+        at_midnight = self._order(total=1, created_at=self.today_start)
+        before_midnight = self._order(total=10, created_at=self.today_start - minute)
+        at_week_start = self._order(total=100, created_at=self.week_start)
+        before_week_start = self._order(total=1000, created_at=self.week_start - minute)
+        cancelled = self._order(Order.Status.CANCELLED, total=10000, created_at=self.today_start)
+
+        this_week = [at_midnight, at_week_start]
+        if self.today_start - minute >= self.week_start:
+            this_week.append(before_midnight)  # yesterday is in this week unless today is Sunday
+
+        res = self.client.get(self.url)
+        today_card = self._card(res, "Orders today")
+        week_card = self._card(res, "Orders this week")
+        self.assertEqual((today_card["count"], today_card["amount"]), (1, 1))
+        self.assertEqual(
+            (week_card["count"], week_card["amount"]),
+            (len(this_week), sum(order.total for order in this_week)),
+        )
+        self.assertNotIn(before_week_start, this_week)
+
+        # The links open the order list for the same days; its totals line agrees.
+        listing = self.client.get(today_card["url"])
+        self.assertEqual(
+            {o.pk for o in listing.context["cl"].result_list}, {at_midnight.pk, cancelled.pk}
+        )
+        self.assertContains(listing, "1 order · Rs. 1")  # cancelled not counted
+
+    def test_week_starts_on_sunday(self):
+        nepal = timezone.get_current_timezone()
+        cases = [
+            # (Nepal time now, expected week start date)
+            (datetime(2026, 10, 4, 0, 0), date(2026, 10, 4)),    # Sunday, just after midnight
+            (datetime(2026, 10, 6, 15, 0), date(2026, 10, 4)),   # Tuesday
+            (datetime(2026, 10, 10, 23, 59), date(2026, 10, 4)),  # Saturday night
+            (datetime(2026, 10, 11, 0, 0), date(2026, 10, 11)),  # next Sunday
+        ]
+        for now, week_start_date in cases:
+            with self.subTest(now=now):
+                with patch("orders.dashboard.timezone.localtime", return_value=now.replace(tzinfo=nepal)):
+                    today_start, week_start = day_and_week_start()
+                self.assertEqual(today_start.date(), now.date())
+                self.assertEqual(week_start.date(), week_start_date)
+                self.assertEqual((week_start.hour, week_start.minute), (0, 0))
+
+    # ---- cash collected today ----
+    def test_cash_collected_today_counts_only_cod_paid_since_midnight(self):
+        delivered = Order.Status.DELIVERED
+        self._order(delivered, total=1, payment_status=Payment.Status.PAID, paid_at=self.today_start)
+        self._order(delivered, total=10, payment_status=Payment.Status.PAID, paid_at=timezone.now())
+        # Not counted: paid before midnight, still pending, failed, not cash on delivery.
+        self._order(delivered, total=100, payment_status=Payment.Status.PAID,
+                    paid_at=self.today_start - timedelta(minutes=1))
+        self._order(delivered, total=1000, payment_status=Payment.Status.PENDING)
+        self._order(Order.Status.CANCELLED, total=10000, payment_status=Payment.Status.FAILED)
+        self._order(delivered, total=100000, payment_status=Payment.Status.PAID,
+                    payment_method=Payment.Method.ESEWA, paid_at=timezone.now())
+
+        card = self._card(self.client.get(self.url), "Cash collected today")
+        self.assertEqual((card["count"], card["amount"]), (2, 11))
+
+    def test_cash_collected_from_the_order_page_shows_up(self):
+        order = self._order(Order.Status.DELIVERED, total=250)
+        self.client.post(reverse("admin:orders_order_cash_collected", args=[order.pk]))
+        card = self._card(self.client.get(self.url), "Cash collected today")
+        self.assertEqual((card["count"], card["amount"]), (1, 250))
+        self.assertEqual(self._card(self.client.get(self.url), "Delivered, cash not collected")["count"], 0)
+
+    # ---- low stock ----
+    def test_low_stock_list(self):
+        out = self._product("Zebra Juice", 0)
+        low = self._product("Apple", 9)
+        self._product("Banana", 10)                      # not low
+        self._product("Hidden", 0, available=False)      # not on sale
+        res = self.client.get(self.url)
+        self.assertEqual(res.context["low_stock"], [out, low])  # out of stock first
+        self.assertContains(res, reverse("admin:products_product_change", args=[out.pk]))
+        self.assertContains(res, "Out of stock")
+        self.assertContains(res, "9 left")
+        self.assertContains(res, f"stock under {LOW_STOCK_LIMIT}")
+
+        products = {p.pk for p in self.client.get(res.context["out_of_stock_url"]).context["cl"].result_list}
+        self.assertEqual(products, {out.pk})
+        products = {p.pk for p in self.client.get(res.context["low_stock_url"]).context["cl"].result_list}
+        self.assertEqual(products, {low.pk})
+
+    def test_low_stock_shows_at_most_fifteen(self):
+        for i in range(20):
+            self._product(f"Item {i:02d}", 5)
+        res = self.client.get(self.url)
+        self.assertEqual(len(res.context["low_stock"]), 15)
+        self.assertContains(res, "See all low stock")
+        self.assertContains(res, "See all out of stock")
+
+    def test_product_stock_filter_uses_the_shared_limit(self):
+        under = self._product("Under", LOW_STOCK_LIMIT - 1)
+        self._product("At limit", LOW_STOCK_LIMIT)
+        res = self.client.get(reverse("admin:products_product_changelist"), {"stock_status": "low"})
+        self.assertEqual({p.pk for p in res.context["cl"].result_list}, {under.pk})
+        self.assertContains(res, f"Low stock (under {LOW_STOCK_LIMIT})")
+
+    # ---- latest orders ----
+    def test_latest_ten_orders(self):
+        orders = []
+        for n in range(12):
+            orders.append(self._order(created_at=timezone.now() - timedelta(hours=12 - n)))
+        Order.objects.filter(pk=orders[-1].pk).update(
+            status=Order.Status.DELIVERED, delivery_method=Order.DeliveryMethod.PICKUP
+        )
+        res = self.client.get(self.url)
+        shown = [row["order"].pk for row in res.context["latest_orders"]]
+        self.assertEqual(shown, [o.pk for o in reversed(orders[2:])])  # newest first, 10 only
+        self.assertContains(res, reverse("admin:orders_order_change", args=[orders[-1].pk]))
+        self.assertNotContains(res, f'href="{reverse("admin:orders_order_change", args=[orders[0].pk])}"')
+        self.assertContains(res, "Picked up")
+        self.assertContains(res, "Asha Sharma")
+
+    # ---- queries ----
+    def test_query_count_does_not_grow(self):
+        self._order()
+        self._product("Low 0", 1)
+        with CaptureQueriesContext(connection) as small:
+            self.client.get(self.url)
+        for n in range(30):
+            self._order(Order.Status.DELIVERED)
+            self._product(f"Low {n + 1}", 2)
+        with CaptureQueriesContext(connection) as big:
+            self.client.get(self.url)
+        self.assertEqual(len(big), len(small))

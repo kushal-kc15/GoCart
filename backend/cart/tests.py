@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 
 from products.models import Category, Product
+from wishlist.models import Wishlist, WishlistItem
 from .models import Cart, CartItem
 
 User = get_user_model()
@@ -292,3 +293,43 @@ class CartPageTests(TestCase):
         names = sorted(item.product.name for item in response.context["cart_items"])
         self.assertEqual(names, ["Apple", "Banana"])
         self.assertEqual(self._suggested(response), [])
+
+
+class AdminSkipsStorefrontLookupsTests(TestCase):
+    """The header's cart and wishlist badges don't exist in the admin, so no queries there."""
+
+    def setUp(self):
+        self.boss = User.objects.create_superuser(
+            username="boss", email="boss@example.com", password="pass12345"
+        )
+        category = Category.objects.create(name="Fruits", slug="fruits")
+        self.apple = Product.objects.create(
+            category=category, name="Apple", slug="apple", price=100, stock=10
+        )
+        cart = Cart.objects.create(user=self.boss)
+        CartItem.objects.create(cart=cart, product=self.apple, quantity=2)
+        WishlistItem.objects.create(wishlist=Wishlist.objects.create(user=self.boss), product=self.apple)
+        self.client.force_login(self.boss)
+
+    def test_admin_pages_make_no_cart_or_wishlist_queries(self):
+        urls = [
+            reverse("admin:index"),
+            reverse("admin:orders_order_changelist"),
+            reverse("admin:products_product_changelist"),
+            reverse("admin:accounts_user_changelist"),
+            reverse("admin:accounts_user_change", args=[self.boss.pk]),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                with CaptureQueriesContext(connection) as queries:
+                    self.assertEqual(self.client.get(url).status_code, 200)
+                sql = " ".join(q["sql"] for q in queries.captured_queries)
+                self.assertNotIn("cart_cartitem", sql)
+                self.assertNotIn("wishlist_wishlistitem", sql)
+
+    def test_the_shop_still_shows_the_cart_and_wishlist_counts(self):
+        response = self.client.get(reverse("cart:cart_detail"))
+        self.assertEqual(response.context["cart_count"], 2)
+        self.assertEqual(response.context["wishlist_count"], 1)
+        self.assertEqual(response.context["wishlist_ids"], {self.apple.pk})
+        self.assertContains(response, 'id="cartBadge"')

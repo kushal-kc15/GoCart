@@ -114,7 +114,7 @@ media/
 # !**/migrations
 # !**/migrations/__init__.py
 
-claude.md
+CLAUDE.md
 js/dev/
 images/dev/
 css/dev/

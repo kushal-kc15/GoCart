@@ -1,7 +1,7 @@
 
 from pathlib import Path
 
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -137,16 +137,58 @@ SHOP_INFO = {
 UNFOLD = {
     "SITE_TITLE": "GoCart Admin",
     "SITE_HEADER": "GoCart Admin",
+    # Fills the admin home page (the dashboard) with today's work.
+    "DASHBOARD_CALLBACK": "orders.dashboard.dashboard_callback",
+    # Each link shows only to people who can use it. This only tidies the menu:
+    # the real checks are on the pages themselves.
     "SIDEBAR": {
         "show_search": True,
         "navigation": [
             {
                 "title": "Shop",
                 "items": [
-                    {"title": "Orders", "link": reverse_lazy("admin:orders_order_changelist")},
-                    {"title": "Products", "link": reverse_lazy("admin:products_product_changelist")},
-                    {"title": "Categories", "link": reverse_lazy("admin:products_category_changelist")},
-                    {"title": "Customers", "link": reverse_lazy("admin:accounts_user_changelist")},
+                    {"title": "Dashboard", "link": reverse_lazy("admin:index")},
+                    {
+                        "title": "Orders",
+                        "link": reverse_lazy("admin:orders_order_changelist"),
+                        "permission": lambda request: request.user.has_perm("orders.view_order"),
+                    },
+                    {
+                        "title": "Products",
+                        "link": reverse_lazy("admin:products_product_changelist"),
+                        "permission": lambda request: request.user.has_perm("products.view_product"),
+                    },
+                    {
+                        "title": "Categories",
+                        "link": reverse_lazy("admin:products_category_changelist"),
+                        "permission": lambda request: request.user.has_perm("products.view_category"),
+                    },
+                    {
+                        "title": "Reviews",
+                        "link": reverse_lazy("admin:products_review_changelist"),
+                        "permission": lambda request: request.user.has_perm("products.view_review"),
+                    },
+                    {
+                        "title": "Customers",
+                        "link": reverse_lazy("admin:accounts_user_changelist"),
+                        "permission": lambda request: request.user.has_perm("accounts.view_user"),
+                    },
+                ],
+            },
+            {
+                # Superusers only: who can log in, and what each role may do.
+                "title": "Admin",
+                "items": [
+                    {
+                        "title": "Staff accounts",
+                        "link": lambda request: reverse("admin:accounts_user_changelist") + "?account_type=staff",
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                    {
+                        "title": "Roles",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
                 ],
             },
         ],

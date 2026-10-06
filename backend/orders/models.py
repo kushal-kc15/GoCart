@@ -36,6 +36,9 @@ class Order(models.Model):
 
     class Meta:
         ordering=['-created_at']
+        # Rupee sums (dashboard, order list line, customer "total spent") are only
+        # for Managers and superusers, not for packers and riders.
+        permissions = [('view_money_totals', 'Can see order money totals')]
 
     def __str__(self):
         return f'Order #{self.pk} - {self.user.email}'
@@ -133,8 +136,11 @@ class OrderStatusChange(models.Model):
     # Blank when the order was just placed.
     from_status = models.CharField(max_length=20, choices=Order.Status.choices, blank=True)
     to_status = models.CharField(max_length=20, choices=Order.Status.choices)
+    # PROTECT: staff who changed any order status can't be deleted (they are
+    # deactivated instead), so the history always says who did what.
     changed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='status_changes_made',
     )
     note = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -181,11 +187,24 @@ class Payment(models.Model):
     product_code=models.CharField(max_length=50, blank=True, null=True)
     provider_status=models.CharField(max_length=50, blank=True, null=True)
     paid_at=models.DateTimeField(blank=True, null=True)
+    # Who recorded the cash. PROTECT: a staff account that collected cash can't be
+    # deleted (it is deactivated instead). Empty for payments made before this existed.
+    collected_by=models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+        related_name='collected_payments',
+    )
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f'Payment for Order #{self.order.pk}'
+
+    @property
+    def collector_name(self):
+        """Who recorded the cash, as shown in the admin and on the packing slip."""
+        if self.collected_by is None:
+            return 'Not recorded'
+        return self.collected_by.get_full_name() or self.collected_by.email
 
     @property
     def can_collect_cash(self):
@@ -195,8 +214,8 @@ class Payment(models.Model):
             and self.order.status == Order.Status.DELIVERED
         )
 
-    def mark_cash_collected(self):
-        """Record that the cash for a delivered COD order was received.
+    def mark_cash_collected(self, collected_by=None):
+        """Record that the cash for a delivered COD order was received, and by whom.
         Returns False if it isn't allowed or was already recorded."""
         now = timezone.now()
         # Checked again in the database, so a second click can't record it twice.
@@ -205,9 +224,12 @@ class Payment(models.Model):
             method=Payment.Method.COD,
             status=Payment.Status.PENDING,
             order__status=Order.Status.DELIVERED,
-        ).update(status=Payment.Status.PAID, paid_at=now, updated_at=now)
+        ).update(
+            status=Payment.Status.PAID, paid_at=now, collected_by=collected_by, updated_at=now
+        )
         if not changed:
             return False
         self.status = Payment.Status.PAID
         self.paid_at = now
+        self.collected_by = collected_by
         return True

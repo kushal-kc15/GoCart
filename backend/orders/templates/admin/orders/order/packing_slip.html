@@ -90,6 +90,8 @@
     <div class="payment">
         {% if payment.method == "cod" and payment.status == "pending" %}
             Cash on Delivery: collect Rs. {{ order.total }}
+        {% elif payment.method == "cod" and payment.status == "paid" %}
+            Cash on Delivery: paid{% if payment.collected_by %}, collected by {{ payment.collector_name }}{% endif %}{% if payment.paid_at %} on {{ payment.paid_at|date:"j M Y, g:i A" }}{% endif %}
         {% elif payment %}
             {{ payment.get_method_display }}: {{ payment.get_status_display }}
         {% else %}

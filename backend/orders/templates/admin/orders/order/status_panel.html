@@ -12,6 +12,10 @@ Context from OrderAdmin.change_view: next_steps, can_cancel, can_collect_cash, c
         {% include "unfold/helpers/label.html" with type=original_status_colour text=original.status_label %}
     </p>
 
+    {% if cash_receipt %}
+        <p class="mb-4">{{ cash_receipt }}</p>
+    {% endif %}
+
     {% if not can_change_status %}
         <p class="text-subtle">You can view this order but not change it.</p>
     {% else %}
