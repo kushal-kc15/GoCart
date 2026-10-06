@@ -1,0 +1,211 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}{% if query %}Results for {{ query }}{% else %}{{ selected_category.name }}{% endif %} – GoCart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/product_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="pl-page">
+
+    {% if not query %}
+    <!-- Department strip (top-level categories) -->
+    <div class="pl-strip">
+        <button class="pl-strip-arrow" id="plStripPrev" aria-label="Scroll left" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6" />
+            </svg>
+        </button>
+
+        <div class="pl-strip-track" id="plStripTrack">
+            {% for c in categories %}
+            <a href="{% url 'products:product_list' %}?category={{ c.slug }}"
+               class="pl-dept {% if c == selected_category %}active{% endif %}">
+                <span class="pl-dept-img">
+                    {% if c.image %}
+                    <img src="{{ c.image.url }}" alt="{{ c.name }}">
+                    {% else %}
+                    <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ c.name }}">
+                    {% endif %}
+                </span>
+                <span class="pl-dept-name">{{ c.name }}</span>
+            </a>
+            {% empty %}
+            <p>No departments yet.</p>
+            {% endfor %}
+        </div>
+
+        <button class="pl-strip-arrow" id="plStripNext" aria-label="Scroll right" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6" />
+            </svg>
+        </button>
+    </div>
+    {% endif %}
+
+    {# id="products": page links and sort land here instead of the top of the page #}
+    <div class="pl-layout{% if query %} pl-layout--search{% endif %}" id="products">
+
+        {% if not query %}
+        <!-- Sidebar: subcategories of the selected department -->
+        <aside class="pl-sidebar">
+            {% if selected_category %}
+            <a href="{% url 'products:product_list' %}?category={{ selected_category.slug }}"
+               class="pl-sub {% if not selected_subcategory %}active{% endif %}">
+                <span class="pl-sub-thumb">
+                    {% if selected_category.image %}
+                    <img src="{{ selected_category.image.url }}" alt="All">
+                    {% else %}
+                    <img src="{% static 'images/dev/fruits.jpg' %}" alt="All">
+                    {% endif %}
+                </span>
+                <span class="pl-sub-name">All</span>
+            </a>
+            {% for s in subcategories %}
+            <a href="{% url 'products:product_list' %}?category={{ selected_category.slug }}&sub={{ s.slug }}"
+               class="pl-sub {% if s == selected_subcategory %}active{% endif %}">
+                <span class="pl-sub-thumb">
+                    {% if s.image %}
+                    <img src="{{ s.image.url }}" alt="{{ s.name }}">
+                    {% else %}
+                    <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ s.name }}">
+                    {% endif %}
+                </span>
+                <span class="pl-sub-name">{{ s.name }}</span>
+            </a>
+            {% endfor %}
+            {% endif %}
+        </aside>
+        {% endif %}
+
+        <!-- Main: heading, sort, product grid -->
+        <div class="pl-main">
+            <div class="pl-main-head">
+                <div>
+                    <h1 class="pl-title">
+                        {% if query %}
+                            Results for "{{ query }}"
+                        {% else %}
+                            {{ selected_subcategory.name|default:selected_category.name }}
+                        {% endif %}
+                    </h1>
+                    {% with total=page_obj.paginator.count %}
+                    <p class="pl-count">
+                        {% if query %}{{ total }} result{{ total|pluralize }}{% else %}{{ total }} product{{ total|pluralize }}{% endif %}
+                    </p>
+                    {% endwith %}
+                </div>
+
+                <form method="get" action="#products" class="pl-sort">
+                    {% if selected_category %}
+                    <input type="hidden" name="category" value="{{ selected_category.slug }}">
+                    {% endif %}
+                    {% if selected_subcategory %}
+                    <input type="hidden" name="sub" value="{{ selected_subcategory.slug }}">
+                    {% endif %}
+                    {% if query %}
+                    <input type="hidden" name="q" value="{{ query }}">
+                    {% endif %}
+                    <label for="sortSelect">Sort By</label>
+                    <select name="sort" id="sortSelect" onchange="this.form.submit()">
+                        <option value="" {% if not selected_sort %}selected{% endif %}>Relevance</option>
+                        <option value="price_low" {% if selected_sort == "price_low" %}selected{% endif %}>Price: Low to High</option>
+                        <option value="price_high" {% if selected_sort == "price_high" %}selected{% endif %}>Price: High to Low</option>
+                        <option value="name" {% if selected_sort == "name" %}selected{% endif %}>Name: A-Z</option>
+                    </select>
+                </form>
+            </div>
+
+            <div class="pl-grid">
+                {% for p in page_obj %}
+                {% include "dev/_list_card.html" %}
+                {% empty %}
+                {% if query %}
+                <p class="pl-empty gc-empty">
+                    No products found for "{{ query }}".
+                    <a class="gc-btn gc-btn--outline gc-btn--sm" href="{% url 'products:product_list' %}">Browse all products</a>
+                </p>
+                {% else %}
+                <p class="pl-empty gc-empty">No products found.</p>
+                {% endif %}
+                {% endfor %}
+            </div>
+
+            {# Pagination: the querystring tag keeps category, sub, sort and q #}
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="pl-pagination" aria-label="Product pages">
+                {% if page_obj.has_previous %}
+                <a href="{% querystring page=page_obj.previous_page_number %}#products" class="gc-btn gc-btn--outline gc-btn--sm">Previous</a>
+                {% endif %}
+
+                {% for n in page_range %}
+                    {% if n == page_obj.number %}
+                    <span class="gc-btn gc-btn--primary gc-btn--sm" aria-current="page">{{ n }}</span>
+                    {% elif n == page_obj.paginator.ELLIPSIS %}
+                    <span class="pl-page-dots">{{ n }}</span>
+                    {% else %}
+                    <a href="{% querystring page=n %}#products" class="gc-btn gc-btn--outline gc-btn--sm">{{ n }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a href="{% querystring page=page_obj.next_page_number %}#products" class="gc-btn gc-btn--outline gc-btn--sm">Next</a>
+                {% endif %}
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Scroll a row sideways so its active item sits in the middle.
+    // (Not scrollIntoView: that would also scroll the page and undo the
+    // jump back to a #product-id card.)
+    function centerActive(track, active) {
+        if (!track || !active) return;
+        var trackBox = track.getBoundingClientRect();
+        var itemBox = active.getBoundingClientRect();
+        var left = track.scrollLeft + (itemBox.left - trackBox.left) - (trackBox.width - itemBox.width) / 2;
+        track.scrollTo({ left: left, behavior: "instant" });
+    }
+
+    // Department strip: arrow buttons, and the active department in view
+    (function () {
+        var track = document.getElementById("plStripTrack");
+        var prev = document.getElementById("plStripPrev");
+        var next = document.getElementById("plStripNext");
+        if (!track || !prev || !next) return;
+        prev.addEventListener("click", function () {
+            track.scrollBy({ left: -320, behavior: "smooth" });
+        });
+        next.addEventListener("click", function () {
+            track.scrollBy({ left: 320, behavior: "smooth" });
+        });
+
+        // Grey out an arrow when there is nothing more to scroll that way
+        function updateArrows() {
+            var maxLeft = track.scrollWidth - track.clientWidth;
+            prev.disabled = track.scrollLeft <= 0;
+            next.disabled = track.scrollLeft >= maxLeft - 1;
+        }
+        track.addEventListener("scroll", updateArrows);
+        window.addEventListener("resize", updateArrows);
+
+        centerActive(track, track.querySelector(".pl-dept.active"));
+        updateArrows();
+    })();
+
+    // On phones the subcategories are a sideways row of chips: show the active one
+    // (on desktop the sidebar doesn't scroll sideways, so this does nothing).
+    (function () {
+        var sidebar = document.querySelector(".pl-sidebar");
+        if (sidebar) centerActive(sidebar, sidebar.querySelector(".pl-sub.active"));
+    })();
+</script>
+{% endblock %}
