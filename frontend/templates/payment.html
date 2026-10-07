@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment | GoCart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../static/css/home2.css">
+    <style>
+        /* Payment page only. Colours and fonts come from home2.css variables. */
+        .pay-wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+        .steps { display: flex; justify-content: center; align-items: center; gap: 14px; padding: 28px 0 0; font-size: 13px; color: var(--muted); }
+        .steps span { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+        .steps i { font-style: normal; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: #fff; border: 1.5px solid var(--line); color: var(--muted); }
+        .steps .dn i, .steps .on i { background: var(--green); border-color: var(--green); color: #fff; }
+        .steps .on, .steps .dn { color: var(--charcoal); }
+        .steps u { width: 36px; height: 1.5px; background: var(--line); }
+        .steps u.dn { background: var(--green); opacity: .45; }
+        @media (max-width: 600px) { .steps u { width: 14px; } .steps span b { display: none; } }
+
+        .page-title { text-align: center; padding: 30px 20px 26px; }
+        .page-title h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.2; margin-bottom: 8px; }
+        .page-title h1 span { color: var(--green); }
+        .page-title p { color: var(--muted); }
+
+        .pay-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+        @media (max-width: 860px) { .pay-grid { grid-template-columns: 1fr; } .pay-wrap { padding: 0 20px; } }
+
+        .card-box { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 22px 24px; }
+        .card-box + .card-box { margin-top: 20px; }
+        .card-box h2 { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+
+        .method { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: var(--cream); font-size: 14px; font-weight: 600; }
+        .method input { width: 17px; height: 17px; accent-color: var(--green); flex: none; }
+        .method small { margin-left: auto; color: var(--muted); font-weight: 400; font-size: 12px; }
+        .method:has(input:checked) { border-color: var(--green); background: rgba(47,122,77,.08); }
+        .method:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 2px; }
+        .badge-m { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; flex: none; }
+
+        .detail { display: none; background: var(--cream); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin: -2px 0 10px; font-size: 13.5px; line-height: 1.8; color: var(--muted); }
+        .detail.on { display: block; }
+        .detail b { color: var(--charcoal); }
+        .detail label { display: block; font-size: 12px; font-weight: 600; color: var(--charcoal); margin-bottom: 6px; }
+        .detail input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: 14px; background: #fff; }
+        .detail input:focus { outline: none; border-color: var(--green); }
+
+        .err { display: none; color: var(--coral); font-size: 13px; margin-top: 10px; font-weight: 600; }
+
+        .kv { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; color: var(--muted); font-size: 13.5px; border-bottom: 1px solid var(--line); }
+        .kv:last-of-type { border-bottom: 0; }
+        .kv b { color: var(--charcoal); text-align: right; font-weight: 600; }
+        .edit-link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--green); text-decoration: underline; }
+
+        .sum-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .sum-item i { width: 46px; height: 46px; border-radius: 8px; flex: none; }
+        .sum-item span { flex: 1; font-weight: 600; font-size: 14px; }
+        .sum-item small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
+        .sum-item b { font-size: 14px; }
+        .sum-line { display: flex; justify-content: space-between; padding: 7px 0; color: var(--muted); font-size: 13.5px; }
+        .sum-line.disc { color: var(--coral); }
+        .sum-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--line); margin-top: 10px; padding-top: 16px; font-size: 22px; font-weight: 700; }
+        .sum-total span { color: var(--green); }
+        .place-btn { width: 100%; margin-top: 18px; padding: 14px; border: 0; cursor: pointer; font-size: 15px; text-align: center; }
+        .place-btn[disabled] { opacity: .65; cursor: wait; }
+        .fine { text-align: center; font-size: 12px; color: var(--muted); margin-top: 10px; }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <a href="index.html"><img src="../static/images/logo.png" alt="Logo" class="logo-img"></a>
+            </div>
+
+            <a href="" class="header-phone">
+                <span class="header-phone-text">+9779707046738</span>
+                <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
+                </svg>
+            </a>
+
+            <div class="search-field">
+                <input type="text" id="searchInput" placeholder="Search ........." autocomplete="off">
+                <svg class="icon-svg search-icon-btn" id="searchIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" fill="currentColor" role="button" aria-label="Search" title="Search">
+                    <path
+                        d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z">
+                    </path>
+                </svg>
+            </div>
+
+            <div class="header-actions">
+                <a href="" class="icon-link wishlist-icon" aria-label="Wishlist">
+                    <svg class="icon-svg icon-svg--heart" viewBox="0 0 24 24" fill="red" stroke="var(--coral)"
+                        stroke-width="0" stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                </a>
+                <span class="header-divider"></span>
+                <a href="" class="icon-link" aria-label="Cart">
+                    <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1.3" />
+                        <circle cx="18" cy="21" r="1.3" />
+                        <path d="M2.5 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21.5 8H6" />
+                    </svg>
+                    <span class="cart-badge" id="cartBadge"></span>
+                </a>
+                <span class="header-divider"></span>
+                <a href="" class="user-chip">
+                    <img src="https://media.istockphoto.com/id/2190079061/photo/handsome-teen-boy-with-curly-hairstyle-wearing-green-t-shirt-posing-isolated-on-blue.jpg?s=612x612&w=0&k=20&c=PS54cA3ozt4stBfvfar4g7CXmfBuZpBh3ua25hGLJ7E="
+                        class="user-image" alt="userImage">
+                    <span id="uname">@Ross95</span>
+                </a>
+            </div>
+        </div>
+        <nav class="main-nav">
+            <ul>
+                <li><a href="index.html">HOME</a></li>
+                <li><a href="">CATEGORIES</a></li>
+                <li><a href="">ABOUT US</a></li>
+                <li><a href="">CONTACT US</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="pay-wrap">
+        <div class="steps">
+            <span class="dn"><i>&#10003;</i><b>Checkout</b></span><u class="dn"></u>
+            <span class="on"><i>2</i><b>Payment</b></span><u></u>
+            <span><i>3</i><b>Confirmation</b></span>
+        </div>
+
+        <section class="page-title">
+            <h1>Choose how to <span>pay</span></h1>
+            <p>Pick a payment method to finish your order.</p>
+        </section>
+
+        <div class="pay-grid">
+            <div>
+                <section class="card-box">
+                    <h2>Payment method</h2>
+
+                    <label class="method"><input type="radio" name="pm" value="cod" checked>
+                        <span class="badge-m" style="background:#6f716a">Rs</span> Cash on delivery <small id="codNote">Pay when you receive</small></label>
+                    <div class="detail on" id="d-cod">Keep the exact amount ready if you can. You will pay the delivery person when your order arrives.</div>
+
+                    <label class="method"><input type="radio" name="pm" value="esewa">
+                        <span class="badge-m" style="background:#60bb46">eS</span> eSewa <small>Wallet</small></label>
+                    <div class="detail" id="d-esewa">
+                        <label for="esewaId">eSewa ID (mobile number)</label>
+                        <input id="esewaId" type="tel" inputmode="numeric" placeholder="98XXXXXXXX" autocomplete="tel">
+                    </div>
+
+                    <label class="method"><input type="radio" name="pm" value="khalti">
+                        <span class="badge-m" style="background:#5c2d91">Kh</span> Khalti <small>Wallet</small></label>
+                    <div class="detail" id="d-khalti">
+                        <label for="khaltiId">Khalti mobile number</label>
+                        <input id="khaltiId" type="tel" inputmode="numeric" placeholder="98XXXXXXXX" autocomplete="tel">
+                    </div>
+
+                    <label class="method"><input type="radio" name="pm" value="bank">
+                        <span class="badge-m" style="background:var(--green)">Bk</span> Bank transfer <small>Send proof later</small></label>
+                    <div class="detail" id="d-bank">
+                        Transfer the total to the account below and keep your receipt.<br>
+                        <b>Account name:</b> Go Cart Pvt. Ltd.<br>
+                        <b>Bank:</b> Your bank name<br>
+                        <b>Account number:</b> XXXXXXXXXXXX<br>
+                        Use your order number as the payment reference. We confirm the order once the payment arrives.
+                    </div>
+                    <div class="err" id="err"></div>
+                </section>
+
+                <section class="card-box">
+                    <h2 id="dTitle">Delivery details</h2>
+                    <div id="dInfo"></div>
+                    <a class="edit-link" href="checkoutpage.html">Change details</a>
+                </section>
+            </div>
+
+            <aside class="card-box">
+                <h2 style="text-align:center">Order Summary</h2>
+                <div id="items"></div>
+                <div style="margin-top:12px">
+                    <div class="sum-line"><span>Sub-total</span><span id="sub"></span></div>
+                    <div class="sum-line disc"><span>Discount</span><span id="dis"></span></div>
+                    <div class="sum-line"><span>VAT / TAX</span><span>Rs. 0</span></div>
+                    <div class="sum-line"><span>Shipping charge</span><span id="ship"></span></div>
+                </div>
+                <div class="sum-total">Total <span id="tot"></span></div>
+                <button class="btn-primary place-btn" id="pay" type="button">Place order</button>
+                <p class="fine">By placing your order you agree to our Terms and Conditions.</p>
+            </aside>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container py-5">
+            <div class="row g-4">
+                <div class="col-12 col-md-4">
+                    <div class="logo logo--light mb-3">
+                        <img src="../static/images/logo.png" alt="logo">
+                    </div>
+                    <p class="mb-1">Everything You Need, All in One Cart.</p>
+                    <p>Fresh Groceries, Delivered with Care.</p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="" class="social-icon"><img src="../static/images/instagram.png" alt="Instagram"></a>
+                        <a href="" class="social-icon"><img src="../static/images/twitter.png" alt="Twitter"></a>
+                        <a href="" class="social-icon"><img src="../static/images/facebook.png" alt="Facebook"></a>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <h4>SHOP</h4>
+                    <a href="">Meat, Fish and Egg</a>
+                    <a href="">Bakery and Bread</a>
+                    <a href="">Soft Drinks</a>
+                    <a href="">Salt and Spices</a>
+                    <a href="">Atta, Rice and Daal</a>
+                    <a href="">Water and Gas</a>
+                    <a href="">Alcohol</a>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <h4>CUSTOMER SERVICE</h4>
+                    <a href="">Home</a>
+                    <a href="">About us</a>
+                    <a href="">Terms and Conditions</a>
+                    <a href="">Return Policies</a>
+                    <a href="">Delivery Methods</a>
+                    <a href="">Payment methods</a>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <h4>CONTACT US</h4>
+                    <p>Location</p>
+                    <p>Phone</p>
+                    <p>Email</p>
+                    <p>Open : 9:00 am</p>
+                    <p class="closed">Close : 8:00 pm</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        var $ = function (i) { return document.getElementById(i) },
+            rs = function (n) { return "Rs. " + Math.round(n).toLocaleString() };
+
+        var order = null;
+        try { order = JSON.parse(sessionStorage.getItem("gc_order")) } catch (e) {}
+        // No order saved (page opened directly): go back to checkout
+        if (!order || !order.items || !order.items.length) { location.replace("checkout.html") }
+
+        function kv(parent, k, v) {
+            if (!v) return;
+            var d = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span");
+            d.className = "kv"; s.textContent = k; b.textContent = v;
+            d.appendChild(s); d.appendChild(b); parent.appendChild(d);
+        }
+
+        if (order) {
+            try {
+                var u = JSON.parse(localStorage.getItem("gc_user"));
+                if (u) $("uname").textContent = "@" + (u.username || u.name);
+            } catch (e) {}
+
+            // Items and totals
+            order.items.forEach(function (i) {
+                var d = document.createElement("div"); d.className = "sum-item";
+                var ic = document.createElement("i"); ic.style.background = i.c;
+                var sp = document.createElement("span"), sm = document.createElement("small"), b = document.createElement("b");
+                sp.textContent = i.n; sm.textContent = i.w + " \u00d7 " + i.q; sp.appendChild(sm);
+                b.textContent = rs(i.p * i.q);
+                d.appendChild(ic); d.appendChild(sp); d.appendChild(b); $("items").appendChild(d);
+            });
+            var t = order.totals;
+            $("sub").textContent = rs(t.sub); $("dis").textContent = "-" + rs(t.dis);
+            $("ship").textContent = rs(t.ship); $("tot").textContent = rs(t.total);
+
+            // Delivery / pickup details
+            var box = $("dInfo"), home = order.service === "home";
+            $("dTitle").textContent = home ? "Delivery details" : "Pick up details";
+            kv(box, "Name", order.customer.name);
+            kv(box, "Phone", order.customer.phone);
+            kv(box, "Email", order.customer.email);
+            if (home) {
+                kv(box, "Deliver to", order.delivery.address);
+                kv(box, "Notes", order.delivery.landmark);
+            } else {
+                kv(box, "Pick up at", order.pickup.name + ", " + order.pickup.address);
+                kv(box, "Open", order.pickup.hours);
+                $("codNote").textContent = "Pay at the store";
+                $("d-cod").textContent = "You will pay at the store when you collect your order.";
+            }
+        }
+
+        // Show the detail box for the selected method
+        document.querySelectorAll("[name=pm]").forEach(function (r) {
+            r.onchange = function () {
+                ["cod", "esewa", "khalti", "bank"].forEach(function (k) {
+                    $("d-" + k).classList.toggle("on", k === r.value);
+                });
+                $("err").style.display = "none";
+            };
+        });
+        function showErr(m) { $("err").textContent = m; $("err").style.display = "block" }
+        function validNp(v) { return /^9[78]\d{8}$/.test(v.replace(/\D/g, "")) }
+        var LABEL = { cod: "Cash on delivery", esewa: "eSewa", khalti: "Khalti", bank: "Bank transfer" };
+
+        $("pay").onclick = function () {
+            var m = document.querySelector("[name=pm]:checked").value, wallet = "";
+            if (m === "esewa" || m === "khalti") {
+                wallet = $(m + "Id").value.trim();
+                if (!validNp(wallet)) { showErr("Enter a valid 10 digit mobile number starting with 97 or 98."); return }
+            }
+            $("pay").disabled = true; $("pay").textContent = "Processing...";
+
+            /* ---------------------------------------------------------------
+               PAYMENT GATEWAY HOOK
+               eSewa and Khalti must be completed through their own checkout,
+               and the result verified on your server. This demo skips that
+               step and treats the payment as started. To go live:
+                 1. POST the order to your Django backend and get an order id.
+                 2. Redirect to the eSewa / Khalti payment page it returns.
+                 3. Mark the order as paid only after your server verifies it.
+               --------------------------------------------------------------- */
+            setTimeout(function () {
+                var d = new Date(),
+                    id = "GC-" + d.getFullYear().toString().slice(2) + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2) + "-" + Math.floor(1000 + Math.random() * 9000);
+                var status = (m === "esewa" || m === "khalti") ? "Paid" : (m === "bank" ? "Awaiting transfer" : (order.service === "home" ? "Pay on delivery" : "Pay at store"));
+                var done = { id: id, placedAt: d.toISOString(), method: m, methodLabel: LABEL[m], wallet: wallet ? wallet.slice(0, 2) + "******" + wallet.slice(-2) : "", status: status, order: order };
+                try { sessionStorage.setItem("gc_confirmed", JSON.stringify(done)); sessionStorage.removeItem("gc_order") } catch (e) {}
+                location.href = "order.html";
+            }, 900);
+        };
+    </script>
+</body>
+</html>

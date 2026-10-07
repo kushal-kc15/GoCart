@@ -69,6 +69,30 @@ footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-al
 @media(max-width:860px){.grid{grid-template-columns:1fr}nav{gap:22px;flex-wrap:wrap}.pill{display:none}.row2{grid-template-columns:1fr}h1{font-size:38px}}
 </style>
 <link rel="stylesheet" href="../static/css/navbar.css">
+<!-- Leaflet OpenStreetMap (Street View Map) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  #map { height: 380px; border: 1.5px solid var(--line); background: #e8e6dc; border-radius: 8px; position: relative; z-index: 1; cursor: crosshair; }
+  .leaflet-container { font-family: inherit; font-size: 13px; }
+  .custom-map-pin { display: flex; align-items: center; justify-content: center; }
+  #landmark.highlight-auto {
+    border-color: var(--green) !important;
+    background-color: #f7fbf8 !important;
+    box-shadow: 0 0 0 3px rgba(31, 107, 58, 0.25) !important;
+    transition: all 0.3s ease;
+  }
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    font-family: inherit;
+  }
+  .leaflet-popup-content {
+    margin: 10px 14px;
+    line-height: 1.45;
+    font-size: 12.5px;
+  }
+</style>
 </head>
 <body>
 <header class="site">
@@ -173,7 +197,14 @@ footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-al
       </div>
       <div class="f"><label for="addr">Street, tole or house number</label><input id="addr" autocomplete="street-address" placeholder="e.g. Lakeside Road, Ward 6"></div>
     </div>
-    <div class="f dOnly" style="margin-top:14px"><label for="landmark">House number, landmark or instructions (optional)</label><input id="landmark" placeholder="Near the blue gate, call on arrival"></div>
+    <div class="f dOnly" style="margin-top:14px">
+      <label for="landmark" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <span>House number, landmark or instructions</span>
+        <span id="landmarkTag" style="font-size:11px;color:var(--green);font-weight:600;display:none;background:#eef7f0;padding:2px 8px;border-radius:12px;border:1px solid #c2e2cc;">📍 Nearest landmark auto-filled (editable)</span>
+      </label>
+      <input id="landmark" placeholder="Near the blue gate, call on arrival">
+      <small class="hint" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;">Select or tap location on the map to auto-fill the nearest landmark, or customize it anytime.</small>
+    </div>
     <div class="err" id="mapErr">Please set your delivery location on the map.</div>
   </section>
  
@@ -240,50 +271,226 @@ $("apply").onclick=function(){
   rate=c||0;$("cpMsg").textContent=c?(c*100)+"% discount applied.":"That coupon code isn't valid.";calc();
 };
  
-// ---- Google Map ----
-// Turns a google.maps.LatLng or {lat,lng} into a plain {lat,lng} object
-function LL(p){return p?{lat:typeof p.lat==="function"?p.lat():+p.lat,lng:typeof p.lng==="function"?p.lng():+p.lng}:null}
-function pinPos(){return pin?LL(pin.position):null}
-function view(ll,z){if(!map)return;map.setCenter(ll);if(z)map.setZoom(z)}
-function showErr(m){$("mapErr").textContent=m;$("mapErr").style.display="block"}
- 
-// Called by Google if the API key is missing, wrong or not allowed on this site
-window.gm_authFailure=function(){showErr("The map couldn't load. Check the Google Maps API key.")};
- 
-// Called by the Google Maps script once it has loaded (see the script tag at the bottom)
-window.initMap=function(){
-  map=new google.maps.Map($("map"),{
-    center:STORE,zoom:14,
-    mapId:"DEMO_MAP_ID",          // replace with your own Map ID for production
-    streetViewControl:false,mapTypeControl:false,fullscreenControl:false,clickableIcons:false
+// ---- Leaflet OpenStreetMap (Street View Map) ----
+var STORE = { lat: 27.7040, lng: 85.3131 }; // New Road, Kathmandu default center
+var map = null, pin = null, storeMarkers = [];
+
+// Curated landmarks across Nepal for instant distance matching & fallback
+var NEPAL_LANDMARKS = [
+  // Kathmandu & Lalitpur & Bhaktapur
+  { name: "New Road Gate / Peepal Bot", lat: 27.7038, lng: 85.3125, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Basantapur Durbar Square", lat: 27.7040, lng: 85.3073, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Ratna Park / Tundikhel", lat: 27.7056, lng: 85.3160, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Thamel Chowk", lat: 27.7154, lng: 85.3123, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Asan Bazaar Chowk", lat: 27.7073, lng: 85.3113, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Maitighar Mandala", lat: 27.6938, lng: 85.3218, area: "Kathmandu", prov: "Bagmati" },
+  { name: "New Baneshwor Chowk", lat: 27.6917, lng: 85.3374, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Koteshwor Chowk", lat: 27.6756, lng: 85.3458, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Kalanki Chowk", lat: 27.6939, lng: 85.2817, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Chabahil Chowk / Stupa", lat: 27.7172, lng: 85.3482, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Boudhanath Stupa", lat: 27.7215, lng: 85.3620, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Swayambhunath Stupa", lat: 27.7149, lng: 85.2903, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Maharajgunj Chakrapath", lat: 27.7369, lng: 85.3312, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Tribhuvan International Airport Gate", lat: 27.6966, lng: 85.3591, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Patan Durbar Square", lat: 27.6727, lng: 85.3253, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Pulchowk Engineering Campus", lat: 27.6783, lng: 85.3175, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Jawalakhel Zoo Roundabout", lat: 27.6713, lng: 85.3134, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Kumaripati Shopping Street", lat: 27.6689, lng: 85.3195, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Satdobato Chowk", lat: 27.6534, lng: 85.3256, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Bhaktapur Durbar Square", lat: 27.6722, lng: 85.4280, area: "Bhaktapur", prov: "Bagmati" },
+  { name: "Suryabinayak Chowk", lat: 27.6626, lng: 85.4302, area: "Bhaktapur", prov: "Bagmati" },
+  { name: "Sallaghari Chowk", lat: 27.6712, lng: 85.4093, area: "Bhaktapur", prov: "Bagmati" },
+
+  // Pokhara & Gandaki
+  { name: "Lakeside Barahi Chowk", lat: 28.2096, lng: 83.9590, area: "Pokhara", prov: "Gandaki" },
+  { name: "Mahendrapool Bazaar", lat: 28.2250, lng: 83.9870, area: "Pokhara", prov: "Gandaki" },
+  { name: "Prithvi Chowk", lat: 28.2052, lng: 83.9928, area: "Pokhara", prov: "Gandaki" },
+  { name: "Chipledhunga Chowk", lat: 28.2210, lng: 83.9875, area: "Pokhara", prov: "Gandaki" },
+  { name: "Biruta Chowk", lat: 28.1895, lng: 83.9740, area: "Pokhara", prov: "Gandaki" },
+
+  // Lumbini & Butwal
+  { name: "Traffic Chowk, Butwal", lat: 27.7006, lng: 83.4483, area: "Butwal", prov: "Lumbini" },
+  { name: "Milanchowk, Butwal", lat: 27.6925, lng: 83.4560, area: "Butwal", prov: "Lumbini" },
+  { name: "Buddha Chowk, Bhairahawa", lat: 27.5050, lng: 83.4530, area: "Bhairahawa", prov: "Lumbini" },
+
+  // Chitwan & Hetauda
+  { name: "Lions Chowk, Narayangarh", lat: 27.6920, lng: 84.4260, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
+  { name: "Chaulikhel / Bharatpur Height", lat: 27.6833, lng: 84.4333, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
+  { name: "Seemachowk, Hetauda", lat: 27.4287, lng: 85.0322, area: "Hetauda", prov: "Bagmati" },
+
+  // Koshi & Madhesh
+  { name: "Traffic Chowk / Main Road", lat: 26.4525, lng: 87.2718, area: "Biratnagar", prov: "Koshi" },
+  { name: "Bhanuchowk, Dharan", lat: 26.8065, lng: 87.2846, area: "Dharan", prov: "Koshi" },
+  { name: "Itahari Main Chowk", lat: 26.6637, lng: 87.2718, area: "Itahari", prov: "Koshi" },
+  { name: "Janaki Temple Chowk", lat: 26.7288, lng: 85.9266, area: "Janakpur", prov: "Madhesh" },
+  { name: "Ghantaghar, Birgunj", lat: 27.0104, lng: 84.8770, area: "Birgunj", prov: "Madhesh" }
+];
+
+function pinPos(){
+  if (!pin) return null;
+  var ll = pin.getLatLng();
+  return { lat: ll.lat, lng: ll.lng };
+}
+
+function showErr(m){
+  $("mapErr").textContent = m;
+  $("mapErr").style.display = "block";
+}
+
+function highlightLandmarkInput(){
+  var lm = $("landmark");
+  var tag = $("landmarkTag");
+  if (tag) tag.style.display = "inline";
+  lm.classList.add("highlight-auto");
+  setTimeout(function(){ lm.classList.remove("highlight-auto"); }, 2000);
+}
+
+function findClosestPresetLandmark(lat, lng){
+  var minD = Infinity, best = null;
+  NEPAL_LANDMARKS.forEach(function(lm){
+    var d = Math.hypot(lat - lm.lat, (lng - lm.lng) * Math.cos(lat * Math.PI / 180));
+    if (d < minD){ minD = d; best = lm; }
   });
-  info=new google.maps.InfoWindow();
-  geocoder=new google.maps.Geocoder();
-  map.addListener("click",function(e){
-    if(document.body.classList.contains("pickup"))return;
-    setPin(e.latLng);reverse(LL(e.latLng));
-  });
-  applyMode();
-};
- 
-function setPin(ll,zoom){
-  if(!map)return;
-  ll=LL(ll);
-  if(pin)pin.position=ll;
-  else{
-    pin=new google.maps.marker.AdvancedMarkerElement({map:map,position:ll,gmpDraggable:true,title:"Delivery location"});
-    pin.addListener("dragend",function(){moved();reverse(pinPos())});
+  return { landmark: best, distKm: minD * 111 };
+}
+
+// Custom map markers
+var deliveryPinIcon = L.divIcon({
+  className: "custom-map-pin",
+  html: '<div style="background:#1F6B3A;color:#fff;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.35);border:2px solid #fff;cursor:grab;"><span style="transform:rotate(45deg);font-size:16px;">📍</span></div>',
+  iconSize: [34, 34],
+  iconAnchor: [17, 34],
+  popupAnchor: [0, -32]
+});
+
+var storePinIcon = L.divIcon({
+  className: "custom-map-pin",
+  html: '<div style="background:#C8963E;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid #fff;cursor:pointer;"><span style="font-size:15px;">🏪</span></div>',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16]
+});
+
+function initMap(){
+  if (typeof L === "undefined") {
+    showErr("Street map library is loading, please check internet connection.");
+    return;
   }
-  if(zoom)view(ll,zoom);
-  moved();
-  $("mapErr").style.display="none";
+
+  map = L.map("map", {
+    center: [STORE.lat, STORE.lng],
+    zoom: 15,
+    zoomControl: true
+  });
+
+  // OpenStreetMap Street View Tile Layer
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  map.on("click", function(e){
+    if (document.body.classList.contains("pickup")) return;
+    setPin(e.latlng);
+  });
+
+  initStoreMarkers();
+  applyMode();
 }
-// Pin moved: guess the province from the nearest listed city until the address lookup answers
-function moved(){
-  var n=nearest(pinPos());rq++;
-  geo={province:n?n[0]:"",area:"",address:""};
-  updateLoc();calc();
+
+function setPin(ll, zoom){
+  if (!map) return;
+  ll = L.latLng(ll.lat !== undefined ? ll.lat : ll[0], ll.lng !== undefined ? ll.lng : ll[1]);
+
+  if (pin) {
+    pin.setLatLng(ll);
+  } else {
+    pin = L.marker(ll, { icon: deliveryPinIcon, draggable: true }).addTo(map);
+    pin.on("dragend", function(ev){
+      var pos = ev.target.getLatLng();
+      setPin(pos, false);
+    });
+  }
+
+  if (zoom) map.setView(ll, zoom);
+  else if (!map.getBounds().contains(ll)) map.panTo(ll);
+
+  $("mapErr").style.display = "none";
+  updateLandmarkAndAddress(ll);
 }
+
+function updateLandmarkAndAddress(ll){
+  var lat = ll.lat, lng = ll.lng;
+
+  // 1. Instant nearest landmark calculation from local dataset
+  var match = findClosestPresetLandmark(lat, lng);
+  var autoLandmark = "";
+  if (match && match.landmark && match.distKm < 8.0) {
+    autoLandmark = "Near " + match.landmark.name;
+  }
+
+  // Auto-fill landmark input (user can change as well)
+  if (autoLandmark) {
+    $("landmark").value = autoLandmark;
+    highlightLandmarkInput();
+  }
+
+  var n = nearest({ lat: lat, lng: lng });
+  geo = {
+    province: (match && match.landmark && match.distKm < 15.0) ? match.landmark.prov : (n ? n[0] : ""),
+    area: (match && match.landmark && match.distKm < 10.0) ? match.landmark.area : (n ? n[1] : ""),
+    address: autoLandmark || ""
+  };
+  updateLoc();
+  calc();
+
+  // 2. Fetch live OpenStreetMap reverse geocoding from Nominatim
+  rq++;
+  var thisRq = rq;
+  var url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat.toFixed(6) + "&lon=" + lng.toFixed(6) + "&zoom=18&addressdetails=1";
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      if (thisRq !== rq || !data) return;
+      var a = data.address || {};
+      var poi = a.amenity || a.shop || a.building || a.tourism || a.leisure || a.office || a.historic;
+      var road = a.road || a.pedestrian || a.footway || a.street;
+      var suburb = a.neighbourhood || a.suburb || a.quarter || a.hamlet;
+
+      var landmarkFound = "";
+      if (poi) {
+        landmarkFound = "Near " + poi + (road ? ", " + road : (suburb ? ", " + suburb : ""));
+      } else if (road && suburb) {
+        landmarkFound = road + ", " + suburb;
+      } else if (road) {
+        landmarkFound = "Near " + road;
+      } else if (suburb) {
+        landmarkFound = "Near " + suburb;
+      }
+
+      if (landmarkFound) {
+        $("landmark").value = landmarkFound;
+        highlightLandmarkInput();
+      }
+
+      var fullAddrTxt = (data.display_name || "").toLowerCase();
+      Object.keys(PROV).forEach(function(p){
+        if (!geo.province && fullAddrTxt.indexOf(p.toLowerCase()) > -1) geo.province = p;
+      });
+      if (geo.province) {
+        PROV[geo.province].a.forEach(function(x){
+          if (!geo.area && fullAddrTxt.indexOf(x[0].split(" (")[0].toLowerCase()) > -1) geo.area = x[0];
+        });
+      }
+      geo.address = landmarkFound || data.display_name || autoLandmark;
+      updateLoc();
+      calc();
+    })
+    .catch(function(err){
+      // Keeps the local dataset landmark if offline
+    });
+}
+
 function nearest(ll){
   var best=null,d=Infinity,k=Math.cos(ll.lat*Math.PI/180);
   Object.keys(PROV).forEach(function(p){PROV[p].a.forEach(function(x){
@@ -292,32 +499,48 @@ function nearest(ll){
   })});
   return best;
 }
-// Coordinates -> address name, province and area
-function reverse(ll){
-  if(!geocoder)return;
-  var my=rq;
-  geocoder.geocode({location:ll}).then(function(r){
-    if(my!==rq)return;   // the pin moved again since this lookup started
-    var res=r.results||[],g=res.filter(function(x){return x.types.indexOf("plus_code")<0})[0]||res[0];
-    if(g)fillFrom(g);
-  }).catch(function(){});
-}
-// Address -> coordinates
+
+// Street address search via Nominatim
 function search(){
-  var q=$("q").value.trim();if(!q||!geocoder)return;
-  geocoder.geocode({address:q,componentRestrictions:{country:"NP"}}).then(function(r){
-    var g=r.results[0];setPin(g.geometry.location,17);fillFrom(g);
-  }).catch(function(){showErr("We couldn't find that place. Try a nearby landmark.")});
+  var q=$("q").value.trim();
+  if(!q) return;
+  showErr("Searching street map...");
+  fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(q) + "&countrycodes=np&limit=5", {
+    headers: { 'Accept': 'application/json' }
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    $("mapErr").style.display="none";
+    if(data && data.length > 0){
+      var item = data[0];
+      var ll = L.latLng(+item.lat, +item.lon);
+      setPin(ll, 16);
+    } else {
+      showErr("We couldn't find that place on the street map. Try a nearby landmark or chowk.");
+    }
+  })
+  .catch(function(){
+    showErr("Search error. Please tap on the street map or drag the pin.");
+  });
 }
 $("go").onclick=search;
 $("q").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();search()}});
+
 $("loc").onclick=function(){
-  if(!navigator.geolocation){showErr("Your browser can't share its location. Search or tap the map instead.");return}
+  if(!navigator.geolocation){
+    showErr("Your browser can't share its location. Tap on the street map instead.");
+    return;
+  }
+  showErr("Detecting location...");
   navigator.geolocation.getCurrentPosition(function(p){
-    var ll={lat:p.coords.latitude,lng:p.coords.longitude};setPin(ll,17);reverse(ll);
-  },function(){showErr("Location access was blocked. Search or tap the map instead.")});
+    $("mapErr").style.display="none";
+    var ll = L.latLng(p.coords.latitude, p.coords.longitude);
+    setPin(ll, 17);
+  },function(){
+    showErr("Location access was blocked. Tap on the street map or search instead.");
+  }, { timeout: 10000, enableHighAccuracy: true });
 };
- 
+
 // ---- Place order ----
 $("place").onclick=function(){
   var home=document.querySelector('[name=svc]:checked').value==="home",ok=true;
@@ -335,16 +558,15 @@ $("place").onclick=function(){
     customer:{name:$("name").value,phone:$("phone").value,email:$("email").value,userId:USER?USER.id:null},
     service:home?"home":"pickup",
     delivery:!home?null:how==="map"
-      ?{method:"map",address:geo.address,province:geo.province,area:geo.area,street:"",landmark:$("landmark").value,lat:pp.lat,lng:pp.lng}
+      ?{method:"map",address:geo.address,province:geo.province,area:geo.area,street:"",landmark:$("landmark").value,lat:pp?pp.lat:null,lng:pp?pp.lng:null}
       :{method:"typed",address:fullAddr(),province:$("prov").value,area:areaName(),street:$("addr").value,landmark:$("landmark").value,lat:null,lng:null},
     pickup:home?null:{name:st.name,address:st.address,hours:st.hours,lat:st.lat,lng:st.lng},items:ITEMS,totals:T,coupon:rate?"SAVE15":""
   };
   try{sessionStorage.setItem("gc_order",JSON.stringify(order))}catch(e){}
   location.href="payment.html";
 };
+
 // ---- Logged-in user: fills name and contact details ----
-// Your login should save the user like this: localStorage.setItem("gc_user", JSON.stringify({id:"u1",username:"Ross95",name:"Ross Geller",phone:"9800000000",email:"ross@example.com"}))
-// and remove "gc_user" on logout. Replace getUser() with a call to your auth API if you prefer.
 function getUser(){try{return JSON.parse(localStorage.getItem("gc_user"))}catch(e){return null}}
 var USER=getUser();
 (function(){
@@ -357,8 +579,8 @@ var USER=getUser();
     a.innerHTML='Have an account? <a href="login.html">Log in</a> to fill these in automatically.';
   }
 })();
+
 // ---- Provinces, areas and delivery charge ----
-// fee = delivery charge (Rs.) for the whole province. Edit areas and fees to match your coverage.
 var PROV={
  "Koshi":{fee:150,c:[26.9,87.3],a:[["Biratnagar",26.4525,87.2718],["Dharan",26.8065,87.2846],["Itahari",26.6637,87.2718],["Damak",26.66,87.7],["Birtamod",26.644,87.997]]},
  "Madhesh":{fee:150,c:[26.85,85.9],a:[["Janakpur",26.7288,85.9266],["Birgunj",27.0104,84.877],["Kalaiya",27.027,85.004],["Rajbiraj",26.54,86.75]]},
@@ -390,6 +612,7 @@ function fillAreas(p,sel){
 Object.keys(PROV).forEach(function(p){$("prov").add(new Option(p,p))});
 $("prov").onchange=function(){fillAreas(this.value);$("mapErr").style.display="none";calc()};
 $("area").onchange=function(){$("mapErr").style.display="none"};
+
 // ---- Switch between "Pin on map" and "Type my address" ----
 function setHow(h){
   how=h;
@@ -397,25 +620,13 @@ function setHow(h){
   $("mMap").setAttribute("aria-pressed",h==="map");
   $("mType").setAttribute("aria-pressed",h==="type");
   $("mapErr").style.display="none";
-  if(h==="map"&&map&&pin)map.setCenter(pinPos());
+  if(h==="map"&&map&&pin)map.panTo(pin.getLatLng());
   calc();
 }
 $("mMap").onclick=function(){setHow("map")};
 $("mType").onclick=function(){setHow("type")};
-// Google geocoder result -> place name, province and area for the pin
-function fillFrom(g){
-  var comp=g.address_components||[],prov="",area="";
-  var txt=((g.formatted_address||"")+" "+comp.map(function(c){return c.long_name}).join(" ")).toLowerCase();
-  Object.keys(PROV).forEach(function(p){if(!prov&&txt.indexOf(p.toLowerCase())>-1)prov=p});
-  Object.keys(PROV).forEach(function(p){PROV[p].a.forEach(function(x){
-    if(!area&&(!prov||prov===p)&&txt.indexOf(x[0].split(" (")[0].toLowerCase())>-1){area=x[0];prov=prov||p}
-  })});
-  if(prov)geo.province=prov;
-  geo.area=area;
-  geo.address=g.formatted_address||"";
-  updateLoc();calc();
-}
-// ---- Pick up stores (edit to match your branches) ----
+
+// ---- Pick up stores ----
 var STORES=[
  {name:"Go Cart New Road",address:"New Road, Kathmandu",hours:"9:00 am to 8:00 pm",lat:27.704,lng:85.3131},
  {name:"Go Cart Lakeside",address:"Lakeside Road, Pokhara",hours:"9:00 am to 8:00 pm",lat:28.2096,lng:83.959},
@@ -423,43 +634,63 @@ var STORES=[
  {name:"Go Cart Biratnagar",address:"Main Road, Biratnagar",hours:"9:00 am to 8:00 pm",lat:26.4525,lng:87.2718}
 ];
 STORES.forEach(function(x,i){$("store").add(new Option(x.name+" ("+x.address+")",i))});
+
+function initStoreMarkers(){
+  storeMarkers = [];
+  STORES.forEach(function(x, i){
+    var m = L.marker([x.lat, x.lng], { icon: storePinIcon });
+    m.bindPopup("<b>" + x.name + "</b><br>" + x.address + "<br>Open " + x.hours);
+    m.on("click", function(){
+      $("store").value = i;
+      showStore();
+    });
+    storeMarkers.push(m);
+  });
+}
+
 function showStore(){
   var v=$("store").value,t=$("locText");
-  if(spin){spin.map=null;spin=null}
-  if(info)info.close();
-  if(v===""){t.textContent="";$("storeInfo").textContent="Choose the store you'll collect your order from.";return}
-  var x=STORES[v],ll={lat:x.lat,lng:x.lng};
-  if(map){
-    spin=new google.maps.marker.AdvancedMarkerElement({map:map,position:ll,title:x.name});
-    info.setContent("<b>"+x.name+"</b><br>"+x.address);
-    info.open({anchor:spin,map:map});
-    view(ll,15);
+  storeMarkers.forEach(function(m){ m.closePopup(); });
+  if(v===""){
+    t.textContent="";
+    $("storeInfo").textContent="Choose the store you'll collect your order from.";
+    return;
   }
-  $("storeInfo").innerHTML="<b></b><br>"+x.address+"<br>Open "+x.hours;
-  $("storeInfo").firstChild.textContent=x.name;
+  var x=STORES[v], ll=[x.lat, x.lng];
+  if(map){
+    map.setView(ll, 16);
+    if(storeMarkers[v]) storeMarkers[v].openPopup();
+  }
+  $("storeInfo").innerHTML="<b>"+x.name+"</b><br>"+x.address+"<br>Open "+x.hours;
   t.textContent="Pick up location: "+x.name+" ("+x.lat.toFixed(5)+", "+x.lng.toFixed(5)+")";
   $("mapErr").style.display="none";
 }
 $("store").onchange=showStore;
+
 function applyMode(){
   var home=document.querySelector('[name=svc]:checked').value==="home";
   document.body.classList.toggle("pickup",!home);
   $("dpTitle").textContent=home?"Delivery location":"Pick up location";
   $("mapErr").style.display="none";
   if(home){
-    if(spin){spin.map=null;spin=null}
-    if(info)info.close();
-    if(pin&&map){pin.map=map;map.setCenter(pinPos())}
+    storeMarkers.forEach(function(m){ if(map && map.hasLayer(m)) map.removeLayer(m); });
+    if(pin && map && !map.hasLayer(pin)) pin.addTo(map);
+    if(pin && map) map.panTo(pin.getLatLng());
     updateLoc();
   }else{
-    if(pin)pin.map=null;
+    if(pin && map && map.hasLayer(pin)) map.removeLayer(pin);
+    storeMarkers.forEach(function(m){ if(map && !map.hasLayer(m)) m.addTo(map); });
     showStore();
   }
 }
-calc();applyMode();
+
+// Start map and calculate order
+calc();
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initMap);
+} else {
+  initMap();
+}
 </script>
- 
-<!-- Google Maps: replace YOUR_API_KEY with your key. Keep this tag AFTER the script above. -->
-<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeL8RrOk_a1dxIDdDHbcYgSYsn4roQz_A&libraries=marker&loading=async&callback=initMap"></script>
 </body>
 </html>
