@@ -1,0 +1,48 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}Edit Profile — GoCart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dev/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="pf-shell">
+        {% include "dev/_account_sidebar.html" with active="account" %}
+
+        <div class="pf-main">
+            <div class="pf-card">
+                <div class="pf-card-head">
+                    <h1 class="pf-edit-title">Edit Profile</h1>
+                    <a href="{% url 'accounts:profile' %}" class="pf-link">‹ Back to My Account</a>
+                </div>
+
+                <form method="post" action="{% url 'accounts:edit_profile' %}" class="pf-form" data-once>
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="pf-field">
+                        <label for="{{ field.id_for_label }}" class="pf-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<p class="pf-error">{{ error }}</p>{% endfor %}
+                    </div>
+                    {% endfor %}
+
+                    {# Shown only: no name attribute, so it is never sent with the form #}
+                    <div class="pf-field">
+                        <label for="email" class="pf-label">Email</label>
+                        <input type="email" id="email" class="gc-input" value="{{ user.email }}" readonly aria-describedby="email-hint">
+                        <p class="pf-hint" id="email-hint">Your email is your login, so it can't be changed here.</p>
+                    </div>
+
+                    <div class="pf-form-actions">
+                        <button type="submit" class="pf-btn">Save changes</button>
+                        <a href="{% url 'accounts:profile' %}" class="pf-btn pf-btn--outline">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

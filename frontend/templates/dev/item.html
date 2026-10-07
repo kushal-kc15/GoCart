@@ -1,0 +1,220 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }} – GoCart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dev/item.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="item-page">
+<nav class="item-breadcrumb" aria-label="Breadcrumb">
+    <a href="{% url 'home' %}">Home</a> /
+    {% with dept=product.category.parent %}
+    {% if dept %}
+    <a href="{% url 'products:product_list' %}?category={{ dept.slug }}">{{ dept.name }}</a> /
+    <a href="{% url 'products:product_list' %}?category={{ dept.slug }}&sub={{ product.category.slug }}">{{ product.category.name }}</a> /
+    {% endif %}
+    {% endwith %}
+    <span class="current">{{ product.name }}</span>
+</nav>
+
+<section class="product-wrap">
+    <!-- Gallery -->
+    <div class="product-gallery">
+        {% with images=product.images.all %}
+        {# The heart sits beside #mainImage, not inside it: clicking the image changes the photo. #}
+        <div class="wish-wrap">
+            {% include "dev/_wish_button.html" %}
+            <div class="main-image" id="mainImage">
+                {% if images %}
+                <img src="{{ images.0.image.url }}" alt="{{ product.name }}" id="mainImageImg">
+                {% else %}
+                <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ product.name }}" id="mainImageImg">
+                {% endif %}
+            </div>
+        </div>
+        {% if images|length > 1 %}
+        <div class="thumb-row">
+            {% for img in images %}
+            <button type="button"
+                    class="thumb {% if forloop.first %}active-thumb{% endif %}"
+                    data-full="{{ img.image.url }}"
+                    onclick="selectThumb(this)">
+                <img src="{{ img.image.url }}" alt="{{ product.name }}">
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Info -->
+    <div class="product-info" data-stock="{{ product.stock }}">
+        <div class="cat-label">{{ product.category.name }}</div>
+        <div class="prod-title-row">
+            <h1>{{ product.name }}</h1>
+            {% if product.stock > 0 %}
+            <span class="stock-badge">● In Stock</span>
+            {% else %}
+            <span class="stock-badge out">● Out of Stock</span>
+            {% endif %}
+        </div>
+        <div class="price">Rs. {{ product.price|floatformat:"-2" }} <span>{{ product.unit|default:"" }}</span></div>
+        {% if product.description %}
+        <p class="desc">{{ product.description }}</p>
+        {% endif %}
+
+        <div class="divider"></div>
+
+        <div class="buy-row">
+            <div class="qty-selector">
+                <button type="button" id="qtyMinus" onclick="changeQty(-1)">−</button>
+                <span id="qtyVal">1</span>
+                <button type="button" id="qtyPlus" onclick="changeQty(1)">+</button>
+            </div>
+            {# data-ajax: Add to Cart is sent in place by common.js (no reload) #}
+            <form class="add-to-cart-form" method="post" action="{% url 'cart:add_to_cart' %}" data-ajax="cart-add" data-once>
+                {% csrf_token %}
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                <input type="hidden" name="quantity" id="qtyInput" value="1">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                {# Buy Now adds to the cart and then goes straight to checkout, so it is a normal submit (data-no-ajax) #}
+                <button type="submit" name="buy_now" value="1" class="item-btn item-btn--buy" data-no-ajax {% if product.stock <= 0 %}disabled{% endif %}>Buy Now</button>
+                <button type="submit" class="item-btn item-btn--cart" {% if product.stock <= 0 %}disabled{% endif %}>Add to Cart</button>
+            </form>
+        </div>
+        <div class="stock-note" id="stockNote"></div>
+
+        <div class="divider"></div>
+    </div>
+</section>
+
+<!-- Ratings and Reviews (real data, see product_detail in products/views.py) -->
+<h3 class="section-heading" id="reviews">Rating and Reviews</h3>
+<hr class="section-rule">
+
+<section class="ratings-wrap">
+    <div class="rating-score">
+        <div class="num">{{ review_average|floatformat:1 }}</div>
+        <div class="out-of">out of 5</div>
+        <div class="stars" role="img" aria-label="{{ review_average|floatformat:1 }} out of 5 stars">{{ average_stars }}</div>
+        <div class="count">( {{ review_total }} Review{{ review_total|pluralize }} )</div>
+    </div>
+
+    <div class="rating-bars">
+        {% for bar in rating_bars %}
+        <div class="bar-row"><span>{{ bar.stars }} Star</span><div class="bar-track"><div class="bar-fill" style="width:{{ bar.percent }}%"></div></div></div>
+        {% endfor %}
+    </div>
+
+    {# Who may review: logged out -> log in; no delivered order -> wait; buyer -> the form #}
+    <div class="review-cta{% if can_review %} review-cta--form{% endif %}">
+        <h3>Review this product</h3>
+        {% if not user.is_authenticated %}
+        <p>Log in to share your thoughts.</p>
+        <a class="review-cta-btn" href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}%23reviews">Write a review</a>
+        {% elif not can_review %}
+        <p>You can review this after it's delivered.</p>
+        {% else %}
+        <p>Share your thoughts with other customers</p>
+        {% if my_review and not my_review.is_visible %}
+        <p class="review-note">Your review is hidden by the GoCart team.</p>
+        {% endif %}
+        {# details/summary opens the form without JavaScript #}
+        <details class="review-form-box">
+            <summary class="review-cta-btn">{% if my_review %}Edit your review{% else %}Write a review{% endif %}</summary>
+            <form method="post" action="{% url 'products:submit_review' slug=product.slug %}" class="review-form" data-once>
+                {% csrf_token %}
+                <fieldset class="review-stars">
+                    <legend>Your rating</legend>
+                    {% for radio in review_form.rating %}
+                    <label class="star-pill">{{ radio.tag }} {{ radio.choice_label }}</label>
+                    {% endfor %}
+                </fieldset>
+                <label for="{{ review_form.comment.id_for_label }}" class="review-label">Your review</label>
+                {{ review_form.comment }}
+                <button type="submit" class="review-submit">{% if my_review %}Update review{% else %}Post review{% endif %}</button>
+            </form>
+            {% if my_review %}
+            <form method="post" action="{% url 'products:delete_review' slug=product.slug %}" data-once
+                  onsubmit="return confirm('Delete your review?');">
+                {% csrf_token %}
+                <button type="submit" class="review-delete">Delete my review</button>
+            </form>
+            {% endif %}
+        </details>
+        {% endif %}
+    </div>
+</section>
+
+<div class="reviews-list">
+    {% for review in reviews %}
+    <div class="review-item">
+        <div class="rev-avatar" aria-hidden="true"></div>
+        <div class="rev-body">
+            <div class="rev-top">
+                <div class="rev-name">{{ review.reviewer_name }}</div>
+                <div class="rev-date">Posted {{ review.created_at|date:"j M Y" }}</div>
+            </div>
+            <div class="rev-stars" role="img" aria-label="{{ review.rating }} out of 5 stars">{{ review.stars }}</div>
+            <p class="rev-text">{{ review.comment|linebreaksbr }}</p>
+            {# Likes are not saved yet (CLAUDE.md "Later"), so no count is shown #}
+            <button type="button" class="rev-likes" disabled title="Coming soon">👍 Like</button>
+        </div>
+    </div>
+    {% empty %}
+    <p class="rev-empty">No reviews yet.</p>
+    {% endfor %}
+</div>
+
+<!-- Related products -->
+<div class="related-heading-row">
+    <h3>You may also like</h3>
+    <div class="related-nav">
+        <button type="button" onclick="scrollRelated(-1)">‹</button>
+        <button type="button" onclick="scrollRelated(1)">›</button>
+    </div>
+</div>
+
+<div class="related-grid" id="relatedGrid">
+    {% for rp in related_products %}
+    {# A div, not a link: the heart's form can't sit inside a link #}
+    <div class="rp-card">
+        <div class="wish-wrap">
+            {% include "dev/_wish_button.html" with product=rp anchor="relatedGrid" %}
+            <a class="rp-image" href="{% url 'products:product_detail' slug=rp.slug %}">
+                {% with first_image=rp.images.all|first %}
+                {% if first_image %}
+                <img src="{{ first_image.image.url }}" alt="{{ rp.name }}">
+                {% else %}
+                <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ rp.name }}">
+                {% endif %}
+                {% endwith %}
+            </a>
+        </div>
+        <a class="rp-link" href="{% url 'products:product_detail' slug=rp.slug %}">
+        <div class="rp-body">
+            <div class="rp-cat">{{ rp.category.name }}</div>
+            <div class="rp-title-row">
+                <span class="name">{{ rp.name }}</span>
+                <span class="rp-stock">In Stock</span>
+            </div>
+            <div class="rp-price-row">
+                <span>{{ rp.unit|default:"Price" }}</span>
+                <span class="price">Rs. {{ rp.price|floatformat:"-2" }}</span>
+            </div>
+        </div>
+        </a>
+    </div>
+    {% empty %}
+    <p class="rp-empty">No related products.</p>
+    {% endfor %}
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dev/item.js' %}"></script>
+{% endblock %}

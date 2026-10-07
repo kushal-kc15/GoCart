@@ -1,0 +1,3 @@
+{# Order status badge. Colour: delivered = green, cancelled = red, still in progress = amber. Needs `order`. #}
+{# status_label shows a collected pickup order as "Picked up". #}
+<span class="gc-badge {% if order.status == 'delivered' %}gc-badge--success{% elif order.status == 'cancelled' %}gc-badge--danger{% else %}gc-badge--warning{% endif %}">{{ order.status_label }}</span>

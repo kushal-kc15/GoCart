@@ -1,0 +1,29 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}My Wishlist – GoCart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dev/product_list.css' %}">
+<link rel="stylesheet" href="{% static 'css/dev/wishlist.css' %}">
+{% endblock %}
+
+{% block content %}
+{# Same cards as the product list (dev/_list_card.html), plus a Remove button. #}
+{# Removing a product (heart or Remove button) takes its card off the page in place: common.js changes #}
+{# the data-wishlist-* parts below. The grid and the empty message are both always in the page; one is hidden. #}
+<section class="pl-page">
+    <h1 class="wl-title">My Wishlist <span data-wishlist-count>({{ items|length }})</span></h1>
+
+    <div class="pl-grid" data-wishlist-filled{% if not items %} hidden{% endif %}>
+        {% for item in items %}
+        {% include "dev/_list_card.html" with p=item.product wishlist_page=True %}
+        {% endfor %}
+    </div>
+
+    <p class="gc-empty" data-wishlist-empty{% if items %} hidden{% endif %}>
+        Your wishlist is empty. Tap the heart on a product to save it here.
+        <a class="gc-btn gc-btn--outline gc-btn--sm wl-browse" href="{% url 'products:product_list' %}">Browse products</a>
+    </p>
+</section>
+{% endblock %}

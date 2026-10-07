@@ -1,8 +1,4 @@
-# Local demo data only. Never run on production.
-#
-# Adds sample customers and product reviews so the product page's ratings
-# section can be tested. Run from backend/:  python seed_reviews.py
-# Safe to re-run: it updates the same rows instead of adding duplicates.
+# LOCAL DEMO DATA ONLY. Run from backend/: python seed_reviews.py (safe to re-run).
 import os
 import sys
 from datetime import timedelta
@@ -24,7 +20,6 @@ if not settings.DEBUG:
 
 User = get_user_model()
 
-# Six customers, so a product can have up to six reviews (one per customer).
 CUSTOMERS = [
     ("demo1", "Aarati", "Shrestha"),
     ("demo2", "Bikash", "Gurung"),
@@ -34,7 +29,6 @@ CUSTOMERS = [
     ("demo6", "Suman", "Rai"),
 ]
 
-# Taken in turn, so every run gives the same data. Mostly 4-5 stars, a few low ones.
 SAMPLE_REVIEWS = [
     (5, "Fresh and well packed. Delivery was on time."),
     (4, "Good quality for the price. Will order again."),
@@ -52,7 +46,7 @@ SAMPLE_REVIEWS = [
     (3, "Fine, but a bit pricey compared to last month."),
 ]
 
-# Reviews per product for the first nine products; the rest stay empty (empty state).
+# Reviews for the first nine products; the rest stay empty to show the empty state.
 REVIEW_COUNTS = [2, 3, 4, 5, 6, 3, 4, 2, 5]
 
 
@@ -85,7 +79,7 @@ def main():
                 product=product,
                 defaults={"rating": rating, "comment": comment, "is_visible": True},
             )
-            # Spread the dates out so "newest first" is visible on the page.
+            # Spread the dates so "newest first" is visible.
             Review.objects.filter(pk=review.pk).update(created_at=now - timedelta(days=3 + i * 9))
             if created:
                 new_reviews += 1

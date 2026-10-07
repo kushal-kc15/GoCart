@@ -1,0 +1,315 @@
+/* Checkout page — reuses the cart page's cream theme.
+   Scoped under .checkout-page so the shared base header/footer keep the
+   site theme. Real data/wiring comes from dev/checkout.html + the view. */
+
+.checkout-page {
+  --cream: #f6f2e7;
+  --white: #ffffff;
+  --green: #1f6b3a;
+  --green-dark: #143f26;
+  --green-pale: #eaf1e7;
+  --ink: #1b2a20;
+  --muted: #6b6656; /* darker than the team's #857f6e so small text passes contrast */
+  --border: #e6e1d2;
+  --danger: #d64545;
+  --radius: 10px;
+  --shadow-sm: 0 1px 2px rgba(27, 42, 32, 0.05);
+
+  background: var(--cream);
+  color: var(--ink);
+  font-family: "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  padding-bottom: 40px;
+}
+
+/* Hero */
+.checkout-page .checkout-hero { text-align: center; padding: 48px 20px 28px; }
+.checkout-page .checkout-hero h1 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+}
+.checkout-page .checkout-crumb { margin-top: 10px; font-size: 14px; color: var(--muted); }
+.checkout-page .checkout-crumb a:hover { color: var(--green); }
+.checkout-page .checkout-crumb span { color: var(--green); font-weight: 600; }
+
+/* Layout */
+.checkout-page .checkout-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .checkout-page .checkout-wrap { grid-template-columns: 1fr; }
+}
+
+.checkout-page .checkout-main { display: flex; flex-direction: column; gap: 24px; }
+
+/* Panels */
+.checkout-page .checkout-panel {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.checkout-page .checkout-panel h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 19px;
+  font-weight: 600;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+}
+
+/* Form fields */
+.checkout-page .field-group { margin-bottom: 14px; }
+.checkout-page .field-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.checkout-page .field-group input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--cream);
+}
+.checkout-page .field-group input:focus {
+  outline: none;
+  border-color: var(--green);
+  background: var(--white);
+  box-shadow: 0 0 0 3px var(--green-pale);
+}
+.checkout-page .field-error {
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.checkout-page .form-errors {
+  background: #fbeaea;
+  border: 1px solid rgba(214, 69, 69, 0.3);
+  border-radius: 7px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Radio options */
+.checkout-page .opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.checkout-page .opt small { color: var(--muted); }
+.checkout-page .opt input { accent-color: var(--green); width: 16px; height: 16px; }
+.checkout-page .opt--disabled { color: var(--muted); cursor: not-allowed; }
+
+/* Summary */
+.checkout-page .summary {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 28px 30px;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 20px;
+}
+.checkout-page .summary h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 21px;
+  font-weight: 600;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+.checkout-page .summary-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 40vh;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.checkout-page .summary-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #4a4a40;
+}
+.checkout-page .summary-item .s-name small { color: var(--muted); }
+.checkout-page .summary-item .s-price { font-weight: 600; color: var(--ink); white-space: nowrap; }
+
+.checkout-page .sum-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 8px 0;
+  color: #4a4a40;
+}
+.checkout-page .sum-row .value { font-weight: 600; color: var(--ink); }
+
+.checkout-page .total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.checkout-page .total-row .t-label {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.checkout-page .total-row .t-value { font-size: 22px; font-weight: 700; color: var(--green); }
+
+.checkout-page .place-btn {
+  width: 100%;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin-top: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.checkout-page .place-btn:hover { background: var(--green-dark); }
+
+/* ===== Order success page (dev/order_success.html) ===== */
+.checkout-page .success-wrap { max-width: 720px; margin: 0 auto; padding: 0 24px 60px; }
+
+/* Green circle with a white check mark */
+.checkout-page .success-badge {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkout-page .success-panel { margin-top: 20px; }
+/* The items list here shows everything (no scrolling box, no bottom line) */
+.checkout-page .success-panel .summary-items { max-height: none; border-bottom: none; margin-bottom: 0; }
+
+.checkout-page .success-actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.checkout-page .btn-line {
+  flex: 1; text-align: center; padding: 13px; border-radius: 8px; font-weight: 700; font-size: 14px;
+}
+.checkout-page .btn-fill { background: var(--green); color: #fff; }
+.checkout-page .btn-fill:hover { background: var(--green-dark); color: #fff; }
+.checkout-page .btn-ghost { border: 1px solid var(--green); color: var(--green); }
+.checkout-page .btn-ghost:hover { background: var(--green-pale); }
+.checkout-page .kv { display: flex; justify-content: space-between; font-size: 14px; padding: 7px 0; }
+.checkout-page .kv .k { color: var(--muted); }
+.checkout-page .success-addr { font-size: 13px; color: #4a4a40; line-height: 1.6; margin-top: 6px; }
+
+/* ===== Order detail page (dev/order_detail.html) ===== */
+.checkout-page .kv { gap: 12px; }
+.checkout-page .kv span + span { text-align: right; }
+.checkout-page .success-addr { overflow-wrap: anywhere; }
+
+/* Status tracker: 5 equal steps joined by a line */
+.checkout-page .tracker { display: flex; list-style: none; padding: 0; margin: 0; }
+.checkout-page .track-step {
+  flex: 1; min-width: 0; position: relative; text-align: center; font-size: 13px; color: var(--muted);
+}
+/* Line from the previous step's dot to this one */
+.checkout-page .track-step::before {
+  content: ""; position: absolute; top: 15px; right: 50%; width: 100%; height: 2px; background: var(--border);
+}
+.checkout-page .track-step:first-child::before { display: none; }
+.checkout-page .track-dot {
+  position: relative; z-index: 1;
+  width: 32px; height: 32px; margin: 0 auto 8px; border-radius: 50%;
+  border: 2px solid var(--border); background: var(--white);
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+}
+.checkout-page .track-step.is-done { color: var(--ink); }
+.checkout-page .track-step.is-done::before { background: var(--green); }
+.checkout-page .track-step.is-done .track-dot { background: var(--green); border-color: var(--green); color: #fff; }
+.checkout-page .track-step.is-current { color: var(--green); font-weight: 700; }
+
+.checkout-page .track-cancelled {
+  background: #fbeaea; border: 1px solid rgba(214, 69, 69, 0.3); border-radius: 7px;
+  padding: 12px 14px; color: #b3261e; font-size: 14px; font-weight: 600;
+}
+
+/* Cancel button: outlined red, full width */
+.checkout-page .cancel-form { margin-top: 20px; }
+.checkout-page .btn-cancel {
+  display: block; width: 100%; cursor: pointer;
+  background: var(--white); border: 1px solid var(--danger); color: #b3261e;
+}
+.checkout-page .btn-cancel:hover { background: #fbeaea; }
+.checkout-page .cancel-hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+
+/* ===== Phones (checkout + order success) =====
+   Kept at the end so it overrides the rules above. Same compact sizes as the cart. */
+@media (max-width: 576px) {
+  /* Hero */
+  .checkout-page .checkout-hero { padding: 20px 16px; }
+  .checkout-page .checkout-hero h1 { font-size: 32px; }
+  .checkout-page .checkout-crumb { margin-top: 6px; font-size: 13px; }
+  .checkout-page .success-badge { width: 44px; height: 44px; font-size: 22px; margin-bottom: 8px; }
+
+  /* Page, panels, summary */
+  .checkout-page .checkout-wrap { padding: 0 12px 40px; gap: 16px; }
+  .checkout-page .checkout-main { gap: 16px; }
+  .checkout-page .checkout-panel,
+  .checkout-page .summary { padding: 16px; }
+  .checkout-page .checkout-panel h2,
+  .checkout-page .summary h2 { padding-bottom: 10px; margin-bottom: 12px; }
+
+  /* Fields are already full width; 16px text stops iOS zooming in on tap */
+  .checkout-page .field-group input { font-size: 16px; }
+
+  /* Summary items: part of the page scroll, long names wrap */
+  .checkout-page .summary-items { max-height: none; overflow-y: visible; }
+  .checkout-page .summary-item .s-name { min-width: 0; }
+
+  /* Order success */
+  .checkout-page .success-wrap { padding: 0 12px 40px; }
+  .checkout-page .success-panel { margin-top: 16px; }
+  .checkout-page .btn-line { flex-basis: 100%; }  /* stacked, full width */
+
+  /* Order detail: smaller tracker so 5 steps fit at 375px
+     ("Out for delivery" and "Ready for pickup" wrap onto two lines) */
+  .checkout-page .track-step { font-size: 11px; padding: 0 1px; overflow-wrap: anywhere; }
+  .checkout-page .track-dot { width: 24px; height: 24px; font-size: 11px; margin-bottom: 6px; }
+  .checkout-page .track-step::before { top: 11px; }
+}

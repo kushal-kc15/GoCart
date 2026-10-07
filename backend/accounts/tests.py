@@ -1,8 +1,13 @@
 from datetime import timedelta
 
 import importlib
+import re
+import smtplib
+from unittest import mock
 
 from django.apps import apps as django_apps
+from django.conf import settings
+from django.core import mail
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ValidationError
@@ -18,7 +23,7 @@ from orders.models import Order, OrderItem, Payment
 from products.models import Category, Product, Review
 from wishlist.models import Wishlist, WishlistItem
 from .admin import phone_search_digits
-from .models import Address
+from .models import Address, EmailVerification
 from .validators import normalize_nepali_phone
 
 User = get_user_model()
@@ -54,13 +59,13 @@ class SignupTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "dev/signup.html")
 
-    def test_success_creates_user_logs_in_and_redirects_home(self):
-        response = self.client.post(self.url, signup_data(), follow=True)
-        self.assertRedirects(response, reverse("home"))
+    def test_success_creates_unverified_user_and_asks_for_the_code(self):
+        response = self.client.post(self.url, signup_data())
+        self.assertRedirects(response, reverse("accounts:verify_email"))
         user = User.objects.get(email="asha@example.com")
         self.assertTrue(user.check_password(STRONG_PASSWORD))
-        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
-        self.assertContains(response, "Welcome to GoCart, Asha!")
+        self.assertFalse(user.email_verified)
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_email_is_normalised_to_lowercase(self):
         self.client.post(self.url, signup_data(email="Asha@Example.COM"))
@@ -73,7 +78,9 @@ class SignupTests(TestCase):
         self.assertEqual(User.objects.count(), 2)
 
     def test_duplicate_email_error_shown_next_to_email_field(self):
-        User.objects.create_user(username="x", email="asha@example.com", password=STRONG_PASSWORD)
+        User.objects.create_user(
+            username="x", email="asha@example.com", password=STRONG_PASSWORD, email_verified=True,
+        )
         response = self.client.post(self.url, signup_data(email="ASHA@example.com"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("email", response.context["form"].errors)
@@ -115,7 +122,7 @@ class SignupTests(TestCase):
         self.assertTrue(User.objects.filter(email="asha@example.com").exists())
 
     def test_authenticated_user_is_redirected_away(self):
-        self.client.post(self.url, signup_data())
+        self.client.force_login(User.objects.create_user(username="asha", email="asha@example.com"))
         self.assertRedirects(self.client.get(self.url), reverse("home"))
 
 
@@ -126,6 +133,7 @@ class LoginTests(TestCase):
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
             username="asha", email="asha@example.com", password=STRONG_PASSWORD, first_name="Asha",
+            email_verified=True,
         )
 
     def test_form_renders(self):
@@ -260,7 +268,9 @@ class ProfileTests(TestCase):
         self.assertContains(response, "You haven't placed any orders yet.")
 
     def test_login_then_next_lands_on_profile(self):
-        User.objects.create_user(username="asha", email="asha@example.com", password=STRONG_PASSWORD)
+        User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD, email_verified=True,
+        )
         response = self.client.post(
             f"{reverse('accounts:login')}?next={self.url}",
             {"email": "asha@example.com", "password": STRONG_PASSWORD, "next": self.url},
@@ -1342,3 +1352,404 @@ class NoAccessTests(RoleTestBase):
         res = self.client.get(self.url("index"))
         self.assertEqual(res.status_code, 302)
         self.assertIn(reverse("admin:login"), res.url)
+
+
+# ---- emailed sign-up code ----
+def code_in(message):
+    return re.search(r"code is: ([0-9]{6})", message.body).group(1)
+
+
+def other_code(code):
+    """A 6-digit code that is surely wrong."""
+    return f"{(int(code) + 1) % 1_000_000:06d}"
+
+
+class EmailCodeTestBase(TestCase):
+    signup_url = reverse("accounts:signup")
+    login_url = reverse("accounts:login")
+    verify_url = reverse("accounts:verify_email")
+    resend_url = reverse("accounts:resend_code")
+
+    def signup(self, client=None, follow=False, **overrides):
+        return (client or self.client).post(self.signup_url, signup_data(**overrides), follow=follow)
+
+    def verify(self, code, client=None, **kwargs):
+        return (client or self.client).post(self.verify_url, {"code": code}, **kwargs)
+
+    def resend(self, client=None, **kwargs):
+        return (client or self.client).post(self.resend_url, **kwargs)
+
+    def verification(self, email="asha@example.com"):
+        return EmailVerification.objects.get(user__email=email)
+
+    def move_back(self, email="asha@example.com", seconds=61):
+        """Pretend the last code was sent `seconds` earlier."""
+        verification = self.verification(email)
+        verification.sent_at -= timedelta(seconds=seconds)
+        verification.save()
+
+    def assertLoggedIn(self, client=None):
+        self.assertIn("_auth_user_id", (client or self.client).session)
+
+    def assertNotLoggedIn(self, client=None):
+        self.assertNotIn("_auth_user_id", (client or self.client).session)
+
+
+class EmailCodeSignupTests(EmailCodeTestBase):
+    def test_tests_never_send_real_email(self):
+        self.assertEqual(settings.EMAIL_BACKEND, "django.core.mail.backends.locmem.EmailBackend")
+
+    def test_signup_emails_a_code_with_the_expiry_time(self):
+        response = self.signup()
+        self.assertRedirects(response, self.verify_url)
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.to, ["asha@example.com"])
+        self.assertEqual(message.subject, "Your GoCart verification code")
+        self.assertRegex(message.body, r"code is: [0-9]{6}\n")
+        self.assertRegex(message.body, r"expires in 10 minutes \(at \d{1,2}:\d{2} [AP]\.?M\.?\)")
+        self.assertIn("Hi Asha", message.body)
+        self.assertNotLoggedIn()
+
+    def test_verify_page_shows_the_email_and_resend_button(self):
+        self.signup()
+        response = self.client.get(self.verify_url)
+        self.assertTemplateUsed(response, "dev/verify_email.html")
+        self.assertContains(response, "asha@example.com")
+        self.assertContains(response, 'name="code"')
+        self.assertContains(response, f'action="{self.resend_url}"')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+
+    def test_verify_page_without_a_signup_goes_to_login(self):
+        self.assertRedirects(self.client.get(self.verify_url), self.login_url)
+        self.assertRedirects(self.resend(), self.login_url)
+
+    def test_correct_code_verifies_logs_in_and_goes_home(self):
+        self.signup()
+        response = self.verify(code_in(mail.outbox[0]), follow=True)
+        self.assertRedirects(response, reverse("home"))
+        self.assertContains(response, "Welcome to GoCart, Asha!")
+        user = User.objects.get(email="asha@example.com")
+        self.assertTrue(user.email_verified)
+        self.assertEqual(int(self.client.session["_auth_user_id"]), user.pk)
+        self.assertFalse(EmailVerification.objects.exists())
+        self.assertNotIn("verify_user_id", self.client.session)
+
+    def test_wrong_code_is_refused(self):
+        self.signup()
+        response = self.verify(other_code(code_in(mail.outbox[0])))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "That code isn&#x27;t right.")
+        self.assertNotLoggedIn()
+        self.assertEqual(self.verification().wrong_attempts, 1)
+        self.assertFalse(User.objects.get(email="asha@example.com").email_verified)
+
+    def test_text_that_is_not_six_digits_is_not_counted(self):
+        self.signup()
+        for typed in ("12ab56", "12345", "१२३४५६", ""):
+            with self.subTest(typed=typed):
+                self.assertContains(self.verify(typed), "Enter the 6-digit code from the email.")
+        self.assertEqual(self.verification().wrong_attempts, 0)
+
+    def test_expired_code_is_refused(self):
+        self.signup()
+        self.move_back(seconds=11 * 60)
+        response = self.verify(code_in(mail.outbox[0]))
+        self.assertContains(response, "This code has expired.")
+        self.assertNotLoggedIn()
+        self.assertFalse(User.objects.get(email="asha@example.com").email_verified)
+
+    def test_five_wrong_tries_lock_the_code_until_a_resend(self):
+        self.signup()
+        code = code_in(mail.outbox[0])
+        for _ in range(4):
+            self.assertContains(self.verify(other_code(code)), "That code isn&#x27;t right.")
+        self.assertContains(self.verify(other_code(code)), "Too many wrong tries.")
+        # Now even the right code is refused.
+        self.assertContains(self.verify(code), "Too many wrong tries.")
+        self.assertNotLoggedIn()
+
+        self.move_back()
+        self.resend()
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(self.verification().wrong_attempts, 0)
+        self.verify(code_in(mail.outbox[1]))
+        self.assertLoggedIn()
+
+    def test_no_plain_code_in_the_database(self):
+        self.signup()
+        code = code_in(mail.outbox[0])
+        verification = self.verification()
+        self.assertTrue(verification.code_hash.startswith("pbkdf2_"))
+        for field in EmailVerification._meta.concrete_fields:
+            with self.subTest(field=field.name):
+                self.assertNotIn(code, str(getattr(verification, field.attname)))
+
+
+class EmailCodeResendTests(EmailCodeTestBase):
+    @mock.patch("accounts.views.make_code", side_effect=["111111", "222222"])
+    def test_resend_waits_60_seconds_and_replaces_the_old_code(self, _make_code):
+        self.signup()
+        response = self.resend(follow=True)
+        self.assertContains(response, "You can ask for a new one in")
+        self.assertEqual(len(mail.outbox), 1)
+
+        self.move_back()
+        response = self.resend(follow=True)
+        self.assertRedirects(response, self.verify_url)
+        self.assertContains(response, "We sent a 6-digit code to asha@example.com.")
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(code_in(mail.outbox[1]), "222222")
+
+        self.assertContains(self.verify("111111"), "That code isn&#x27;t right.")
+        self.verify("222222")
+        self.assertLoggedIn()
+
+    def test_at_most_five_codes_an_hour(self):
+        self.signup()
+        for _ in range(4):
+            self.move_back()
+            self.resend()
+        self.assertEqual(len(mail.outbox), 5)
+
+        self.move_back()
+        response = self.resend(follow=True)
+        self.assertContains(response, "Too many codes asked for. Please try again in")
+        self.assertEqual(len(mail.outbox), 5)
+
+        verification = self.verification()
+        verification.hour_started_at -= timedelta(hours=1)
+        verification.save()
+        self.resend()
+        self.assertEqual(len(mail.outbox), 6)
+
+    def test_resend_is_post_only(self):
+        self.signup()
+        self.assertEqual(self.client.get(self.resend_url).status_code, 405)
+
+
+class EmailCodeSmtpFailureTests(EmailCodeTestBase):
+    def test_failed_send_on_signup_shows_a_message_not_an_error_page(self):
+        with mock.patch("accounts.views.send_mail", side_effect=smtplib.SMTPException("down")):
+            with self.assertLogs("accounts.views", level="ERROR"):
+                response = self.signup(follow=True)
+        self.assertRedirects(response, self.verify_url)
+        self.assertContains(response, "We couldn&#x27;t send the code right now. Please try Resend.")
+        self.assertTrue(User.objects.filter(email="asha@example.com").exists())
+        # Nothing was sent, so no code is saved and Resend may be used straight away.
+        self.assertEqual(self.verification().code_hash, "")
+        self.resend()
+        self.assertEqual(len(mail.outbox), 1)
+        self.verify(code_in(mail.outbox[0]))
+        self.assertLoggedIn()
+
+    def test_failed_resend_keeps_the_earlier_code(self):
+        self.signup()
+        self.move_back()
+        with mock.patch("accounts.views.send_mail", side_effect=OSError("no connection")):
+            with self.assertLogs("accounts.views", level="ERROR"):
+                response = self.resend(follow=True)
+        self.assertContains(response, "We couldn&#x27;t send the code right now. Please try Resend.")
+        self.verify(code_in(mail.outbox[0]))
+        self.assertLoggedIn()
+
+
+class EmailCodeLoginTests(EmailCodeTestBase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD, first_name="Asha",
+        )
+
+    def login(self, password=STRONG_PASSWORD, client=None, **extra):
+        data = {"email": "asha@example.com", "password": password, **extra}
+        return (client or self.client).post(self.login_url, data)
+
+    def test_unverified_login_sends_a_code_instead_of_logging_in(self):
+        self.assertRedirects(self.login(), self.verify_url)
+        self.assertNotLoggedIn()
+        self.assertEqual(len(mail.outbox), 1)
+        self.verify(code_in(mail.outbox[0]))
+        self.assertLoggedIn()
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.email_verified)
+
+    def test_wrong_password_sends_nothing(self):
+        response = self.login(password="nope")
+        self.assertContains(response, "Incorrect email or password")
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertFalse(EmailVerification.objects.exists())
+
+    def test_next_and_remember_me_are_kept_through_the_code(self):
+        self.login(next=reverse("cart:cart_detail"), remember="on")
+        response = self.verify(code_in(mail.outbox[0]))
+        self.assertRedirects(response, reverse("cart:cart_detail"), fetch_redirect_response=False)
+        self.assertEqual(self.client.session.get_expiry_age(), 60 * 60 * 24 * 30)
+
+    def test_without_remember_me_the_session_ends_with_the_browser(self):
+        self.login()
+        self.verify(code_in(mail.outbox[0]))
+        self.assertTrue(self.client.session.get_expire_at_browser_close())
+
+    def test_existing_users_are_marked_verified_by_the_migration(self):
+        migration = importlib.import_module("accounts.migrations.0003_user_email_verified")
+        migration.mark_existing_users_verified(django_apps, None)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.email_verified)
+        self.assertRedirects(self.login(), reverse("home"))
+        self.assertLoggedIn()
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class EmailCodeStaffTests(EmailCodeTestBase):
+    def _boss(self):
+        return User.objects.create_superuser(username="boss", email="boss@example.com", password=STRONG_PASSWORD)
+
+    def test_superusers_are_verified_and_log_in_without_a_code(self):
+        self.assertTrue(self._boss().email_verified)
+        response = self.client.post(self.login_url, {"email": "boss@example.com", "password": STRONG_PASSWORD})
+        self.assertRedirects(response, reverse("home"))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_accounts_added_in_the_admin_are_verified(self):
+        self.client.force_login(self._boss())
+        self.client.post(reverse("admin:accounts_user_add"), {
+            "username": "ram", "email": "ram@shop.com", "first_name": "Ram", "last_name": "Thapa",
+            "usable_password": "true", "password1": STRONG_PASSWORD, "password2": STRONG_PASSWORD,
+        })
+        self.assertTrue(User.objects.get(email="ram@shop.com").email_verified)
+
+    def test_admin_login_does_not_ask_for_a_code(self):
+        User.objects.create_user(
+            username="staff", email="staff@shop.com", password=STRONG_PASSWORD, is_staff=True,
+        )
+        response = self.client.post(
+            reverse("admin:login"), {"username": "staff@shop.com", "password": STRONG_PASSWORD},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertLoggedIn()
+        self.assertEqual(self.client.get(reverse("admin:index")).status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_superuser_can_tick_email_verified_and_filter_by_it(self):
+        customer = User.objects.create_user(username="asha", email="asha@example.com")
+        self.client.force_login(self._boss())
+        page = self.client.get(reverse("admin:accounts_user_change", args=[customer.pk]))
+        self.assertContains(page, 'name="email_verified"')
+        listed = self.client.get(reverse("admin:accounts_user_changelist"), {"email_verified__exact": "0"})
+        self.assertEqual([u.email for u in listed.context["cl"].result_list], ["asha@example.com"])
+
+
+class EmailCodeReplacementTests(EmailCodeTestBase):
+    """Signing up again with the email of an account that was never verified."""
+
+    def test_signup_again_replaces_the_unverified_account(self):
+        self.signup()
+        first = User.objects.get(email="asha@example.com")
+        self.move_back()
+        other = Client()
+        response = self.signup(
+            client=other, first_name="Bina", email="ASHA@example.com",
+            password1="Other-Basket-2026", password2="Other-Basket-2026",
+        )
+        self.assertRedirects(response, self.verify_url)
+        self.assertEqual(User.objects.count(), 1)
+        replaced = User.objects.get(email="asha@example.com")
+        self.assertEqual(replaced.pk, first.pk)
+        self.assertEqual(replaced.first_name, "Bina")
+        self.assertTrue(replaced.check_password("Other-Basket-2026"))
+        self.assertEqual(len(mail.outbox), 2)
+        self.verify(code_in(mail.outbox[1]), client=other)
+        self.assertLoggedIn(other)
+
+    def test_a_verified_account_still_gets_the_normal_error(self):
+        User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD,
+            first_name="Asha", email_verified=True,
+        )
+        response = self.signup(first_name="Bina", password1="Other-Basket-2026", password2="Other-Basket-2026")
+        self.assertContains(response, "An account with this email already exists.")
+        user = User.objects.get(email="asha@example.com")
+        self.assertEqual(user.first_name, "Asha")
+        self.assertTrue(user.check_password(STRONG_PASSWORD))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_an_unverified_account_with_orders_is_not_replaced(self):
+        user = User.objects.create_user(username="asha", email="asha@example.com", password=STRONG_PASSWORD)
+        Order.objects.create(user=user, total=100, address="Kathmandu")
+        response = self.signup(password1="Other-Basket-2026", password2="Other-Basket-2026")
+        self.assertContains(response, "An account with this email already exists.")
+        user.refresh_from_db()
+        self.assertTrue(user.check_password(STRONG_PASSWORD))
+
+    def test_signing_up_again_within_a_minute_sends_no_second_email(self):
+        self.signup()
+        response = self.signup(client=Client(), follow=True)
+        self.assertContains(response, "A code was sent recently.")
+        self.assertEqual(len(mail.outbox), 1)
+
+    def _replaced_by_someone_else(self):
+        """The real owner signs up, then someone else signs up with the same email."""
+        self.signup()
+        owner_code = code_in(mail.outbox[0])
+        self.move_back()
+        other = Client()
+        self.signup(client=other, password1="Other-Basket-2026", password2="Other-Basket-2026")
+        return owner_code, other
+
+    def test_after_a_replacement_the_first_sessions_code_is_refused(self):
+        owner_code, other = self._replaced_by_someone_else()
+        response = self.verify(owner_code, follow=True)
+        self.assertRedirects(response, self.signup_url)
+        self.assertContains(response, "This sign-up was replaced. Please sign up again.")
+        self.assertNotLoggedIn()
+        self.assertFalse(User.objects.get(email="asha@example.com").email_verified)
+        # The replacing session's own code works.
+        self.verify(code_in(mail.outbox[1]), client=other)
+        self.assertLoggedIn(other)
+
+    def test_after_a_replacement_the_first_session_cannot_resend(self):
+        self._replaced_by_someone_else()
+        self.move_back()
+        response = self.resend(follow=True)
+        self.assertRedirects(response, self.signup_url)
+        self.assertContains(response, "This sign-up was replaced. Please sign up again.")
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_a_replacement_does_not_reset_the_wrong_tries(self):
+        self.signup()
+        for _ in range(3):
+            self.verify(other_code(code_in(mail.outbox[0])))
+        self.signup(client=Client())  # within the minute: same code, new session
+        self.assertEqual(self.verification().wrong_attempts, 3)
+
+    def test_an_unverified_login_moves_the_code_to_that_session(self):
+        self.signup()
+        code = code_in(mail.outbox[0])
+        other = Client()
+        other.post(self.login_url, {"email": "asha@example.com", "password": STRONG_PASSWORD})
+        self.assertContains(self.verify(code, follow=True), "This sign-up was replaced.")
+        self.assertNotLoggedIn()
+        # Within the minute no new code is sent, so the same code works there.
+        self.verify(code, client=other)
+        self.assertLoggedIn(other)
+
+    def test_a_missing_or_tampered_token_is_refused(self):
+        for token in ("tampered", None):
+            with self.subTest(token=token):
+                self.client = Client()
+                self.signup()
+                session = self.client.session
+                if token is None:
+                    del session["verify_token"]
+                else:
+                    session["verify_token"] = token
+                session.save()
+                self.assertRedirects(self.client.get(self.verify_url), self.signup_url)
+                self.signup()  # start again in this session
+                session = self.client.session
+                session["verify_token"] = "tampered"
+                session.save()
+                self.assertRedirects(self.verify(code_in(mail.outbox[-1])), self.signup_url)
+                self.assertNotLoggedIn()
+                User.objects.all().delete()
+                mail.outbox.clear()

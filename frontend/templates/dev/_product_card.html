@@ -1,0 +1,40 @@
+{% load static %}
+{# One product card for the home page sliders (Feature Products and Most Popular) #}
+{# and the cart page's "You may also like" row (anchor="recs").                    #}
+{# Used with {% include "dev/_product_card.html" with anchor="featured" %} inside a loop over `product`. #}
+{# anchor = the slider section's id, so a heart click comes back to the same slider. #}
+<div class="product-card">
+    <div class="thumb wish-wrap">
+        <span class="category-tag">{{ product.category.name }}</span>
+        {% include "dev/_wish_button.html" %}
+        {% with first_image=product.images.all|first %}
+        <a href="{% url 'products:product_detail' slug=product.slug %}">
+        {% if first_image %}
+        <img src="{{ first_image.image.url }}" alt="{{ product.name }}">
+        {% else %}
+        <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ product.name }}">
+        {% endif %}
+        </a>
+        {% endwith %}
+    </div>
+    <div class="info">
+        <h3><a href="{% url 'products:product_detail' slug=product.slug %}">{{ product.name }}</a></h3>
+        <p class="stock in">In Stock</p>
+        <div class="price-row">
+            <span>{{ product.unit|default:"" }}</span>
+            <strong>Rs. {{ product.price|floatformat:"-2" }}</strong>
+        </div>
+        <div class="actions">
+            {# data-ajax: common.js adds to the cart in place (no reload). Not on the cart page (anchor="recs"): #}
+            {# there the added product has to move into the cart list above, so the form stays a normal post. #}
+            <form class="add-to-cart-form" method="post" action="{% url 'cart:add_to_cart' %}" {% if anchor != "recs" %}data-ajax="cart-add" {% endif %}data-once>
+                {% csrf_token %}
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="add">Add to Cart</button>
+                {# Buy Now adds to the cart and then goes straight to checkout, so it is a normal submit (data-no-ajax) #}
+                <button type="submit" name="buy_now" value="1" class="buy" data-no-ajax>Buy Now</button>
+            </form>
+        </div>
+    </div>
+</div>

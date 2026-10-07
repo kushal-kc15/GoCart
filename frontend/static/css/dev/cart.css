@@ -1,0 +1,599 @@
+/* Cart page — matched to the frontend team's cart.html design.
+   Everything is scoped under .cart-page so the team's cream/Fraunces theme
+   applies only to the cart content, leaving the shared base header/footer
+   (home.css theme) untouched. Real data/wiring comes from dev/cart.html. */
+
+.cart-page {
+  /* Team palette (kept local so home.css :root is not overridden) */
+  --cream: #f6f2e7;
+  --white: #ffffff;
+  --green: #1f6b3a;
+  --green-dark: #143f26;
+  --green-pale: #eaf1e7;
+  --gold: #c8963e;
+  --ink: #1b2a20;
+  --muted: #6b6656; /* darker than the team's #857f6e so small text passes contrast */
+  --border: #e6e1d2;
+  --danger: #d64545;
+  --radius: 10px;
+  --shadow-sm: 0 1px 2px rgba(27, 42, 32, 0.05);
+
+  background: var(--cream);
+  color: var(--ink);
+  font-family: "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  /* Full-bleed cream band across the content area */
+  margin: 0;
+  padding-bottom: 40px;
+}
+
+/* ===== Page heading (slim row, like the product list page) ===== */
+.cart-page .cart-title-row {
+  grid-column: 1 / -1;   /* spans the cart panel and the summary */
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.cart-page .cart-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;             /* Bootstrap adds a bottom margin to h1 */
+}
+
+.cart-page .cart-count {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ===== Layout ===== */
+.cart-page .cart-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 24px 32px;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .cart-page .cart-wrap { grid-template-columns: 1fr; }
+  /* item list + summary overrides are at the end of the file, after their base rules */
+}
+
+/* ===== Cart panel ===== */
+.cart-page .cart-panel {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 28px 30px;
+  box-shadow: var(--shadow-sm);
+}
+
+.cart-page .cart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: #55503f;
+  letter-spacing: 0.2px;
+}
+
+.cart-page .select-all {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cart-page .delete-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4a4a40;
+  font-weight: 600;
+  background: none;
+  border: none;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.cart-page input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--green);
+}
+
+/* Disabled cosmetic controls still look clickable-ish but muted */
+.cart-page [disabled] { cursor: not-allowed; }
+.cart-page .delete-link[disabled] { opacity: 0.75; }
+
+/* Scrolling item list (header + Continue shopping stay put) */
+.cart-page .cart-items {
+  max-height: 65vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.cart-page .cart-items::-webkit-scrollbar { width: 8px; }
+.cart-page .cart-items::-webkit-scrollbar-track { background: transparent; }
+.cart-page .cart-items::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+.cart-page .cart-items::-webkit-scrollbar-thumb:hover { background: #cfc9b8; }
+
+.cart-page .cart-item {
+  display: flex;
+  gap: 22px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.cart-page .cart-item:last-of-type { border-bottom: none; padding-bottom: 4px; }
+
+.cart-page .item-check { margin-top: 40px; flex-shrink: 0; }
+
+.cart-page .item-thumb {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green-pale);
+  border: 1px solid var(--border);
+}
+
+.cart-page .item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.cart-page .item-body { flex: 1; min-width: 0; }
+
+.cart-page .item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cart-page .item-top h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cart-page .item-top h3 a:hover { color: var(--green); }
+
+.cart-page .trash-btn {
+  background: none;
+  border: none;
+  color: #a6a192;
+  /* 40px tap area around the same 15px icon. The icon stays at the right edge;
+     the area grows up/down/left only (the item list scrolls, so growing to the
+     right would add a sideways scrollbar), and the negative margin keeps the
+     row height unchanged. */
+  width: 40px;
+  height: 40px;
+  padding: 0 2px 0 0;
+  margin: -12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.cart-page .trash-btn:hover { color: var(--danger); }
+
+/* Scoped to cart items so it doesn't restyle the product cards' price row */
+.cart-page .cart-item .price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cart-page .price-label { font-size: 13px; color: var(--muted); }
+
+.cart-page .price-now {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 2px;
+  color: var(--ink);
+}
+
+.cart-page .qty-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.cart-page .qty-control button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: var(--white);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 0.15s ease;
+}
+
+.cart-page .qty-control button:hover:not(:disabled) {
+  background: var(--green-pale);
+  color: var(--green-dark);
+}
+
+.cart-page .qty-control button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.cart-page .qty-control span {
+  width: 34px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Weight pill (single, real unit) */
+.cart-page .weight-row { margin-top: 18px; }
+
+.cart-page .weight-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 9px;
+  display: block;
+}
+
+.cart-page .weight-options { display: flex; gap: 9px; }
+
+.cart-page .weight-pill {
+  border: 1px solid var(--border);
+  background: var(--white);
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a4a40;
+}
+
+.cart-page .weight-pill.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.cart-page .continue-link {
+  display: inline-block;
+  margin-top: 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.cart-page .continue-link:hover { color: var(--green-dark); text-decoration: underline; }
+
+.cart-page .cart-empty { padding: 30px 0; text-align: center; color: var(--muted); }
+.cart-page .cart-empty p { margin-bottom: 14px; font-size: 15px; }
+
+/* ===== Order summary ===== */
+.cart-page .summary {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 28px 30px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-page .summary h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 21px;
+  font-weight: 600;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+  color: var(--ink);
+}
+
+.cart-page .sum-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 9px 0;
+  color: #4a4a40;
+}
+
+.cart-page .sum-row .label { color: #4a4a40; font-weight: 500; }
+.cart-page .sum-row .value { font-weight: 600; color: var(--ink); }
+.cart-page .sum-row.discount .value { color: var(--danger); }
+.cart-page .sum-row.final .value { font-weight: 700; }
+
+.cart-page .coupon-label { font-size: 13px; color: #55503f; margin: 18px 0 8px; }
+
+.cart-page .coupon-row { display: flex; gap: 8px; }
+
+.cart-page .coupon-row input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 11px 14px;
+  font-size: 13px;
+  background: var(--cream);
+  color: var(--ink);
+}
+
+.cart-page .coupon-row button {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 0 20px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.cart-page .coupon-row input:disabled,
+.cart-page .coupon-row button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.cart-page .divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+.cart-page .delivery-label { font-size: 13px; color: #55503f; margin-bottom: 12px; }
+
+.cart-page .delivery-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #333;
+}
+
+.cart-page .delivery-opt input:disabled { cursor: not-allowed; }
+
+.cart-page .total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cart-page .total-row .t-label {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cart-page .total-row .t-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.cart-page .pay-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin-top: 16px;
+  transition: background 0.15s ease;
+}
+
+.cart-page .pay-btn:hover { background: var(--green-dark); color: #fff; }
+
+.cart-page .pay-btn.disabled {
+  background: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ===== You may also like (team's design, shared product cards) ===== */
+.cart-page .recs {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+  scroll-margin-top: 100px; /* a heart click comes back to #recs; clear the sticky header */
+}
+
+.cart-page .recs-head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.cart-page .recs-head h2 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 24px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+  margin: 0;
+}
+
+.cart-page .recs-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.cart-page .recs-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.cart-page .recs-nav button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 7px;
+  font-size: 14px;
+  color: var(--ink);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.cart-page .recs-nav button:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* One row of 260px cards (size from home.css). The row scrolls sideways
+   inside itself (swipe or the arrows), so the page never does. */
+.cart-page .recs-row {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 10px; /* room for the scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.cart-page .recs-row .product-card {
+  scroll-snap-align: start;
+}
+
+/* ===== Desktop (above 900px): cart panel and summary end at the same level =====
+   Both cards stretch to the taller one's height. The items area grows to
+   fill the cart panel (it still scrolls inside once it reaches 65vh),
+   "Continue shopping" sits at the bottom, and the summary keeps its
+   content at the top. */
+@media (min-width: 901px) {
+  .cart-page .cart-wrap { align-items: stretch; }
+
+  .cart-page .cart-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cart-page .cart-items {
+    flex: 1;
+    margin-bottom: 22px;     /* the gap above "Continue shopping" */
+  }
+
+  .cart-page .cart-panel > .continue-link {
+    margin-top: auto;        /* bottom of the panel, even when the list is at its max height */
+    align-self: flex-start;  /* stays link-sized instead of full width */
+  }
+
+  /* Empty cart: centre the message in the taller panel */
+  .cart-page .cart-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Summary content stays at the top; any extra height is left below the button */
+  .cart-page .total-row { margin-top: 0; }
+}
+
+/* ===== Small screens (one column) =====
+   Kept at the end so it overrides the base rules above.
+   Desktop keeps the scrolling item list. */
+@media (max-width: 900px) {
+  .cart-page .cart-items {
+    max-height: none;    /* the page scrolls normally, no list-inside-a-page scroll */
+    overflow-y: visible;
+  }
+}
+
+/* ===== Phones =====
+   Same markup as desktop, just tighter: smaller heading, 72px thumbnail,
+   name (max 2 lines) with the trash icon at the top right, then price
+   left / qty right on one line, then the weight pill. Sized to fit a
+   375px screen with no sideways scroll. */
+@media (max-width: 576px) {
+  /* Heading */
+  .cart-page .cart-title { font-size: 22px; }
+
+  /* Page and panel padding */
+  .cart-page .cart-wrap { padding: 16px 12px 24px; gap: 16px; }
+  .cart-page .cart-panel,
+  .cart-page .summary { padding: 16px; }
+
+  .cart-page .cart-head { flex-wrap: wrap; gap: 8px; padding-bottom: 12px; }
+
+  /* Item row */
+  .cart-page .cart-item { gap: 10px; padding: 16px 0; }
+  .cart-page input[type="checkbox"].item-check {
+    width: 16px;
+    height: 16px;
+    margin-top: 28px; /* centred on the 72px thumbnail */
+  }
+  .cart-page .item-thumb { width: 72px; height: 72px; }
+  .cart-page .item-thumb img { padding: 6px; }
+
+  /* Name: 17px, up to 2 lines; trash stays at the top right */
+  .cart-page .item-top { gap: 8px; }
+  .cart-page .item-top h3 {
+    flex: 1;
+    min-width: 0;
+    font-size: 17px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Price left, qty right, always on one line */
+  .cart-page .cart-item .price-row { flex-wrap: nowrap; gap: 8px; margin-top: 8px; }
+  .cart-page .cart-item .price-row > div:first-child { min-width: 0; }
+  .cart-page .price-label { font-size: 12px; }
+  .cart-page .price-now { font-size: 15px; }
+  .cart-page .qty-control { flex-shrink: 0; }
+  .cart-page .qty-control span { width: 30px; }
+
+  /* Weight: label and pill on one compact line */
+  .cart-page .weight-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .cart-page .weight-label { margin-bottom: 0; font-size: 12px; }
+  .cart-page .weight-pill { padding: 4px 12px; font-size: 12px; }
+
+  .cart-page .continue-link { margin-top: 14px; }
+
+  /* Summary: let the coupon input shrink instead of pushing the row wider */
+  .cart-page .coupon-row input { min-width: 0; }
+
+  /* You may also like: one card and a peek of the next */
+  .cart-page .recs { padding: 0 12px; }
+  .cart-page .recs-head { gap: 12px; margin-bottom: 14px; }
+  .cart-page .recs-head h2 { font-size: 20px; }
+}
+
+/* The site header is not sticky on phones, so #recs needs no gap above it */
+@media (max-width: 480px) {
+  .cart-page .recs { scroll-margin-top: 16px; }
+}

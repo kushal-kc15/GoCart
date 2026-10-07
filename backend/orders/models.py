@@ -4,10 +4,10 @@ from django.conf import settings
 from django.utils import timezone
 from accounts.models import Address
 from products.models import Product
-# Create your models here.
+
+
 class Order(models.Model):
-    # Delivery orders: Pending > Confirmed > Packed > Out for delivery > Delivered
-    # Pickup orders:   Pending > Confirmed > Packed > Ready for pickup > Delivered ("Picked up")
+    # Pickup orders go Packed > Ready for pickup instead of Out for delivery.
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
         CONFIRMED = 'confirmed', 'Confirmed'
@@ -21,8 +21,7 @@ class Order(models.Model):
         DELIVERY = 'delivery', 'Delivery'
         PICKUP = 'pickup', 'Pickup'
 
-    # PROTECT: a customer with orders can't be deleted (that would delete their
-    # orders too). Staff deactivate the account instead.
+    # PROTECT: an account with orders is deactivated, not deleted.
     user=models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='orders')
     shipping_address=models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True)
     delivery_method=models.CharField(max_length=20, choices=DeliveryMethod.choices, default=DeliveryMethod.DELIVERY)
@@ -36,16 +35,13 @@ class Order(models.Model):
 
     class Meta:
         ordering=['-created_at']
-        # Rupee sums (dashboard, order list line, customer "total spent") are only
-        # for Managers and superusers, not for packers and riders.
+        # Rupee totals are hidden from Order staff.
         permissions = [('view_money_totals', 'Can see order money totals')]
 
     def __str__(self):
         return f'Order #{self.pk} - {self.user.email}'
 
-    # The steps an order may take next. One step forward at a time, never back.
-    # Packed is handled in allowed_next_statuses(), because its next step
-    # depends on the delivery method.
+    # Packed is left out: its next step depends on the delivery method.
     NEXT_STATUSES = {
         Status.PENDING: [Status.CONFIRMED, Status.CANCELLED],
         Status.CONFIRMED: [Status.PACKED, Status.CANCELLED],
@@ -68,19 +64,14 @@ class Order(models.Model):
 
     @property
     def status_label(self):
-        """The status as customers read it: a delivered pickup order shows as "Picked up"."""
         if self.status == Order.Status.DELIVERED and self.is_pickup:
             return 'Picked up'
         return self.get_status_display()
 
     def tracker_steps(self):
-        """The steps for the customer's order tracker, marking which are done."""
-        if self.is_pickup:
-            path = [Order.Status.PENDING, Order.Status.CONFIRMED, Order.Status.PACKED,
-                    Order.Status.READY_FOR_PICKUP, Order.Status.DELIVERED]
-        else:
-            path = [Order.Status.PENDING, Order.Status.CONFIRMED, Order.Status.PACKED,
-                    Order.Status.OUT_FOR_DELIVERY, Order.Status.DELIVERED]
+        middle = Order.Status.READY_FOR_PICKUP if self.is_pickup else Order.Status.OUT_FOR_DELIVERY
+        path = [Order.Status.PENDING, Order.Status.CONFIRMED, Order.Status.PACKED,
+                middle, Order.Status.DELIVERED]
         # A cancelled order isn't on the path; the page hides the tracker for it.
         current = path.index(self.status) if self.status in path else 0
 
@@ -93,12 +84,7 @@ class Order(models.Model):
         return steps
 
     def change_status(self, new_status, changed_by=None, note=''):
-        """The only way to change an order's status. Returns True if it changed.
-
-        Refuses a step that isn't allowed from the current status, and a cancel
-        without a note. Cancelling puts the stock back and marks the payment failed.
-        Every change is saved in the status history.
-        """
+        """The only way to change an order's status. Returns True if it changed."""
         note = note.strip()
         if new_status not in self.allowed_next_statuses():
             return False
@@ -108,8 +94,7 @@ class Order(models.Model):
         old_status = self.status
         now = timezone.now()
         with transaction.atomic():
-            # Only matches if nobody changed the order since we loaded it, so two
-            # clicks (or two staff) can never apply the same step twice.
+            # Matches only if the status is unchanged, so a step (and stock restore) can't apply twice.
             changed = Order.objects.filter(pk=self.pk, status=old_status).update(
                 status=new_status, updated_at=now
             )
@@ -131,13 +116,11 @@ class Order(models.Model):
 
 
 class OrderStatusChange(models.Model):
-    """One row per status change, for the admin. Customers don't see it."""
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='status_changes')
-    # Blank when the order was just placed.
+    # Blank for the "Order placed" row.
     from_status = models.CharField(max_length=20, choices=Order.Status.choices, blank=True)
     to_status = models.CharField(max_length=20, choices=Order.Status.choices)
-    # PROTECT: staff who changed any order status can't be deleted (they are
-    # deactivated instead), so the history always says who did what.
+    # PROTECT: keeps who made each change.
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
         related_name='status_changes_made',
@@ -151,19 +134,21 @@ class OrderStatusChange(models.Model):
     def __str__(self):
         return f'Order #{self.order_id}: {self.from_status or "placed"} -> {self.to_status}'
 
+
 class OrderItem(models.Model):
     order=models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product=models.ForeignKey(Product, on_delete=models.PROTECT)
     product_name=models.CharField(max_length=200, blank=True)
     quantity=models.PositiveIntegerField(default=1)
     price=models.DecimalField(max_digits=10, decimal_places=2)
+
     def __str__(self):
-        # The name saved at checkout, so renaming the product later doesn't change it.
+        # The name saved at checkout, so a later rename doesn't change it.
         return f'{self.quantity} x {self.product_name or self.product.name} in Order #{self.order_id}'
 
     @property
     def line_total(self):
-        """Price x quantity, using the price saved when the order was placed."""
+        """Uses the price saved at checkout."""
         return self.price * self.quantity
 
 
@@ -187,8 +172,7 @@ class Payment(models.Model):
     product_code=models.CharField(max_length=50, blank=True, null=True)
     provider_status=models.CharField(max_length=50, blank=True, null=True)
     paid_at=models.DateTimeField(blank=True, null=True)
-    # Who recorded the cash. PROTECT: a staff account that collected cash can't be
-    # deleted (it is deactivated instead). Empty for payments made before this existed.
+    # PROTECT: a staff account that collected cash is deactivated, not deleted.
     collected_by=models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
         related_name='collected_payments',
@@ -201,7 +185,6 @@ class Payment(models.Model):
 
     @property
     def collector_name(self):
-        """Who recorded the cash, as shown in the admin and on the packing slip."""
         if self.collected_by is None:
             return 'Not recorded'
         return self.collected_by.get_full_name() or self.collected_by.email
@@ -215,8 +198,7 @@ class Payment(models.Model):
         )
 
     def mark_cash_collected(self, collected_by=None):
-        """Record that the cash for a delivered COD order was received, and by whom.
-        Returns False if it isn't allowed or was already recorded."""
+        """Record the cash for a delivered COD order. Returns False if not allowed or already done."""
         now = timezone.now()
         # Checked again in the database, so a second click can't record it twice.
         changed = Payment.objects.filter(

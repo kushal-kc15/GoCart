@@ -7,11 +7,7 @@ POPULAR_LIMIT = 8
 
 
 def popular_products(exclude_ids=()):
-    """Best sellers by quantity sold (cancelled orders don't count).
-    With no sales yet, falls back to featured products, then the newest ones.
-    exclude_ids: products to leave out, e.g. the ones already in the cart.
-    Used by the home page (Most Popular) and the cart page (You may also like)."""
-    # Products a customer can actually buy, with images in display order.
+    """Best sellers (cancelled orders don't count), else featured, else newest."""
     in_stock = Product.objects.filter(
         is_available=True,
         stock__gt=0,

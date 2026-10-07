@@ -13,7 +13,7 @@ from .models import Category, Product, Review, star_text
 
 PRODUCTS_PER_PAGE = 20
 SUGGESTION_LIMIT = 6
-REVIEWS_SHOWN = 10  # newest first; a "Show all" page can come later
+REVIEWS_SHOWN = 10
 
 
 def product_list(request):
@@ -23,20 +23,21 @@ def product_list(request):
     query = request.GET.get("q", "").strip()
 
     categories = Category.objects.filter(parent__isnull=True)
+    selected_category = None
     selected_subcategory = None
+    subcategories = Category.objects.none()
+    products = Product.objects.filter(
+        is_available=True,
+        stock__gt=0,
+    ).select_related("category__parent").prefetch_related("images")
 
     if query:
-        # Store-wide search: product name, subcategory or department name.
-        # category and sub are ignored here; sort and page still apply.
-        selected_category = None
-        subcategories = Category.objects.none()
-        products = Product.objects.filter(
+        # Store-wide search; category and sub are ignored.
+        products = products.filter(
             Q(name__icontains=query)
             | Q(category__name__icontains=query)
-            | Q(category__parent__name__icontains=query),
-            is_available=True,
-            stock__gt=0,
-        ).select_related("category").prefetch_related("images")
+            | Q(category__parent__name__icontains=query)
+        )
     else:
         if category_slug:
             selected_category = get_object_or_404(categories, slug=category_slug)
@@ -45,24 +46,15 @@ def product_list(request):
 
         if selected_category:
             subcategories = selected_category.subcategories.all()
-            products = Product.objects.filter(
-                category__parent=selected_category,
-                is_available=True,
-                stock__gt=0,
-            ).select_related(
-                "category",
-                "category__parent",
-            ).prefetch_related("images")
+            products = products.filter(category__parent=selected_category)
         else:
-            subcategories = Category.objects.none()
             products = Product.objects.none()
 
         if subcategory_slug:
             selected_subcategory = get_object_or_404(subcategories, slug=subcategory_slug)
             products = products.filter(category=selected_subcategory)
 
-    # "id" breaks ties so products with the same price/name keep a stable
-    # order, otherwise items can repeat or go missing between pages.
+    # "id" breaks ties so items don't repeat or vanish between pages.
     if sort == "price_low":
         products = products.order_by("price", "id")
     elif sort == "price_high":
@@ -72,7 +64,6 @@ def product_list(request):
         if sort != "name":
             sort = ""
 
-    # get_page shows page 1 for a bad value and the last page if too large.
     paginator = Paginator(products, PRODUCTS_PER_PAGE)
     page_obj = paginator.get_page(request.GET.get("page"))
     page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)
@@ -94,7 +85,7 @@ def product_list(request):
 
 
 def search_suggest(request):
-    """Up to 6 product names for the header search dropdown."""
+    """Product names for the header search dropdown."""
     query = request.GET.get("q", "").strip()
     if len(query) < 2:
         return JsonResponse({"results": []})
@@ -114,26 +105,24 @@ def product_detail(request, slug):
         is_available=True,
     )
 
-    # Other in-stock products from the same department (excludes this one)
     related_products = Product.objects.filter(
         category__parent=product.category.parent,
         is_available=True,
         stock__gt=0,
     ).exclude(pk=product.pk).select_related("category").prefetch_related("images")[:4]
 
-    # Ratings summary from one grouped query: {5: 3, 4: 1, ...}
+    # {stars: count}; order_by() clears Review's default ordering, which would break the GROUP BY.
     visible = product.reviews.filter(is_visible=True)
     counts = dict(visible.values_list("rating").annotate(n=Count("id")).order_by())
     total = sum(counts.values())
-    average = sum(rating * n for rating, n in counts.items()) / total if total else 0
-    bars = [
-        {
-            "stars": stars,
-            "count": counts.get(stars, 0),
-            "percent": round(counts.get(stars, 0) * 100 / total) if total else 0,
-        }
-        for stars in (5, 4, 3, 2, 1)
-    ]
+    average = 0
+    if total:
+        average = sum(rating * n for rating, n in counts.items()) / total
+    bars = []
+    for stars in (5, 4, 3, 2, 1):
+        count = counts.get(stars, 0)
+        percent = round(count * 100 / total) if total else 0
+        bars.append({"stars": stars, "count": count, "percent": percent})
 
     my_review = None
     if request.user.is_authenticated:
@@ -173,7 +162,7 @@ def _reviews_url(product):
 @require_POST
 @login_required
 def submit_review(request, slug):
-    """Create the user's review of this product, or update it if they wrote one before."""
+    """Create the user's review, or update the one they wrote before."""
     product = get_object_or_404(Product, slug=slug, is_available=True)
     if not _can_review(request.user, product):
         messages.error(request, "You can review this after it's delivered.")
@@ -185,7 +174,7 @@ def submit_review(request, slug):
         review = form.save(commit=False)
         review.user = request.user
         review.product = product
-        review.save()  # is_visible is not in the form, so a hidden review stays hidden
+        review.save()  # is_visible isn't in the form, so a hidden review stays hidden
         if my_review:
             messages.success(request, "Your review is updated.")
         else:
@@ -198,7 +187,6 @@ def submit_review(request, slug):
 @require_POST
 @login_required
 def delete_review(request, slug):
-    """Delete the user's own review of this product."""
     product = get_object_or_404(Product, slug=slug)
     Review.objects.filter(user=request.user, product=product).delete()
     messages.success(request, "Your review is deleted.")

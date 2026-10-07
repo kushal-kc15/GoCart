@@ -1,0 +1,503 @@
+/* Product list page.
+   Colours and fonts come from home.css design tokens (--green, --charcoal,
+   --muted, --line, --serif, --sans). This page uses its own pl-* classes
+   and does NOT override home.css's .product-card. */
+
+.pl-page {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px 32px 48px;
+}
+
+/* ============ Department strip ============ */
+.pl-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 18px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.pl-strip-arrow {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--charcoal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pl-strip-arrow:hover:not(:disabled) {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* Nothing more to scroll that way (set by the script in product_list.html) */
+.pl-strip-arrow:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pl-strip-arrow svg {
+  width: 20px;
+  height: 20px;
+}
+
+.pl-strip-track {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.pl-strip-track::-webkit-scrollbar {
+  display: none;
+}
+
+.pl-dept {
+  flex: 0 0 140px;
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 6px 4px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pl-dept-img {
+  width: 88px;
+  height: 88px;
+  border-radius: 16px;
+  background: rgba(51, 53, 47, 0.05);
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pl-dept-img img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.pl-dept-name {
+  font-size: 15px;
+  line-height: 1.25;
+  /* Two lines max */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pl-dept:hover .pl-dept-name {
+  color: var(--green);
+}
+
+.pl-dept:hover .pl-dept-img {
+  border-color: rgba(47, 122, 77, 0.35);
+}
+
+.pl-dept.active .pl-dept-img {
+  border-color: var(--green);
+  background: #fff;
+}
+
+.pl-dept.active .pl-dept-name {
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ============ Sidebar + main layout ============ */
+.pl-layout {
+  display: grid;
+  grid-template-columns: 20% 1fr;
+  gap: 0;
+  scroll-margin-top: 90px; /* page links jump to #products; clear the sticky header */
+}
+
+/* ============ Sidebar ============ */
+.pl-sidebar {
+  position: sticky;
+  top: 90px; /* clear the sticky site header */
+  align-self: start;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  /* A long list scrolls inside the sidebar instead of running off screen */
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+
+.pl-sub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 72px;
+  padding: 0 18px 0 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--charcoal);
+}
+
+.pl-sub-thumb {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(51, 53, 47, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pl-sub-thumb img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.pl-sub-name {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.pl-sub:hover {
+  background: rgba(47, 122, 77, 0.05);
+}
+
+.pl-sub.active {
+  background: rgba(47, 122, 77, 0.1);
+  box-shadow: inset 3px 0 0 var(--green); /* green bar on the left */
+}
+
+.pl-sub.active .pl-sub-name {
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ============ Main area ============ */
+.pl-main {
+  min-width: 0;
+  padding: 24px 0 0 28px;
+}
+
+.pl-main-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.pl-title {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--charcoal);
+  margin: 0; /* Bootstrap adds a bottom margin to h1 */
+}
+
+.pl-sort {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pl-sort label {
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.pl-sort select {
+  width: 200px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pl-sort select:focus {
+  outline: none;
+  border-color: var(--green);
+}
+
+/* ============ Product grid ============ */
+.pl-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.pl-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  scroll-margin-top: 110px; /* after the #product-id jump, stay clear of the sticky header */
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pl-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(51, 53, 47, 0.08);
+  border-color: rgba(47, 122, 77, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-card { transition: none; }
+  .pl-card:hover { transform: none; }
+}
+
+.pl-card-thumb {
+  height: 150px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.pl-card-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.pl-card-info {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.pl-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  min-height: 2.6em; /* always 2 lines tall, so cards in a row line up */
+  margin-bottom: 6px;
+  color: var(--charcoal);
+  /* Two lines max */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pl-card-stock {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pl-card-stock.in {
+  color: var(--green);
+}
+
+.pl-card-stock.out,
+.pl-card-stock.low {
+  color: var(--coral);
+}
+
+.pl-card-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  margin-top: auto;
+}
+
+.pl-card-price strong {
+  color: var(--charcoal);
+  font-size: 15px;
+}
+
+.pl-card-add {
+  height: 36px;
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  background: var(--green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pl-card-add:hover:not(:disabled) {
+  background: var(--green-dark);
+  border-color: var(--green-dark);
+}
+
+.pl-card-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pl-empty {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 15px;
+  padding: 24px 0;
+}
+
+/* ============ Search results ============ */
+/* No sidebar in search mode, so the grid uses the full width */
+.pl-layout--search {
+  grid-template-columns: 1fr;
+}
+
+.pl-layout--search .pl-main {
+  padding-left: 0;
+}
+
+.pl-count {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.pl-empty .gc-btn {
+  margin-left: 8px;
+}
+
+/* ============ Pagination ============ */
+.pl-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+/* Page buttons use the shared gc-btn classes (common.css) */
+.pl-pagination [aria-current="page"] {
+  cursor: default;
+}
+
+.pl-page-dots {
+  color: var(--muted);
+  padding: 0 4px;
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 1100px) {
+  .pl-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .pl-page {
+    padding: 20px 16px 40px;
+  }
+  .pl-layout {
+    grid-template-columns: 1fr;
+  }
+  .pl-main {
+    padding: 0;
+  }
+
+  /* Department strip: smaller items */
+  .pl-dept {
+    flex-basis: 104px;
+    width: 104px;
+  }
+  .pl-dept-img {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+  }
+  .pl-dept-img img {
+    width: 54px;
+    height: 54px;
+  }
+  .pl-dept-name {
+    font-size: 13px;
+  }
+
+  /* Subcategories become a sideways-scrolling row of chips */
+  .pl-sidebar {
+    position: static;
+    max-height: none;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 0;
+    margin-bottom: 16px;
+  }
+  .pl-sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .pl-sub {
+    flex: 0 0 auto;
+    height: 40px;
+    gap: 8px;
+    padding: 0 14px 0 4px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: #fff;
+  }
+  .pl-sub-thumb {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+  .pl-sub-thumb img {
+    width: 26px;
+    height: 26px;
+  }
+  .pl-sub-name {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .pl-sub.active {
+    border-color: var(--green);
+    box-shadow: none; /* no left bar on a chip */
+  }
+}
+
+@media (max-width: 700px) {
+  .pl-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  /* the header is not sticky on phones */
+  .pl-card,
+  .pl-layout {
+    scroll-margin-top: 16px;
+  }
+}

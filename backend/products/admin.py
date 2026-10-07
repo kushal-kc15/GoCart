@@ -6,11 +6,9 @@ from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
 
 from .models import LOW_STOCK_LIMIT, Category, Product, ProductImage, Review
-# Register your models here.
 
 
 class StockFilter(admin.SimpleListFilter):
-    # Lets staff quickly find products that need restocking.
     title = "stock status"
     parameter_name = "stock_status"
 
@@ -32,15 +30,12 @@ class StockFilter(admin.SimpleListFilter):
 class CategoryAdmin(ModelAdmin):
     list_display = ('name', 'slug', 'department', 'product_count', 'created_at')
     list_filter = ('parent',)
-    # parent can be empty, so Django doesn't join it by itself: without this
-    # the list asks the database for every row's parent separately.
+    # Without this, the list fetches every row's parent separately.
     list_select_related = ('parent',)
     prepopulated_fields = {'slug': ('name',)}
 
     def get_queryset(self, request):
-        # Products sit in subcategories, so a department counts its own products
-        # plus those of its subcategories. distinct=True because both counts
-        # join a products table.
+        # Departments add their subcategories' products; distinct=True as both counts join products.
         return super().get_queryset(request).annotate(
             _own_products=Count("products", distinct=True),
             _sub_products=Count("subcategories__products", distinct=True),
@@ -77,24 +72,23 @@ class ProductAdmin(ModelAdmin):
     actions = ['show_on_site', 'hide_from_site']
 
     def get_queryset(self, request):
-        # All images for the page in one query (the same order the shop uses),
-        # so the thumbnail column costs nothing per row.
+        # All images in one query, so the thumbnail column costs nothing per row.
         images = Prefetch("images", queryset=ProductImage.objects.order_by("sort_order", "id"))
         return super().get_queryset(request).prefetch_related(images)
 
     @admin.display(description="Image")
     def thumbnail(self, obj):
-        image = next(iter(obj.images.all()), None)
-        if image is None:
+        images = obj.images.all()  # prefetched in get_queryset
+        if not images:
             return "-"
         return format_html(
             '<img src="{}" alt="" width="40" height="40" style="object-fit: cover; border-radius: 4px;">',
-            image.image.url,
+            images[0].image.url,
         )
 
     @display(description="Stock status", label={"out": "danger", "low": "warning"})
     def stock_badge(self, obj):
-        # Nothing when stock is fine: only the problems stand out.
+        # Only the problems get a badge.
         if obj.stock == 0:
             return "out", "Out of stock"
         if obj.stock < LOW_STOCK_LIMIT:
@@ -115,7 +109,7 @@ class ProductAdmin(ModelAdmin):
 @admin.register(Review)
 class ReviewAdmin(ModelAdmin):
     list_display = ('product', 'reviewer_email', 'rating', 'is_visible', 'created_at')
-    # Product filter lists only products that have reviews.
+    # The product filter lists only products that have reviews.
     list_filter = ('rating', 'is_visible', ('product', admin.RelatedOnlyFieldListFilter))
     search_fields = ('product__name', 'user__email', 'comment')
     list_select_related = ('product', 'user')

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server error – GoCart</title>
+    <!-- Standalone on purpose: no base template, no template tags, no context.
+         The error may have come from the database or a context processor. -->
+    <style>
+        body { margin: 0; background: #fdfbf3; color: #33352f; font-family: Arial, sans-serif; }
+        .error-page { max-width: 640px; margin: 0 auto; padding: 120px 24px; text-align: center; }
+        .error-code { font-size: 72px; font-weight: 700; color: #2f7a4d; line-height: 1; }
+        h1 { font-size: 28px; margin: 16px 0 8px; }
+        p { color: #6f716a; margin-bottom: 28px; }
+        a { display: inline-block; background: #2f7a4d; color: #fff; font-weight: 600;
+            padding: 12px 26px; border-radius: 6px; text-decoration: none; }
+        a:hover { background: #205c39; }
+    </style>
+</head>
+<body>
+    <div class="error-page">
+        <div class="error-code">500</div>
+        <h1>Something went wrong</h1>
+        <p>Sorry, something went wrong on our side. Please try again in a moment.</p>
+        <a href="/">Back to Home</a>
+    </div>
+</body>
+</html>

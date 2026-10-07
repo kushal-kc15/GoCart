@@ -7,11 +7,12 @@ from .validators import normalize_nepali_phone
 
 User = get_user_model()
 
+
 class SignUpForm(UserCreationForm):
     first_name = forms.CharField(max_length=150)
     last_name = forms.CharField(max_length=150)
     email = forms.EmailField()
-    # Longer than the 10 digits we store, so "+977 981 234 5678" reaches clean_phone.
+    # Longer than the 10 stored digits, so "+977 981 234 5678" reaches clean_phone.
     phone = forms.CharField(max_length=20, required=False)
 
     class Meta:
@@ -23,8 +24,6 @@ class SignUpForm(UserCreationForm):
             "phone",
         )
 
-    # The signup page has no username field; the login identity is the email.
-    # `username` is only kept because AbstractUser requires a unique value.
     field_attrs = {
         "first_name": {"placeholder": "Jane", "autocomplete": "given-name"},
         "last_name": {"placeholder": "Doe", "autocomplete": "family-name"},
@@ -41,20 +40,19 @@ class SignUpForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError(
-                "An account with this email already exists."
-            )
-
+        # When an unverified account is being replaced, it is self.instance: skip it.
+        others = User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk)
+        if others.exists():
+            raise forms.ValidationError("An account with this email already exists.")
         return email
 
     def clean_phone(self):
-        # Optional; when filled in, same Nepali mobile check as the profile and checkout.
         phone = self.cleaned_data["phone"]
         if not phone:
             return phone
         return normalize_nepali_phone(phone)
 
+    # username is unused but AbstractUser needs a unique value.
     def _unique_username(self, email):
         base = (slugify(email.split("@")[0]) or "user")[:140]
         candidate, suffix = base, 1
@@ -66,15 +64,14 @@ class SignUpForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"]
-        user.username = self._unique_username(user.email)
+        if not user.username:  # a replaced account keeps its username
+            user.username = self._unique_username(user.email)
         if commit:
             user.save()
         return user
 
 
 class ProfileForm(forms.ModelForm):
-    """Edit profile: name and phone. The email is the login, so it is not a field here."""
-
     first_name = forms.CharField(
         max_length=150,
         widget=forms.TextInput(attrs={"class": "gc-input", "autocomplete": "given-name"}),
@@ -83,7 +80,7 @@ class ProfileForm(forms.ModelForm):
         max_length=150,
         widget=forms.TextInput(attrs={"class": "gc-input", "autocomplete": "family-name"}),
     )
-    # Longer than the 10 digits we store, so "+977 981 234 5678" reaches clean_phone.
+    # Longer than the 10 stored digits, so "+977 981 234 5678" reaches clean_phone.
     phone = forms.CharField(
         max_length=20,
         required=False,
@@ -101,12 +98,5 @@ class ProfileForm(forms.ModelForm):
     def clean_phone(self):
         phone = self.cleaned_data["phone"]
         if not phone:
-            return phone  # optional: leaving it empty is fine
+            return phone
         return normalize_nepali_phone(phone)
-
-
-class LoginForm(forms.Form):
-    email = forms.EmailField()
-    password = forms.CharField(
-        widget=forms.PasswordInput
-    )

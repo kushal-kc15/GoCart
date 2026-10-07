@@ -1,0 +1,309 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}GoCart – Fresh Groceries{% endblock %}
+
+{% block content %}
+    <!-- hero section -->
+    <section class="hero">
+        <div class="hero-text">
+            <h1>Farm-Fresh Goodness, <br><span>Every Day !</span></h1>
+            <p>Handpicked fruits and vegetables delivered fresh from trusted local farms.</p>
+            <a href="{% url 'products:product_list' %}" class="btn-primary">Shop Now</a>
+        </div>
+        <div class="hero-image">
+            <img src="{% static 'images/dev/Grocery.jpg' %}" alt="Grocery shelves" class="hero-img">
+        </div>
+    </section>
+    <div class="hero-dots">
+        <span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    </div>
+
+    <!-- Benefits section -->
+    <section class="benefits">
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+                <path d="M15 18H9" />
+                <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+                <circle cx="17" cy="18" r="2" />
+                <circle cx="7" cy="18" r="2" />
+            </svg>
+            <span>Delivery</span>
+        </div>
+
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="12" x="2" y="6" rx="2" />
+                <circle cx="12" cy="12" r="2" />
+                <path d="M6 12h.01M18 12h.01" />
+            </svg>
+            <span>COD</span>
+        </div>
+
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+            </svg>
+            <span>Return policies</span>
+        </div>
+
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                    d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+                <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+            </svg>
+            <span>Offers</span>
+        </div>
+
+        <div class="benefit-item">
+            <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                    d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H3v-7a9 9 0 0 1 18 0v7h-3a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" />
+            </svg>
+            <span>Customer service</span>
+        </div>
+    </section>
+
+    <!-- Shop by Category (from the database) -->
+    <section class="section">
+        <div class="section-heading">
+            <h2>Shop by Category</h2>
+            <div class="slider-arrows">
+                <button aria-label="Previous">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                </button>
+                <button aria-label="Next">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="category-grid" id="categoryGrid">
+            {% for category in categories %}
+            <a href="{% url 'products:product_list' %}?category={{ category.slug }}" class="category-card" style="background:{% cycle '#f8ddc5' '#f7d5da' '#e6d6c3' '#f2d9ea' '#e2dced' %}">
+                {% if category.image %}
+                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-img">
+                {% else %}
+                <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ category.name }}" class="category-img">
+                {% endif %}
+                <p>{{ category.name }}</p>
+            </a>
+            {% empty %}
+            <p class="gc-empty">No categories yet.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!--Feature products (from the database)-->
+    <section class="section" id="featured">
+        <div class="section-heading">
+            <h2>Feature Products</h2>
+            <div class="slider-arrows">
+                <button aria-label="Previous" id="featurePrev">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                </button>
+                <button aria-label="Next" id="featureNext">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Viewport clips anything outside it; track is the part that actually moves -->
+        <div class="feature-viewport">
+            <div class="feature-track" id="featureTrack">
+
+                {% for product in featured_products %}
+                {% include "dev/_product_card.html" with anchor="featured" %}
+                {% empty %}
+                <p class="gc-empty">No featured products yet.</p>
+                {% endfor %}
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Promo banner row -->
+    <section class="promo-row">
+        <div class="promo-card">
+            <img src="{% static 'images/dev/promo_bread.jpg' %}"
+                alt="Fresh bread">
+            <div class="promo-strip">
+                <h3>Get your fresh Bread</h3>
+                <p>Discover fresh, high-quality products from trusted local farmers</p>
+            </div>
+            <div class="promo-bottom">
+                <div class="promo-stamp">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="var(--sale-red)" stroke="#fff" stroke-width="1.5"
+                            stroke-dasharray="3,3" />
+                        <path id="ring1" fill="none" d="M 50,50 m -34,0 a 34,34 0 1,1 68,0 a 34,34 0 1,1 -68,0" />
+                        <text font-size="7.5" font-weight="700" letter-spacing="1.5" fill="#fff">
+                            <textPath href="#ring1" startOffset="0%">SPECIAL DISCOUNT • SPECIAL DISCOUNT •</textPath>
+                        </text>
+                    </svg>
+                    <span class="stamp-center">15%<br>OFF</span>
+                </div>
+                <a href="{% url 'products:product_list' %}" class="btn-small">Shop Now</a>
+            </div>
+        </div>
+
+        <div class="promo-card">
+            <img src="{% static 'images/dev/promo_soft_drinks.jpg' %}"
+                alt="Soft drinks">
+            <div class="promo-strip">
+                <h3>Buy 1 Get 2 Free</h3>
+                <p>Soft drinks on festival offer</p>
+            </div>
+            <div class="promo-bottom">
+                <div class="promo-stamp">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="var(--sale-red)" stroke="#fff" stroke-width="1.5"
+                            stroke-dasharray="3,3" />
+                        <path id="ring2" fill="none" d="M 50,50 m -34,0 a 34,34 0 1,1 68,0 a 34,34 0 1,1 -68,0" />
+                        <text font-size="7.5" font-weight="700" letter-spacing="1.5" fill="#fff">
+                            <textPath href="#ring2" startOffset="0%">SPECIAL DISCOUNT • SPECIAL DISCOUNT •</textPath>
+                        </text>
+                    </svg>
+                    <span class="stamp-center">15%<br>OFF</span>
+                </div>
+                <a href="{% url 'products:product_list' %}" class="btn-small">Shop Now</a>
+            </div>
+        </div>
+
+        <div class="promo-card">
+            <img src="{% static 'images/dev/promo_vegetables.jpg' %}"
+                alt="Fresh vegetables">
+            <div class="promo-strip">
+                <h3>Get fresh harvest</h3>
+                <p>From organic produce to nutritious pantry essentials</p>
+            </div>
+            <div class="promo-bottom">
+                <div class="promo-stamp">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="46" fill="var(--sale-red)" stroke="#fff" stroke-width="1.5"
+                            stroke-dasharray="3,3" />
+                        <path id="ring3" fill="none" d="M 50,50 m -34,0 a 34,34 0 1,1 68,0 a 34,34 0 1,1 -68,0" />
+                        <text font-size="7.5" font-weight="700" letter-spacing="1.5" fill="#fff">
+                            <textPath href="#ring3" startOffset="0%">SPECIAL DISCOUNT • SPECIAL DISCOUNT •</textPath>
+                        </text>
+                    </svg>
+                    <span class="stamp-center">15%<br>OFF</span>
+                </div>
+                <a href="{% url 'products:product_list' %}" class="btn-small">Shop Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!--Most Popular (best sellers from the database; see config/views.py home)-->
+    <section class="section" id="popular">
+        <div class="section-heading">
+            <h2>Most Popular</h2>
+            <div class="slider-arrows">
+                <button aria-label="Previous" id="popularPrev">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                </button>
+                <button aria-label="Next" id="popularNext">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="feature-viewport" id="popularSlider">
+            <div class="feature-track" id="popularTrack">
+                {% for product in popular_products %}
+                {% include "dev/_product_card.html" with anchor="popular" %}
+                {% empty %}
+                <p class="gc-empty">No popular products yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!--Festival Banner-->
+    <section class="festival-section">
+        <div class="festival-top">
+            <div class="festival-text">
+                <p class="tag">🎉 Celebrate the Festival with Up to 40% OFF</p>
+                <p class="sub">Enjoy amazing discounts on fresh groceries, daily essentials, and your favorite products.
+                    Shop now and make your celebrations even more special.</p>
+            </div>
+            <div class="festival-badge">
+                <span class="burst"></span>
+                <span class="burst burst--2"></span>
+                <span class="burst burst--3"></span>
+                <div class="badge-text">
+                    <span>UP TO</span>
+                    <strong>40 %</strong>
+                    <span>OFF</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="festival-photos">
+            <img src="{% static 'images/dev/festival_produce.jpg' %}"
+                alt="Fresh produce">
+            <img src="{% static 'images/dev/fruits and vegetables.jpg' %}" alt="Vegetables">
+            <img src="{% static 'images/dev/baby product.jpg' %}" alt="Baby care products">
+            <img src="{% static 'images/dev/festival_groceries.jpg' %}"
+                alt="Fresh groceries">
+            <img src="{% static 'images/dev/Grocery.jpg' %}" alt="Grocery shelves">
+        </div>
+    </section>
+
+
+    <!-- Join / Rewards strip -->
+    <section class="join-strip">
+        <span class="join-icon">
+            <img src="{% static 'images/dev/join plus.png' %}" alt="plus" class="join">
+        </span>
+        <div class="join-text">
+            <h3>Join <span class="brand-highlight">GoCart</span> Today</h3>
+            <p>Create your free account and get access to exclusive offers, exciting discounts, and a seamless shopping experience.</p>
+        </div>
+        <div class="join-form-wrap">
+            <div class="register-now-badge">
+                <span class="register-now-text">Register Now</span>
+                <svg class="register-now-arrow" viewBox="0 0 130 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M 4 8 C 38 6, 80 18, 118 38" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round"/>
+                    <path d="M 104 36 L 120 39 L 115 25" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <form class="join-form" onsubmit="event.preventDefault();">
+                <span class="phone-prefix">+977</span>
+                <input type="tel" placeholder="Phone Number" class="join-phone-input" required>
+                <button type="submit" class="join-sub-btn">Sub</button>
+            </form>
+            <div class="join-brush-swoosh">
+                <svg viewBox="0 0 340 30" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+                    <path d="M 16 16 C 95 26, 230 27, 328 12" stroke="#16502c" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M 65 23 C 135 28, 225 28, 290 20" stroke="#1b5e34" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+{% endblock %}

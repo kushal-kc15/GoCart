@@ -1,0 +1,51 @@
+{% load static %}
+{# One product card for grid pages (product list and wishlist). #}
+{# Used with {% include "dev/_list_card.html" %} inside a loop over `p`. #}
+{# Pass wishlist_page=True to show the Remove button. There, un-saving the product (heart or Remove) takes the card off the page in place. #}
+<div class="pl-card" id="product-{{ p.id }}"{% if wishlist_page %} data-remove-on-unsave{% endif %}>
+    <div class="wish-wrap">
+        {% include "dev/_wish_button.html" with product=p card_anchor=True %}
+        <a class="pl-card-thumb" href="{% url 'products:product_detail' slug=p.slug %}">
+            {% with first_image=p.images.all|first %}
+            {% if first_image %}
+            <img src="{{ first_image.image.url }}" alt="{{ p.name }}" loading="lazy">
+            {% else %}
+            <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ p.name }}" loading="lazy">
+            {% endif %}
+            {% endwith %}
+        </a>
+    </div>
+    <div class="pl-card-info">
+        <h3 class="pl-card-name">
+            <a href="{% url 'products:product_detail' slug=p.slug %}">{{ p.name }}</a>
+        </h3>
+        {% if p.stock <= 0 %}
+        <p class="pl-card-stock out">Out of Stock</p>
+        {% elif p.stock <= 5 %}
+        <p class="pl-card-stock low">Only {{ p.stock }} left</p>
+        {% else %}
+        <p class="pl-card-stock in">In Stock</p>
+        {% endif %}
+        <div class="pl-card-price">
+            <span>{{ p.unit|default:"" }}</span>
+            <strong>Rs. {{ p.price|floatformat:"-2" }}</strong>
+        </div>
+        {# data-ajax: common.js adds to the cart in place (no reload) #}
+        <form class="add-to-cart-form" method="post" action="{% url 'cart:add_to_cart' %}" data-ajax="cart-add" data-once>
+            {% csrf_token %}
+            <input type="hidden" name="product_id" value="{{ p.id }}">
+            {# Without JavaScript the page reloads; the #product-id anchor brings the user back to this card #}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}#product-{{ p.id }}">
+            <button type="submit" class="pl-card-add" {% if p.stock <= 0 %}disabled{% endif %}>Add to Cart</button>
+        </form>
+        {% if wishlist_page %}
+        <form method="post" action="{% url 'wishlist:toggle' %}" data-ajax="wish-toggle" data-once>
+            {% csrf_token %}
+            <input type="hidden" name="product_id" value="{{ p.id }}">
+            <input type="hidden" name="action" value="remove">
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="wl-remove">Remove</button>
+        </form>
+        {% endif %}
+    </div>
+</div>

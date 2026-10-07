@@ -1,10 +1,15 @@
 
+import os
 from pathlib import Path
 
 from django.urls import reverse, reverse_lazy
+from dotenv import load_dotenv
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Private values (the Gmail password) live in backend/.env, which is not committed.
+load_dotenv(BASE_DIR / ".env")
 
 
 SECRET_KEY = 'django-insecure-local-development-only'
@@ -127,10 +132,26 @@ LOGIN_REDIRECT_URL = "/"
 # Shop details printed on the packing slip.
 # TODO: fill these in with the real shop name, address and phone.
 SHOP_INFO = {
-    "name": "SHOP NAME (fill in config/settings.py)",
+    "name": "GoCart",
     "address": "SHOP ADDRESS (fill in config/settings.py)",
     "phone": "SHOP PHONE (fill in config/settings.py)",
 }
+
+
+# Email: Gmail when backend/.env has the address and App Password, otherwise
+# emails are printed in the runserver terminal so the project runs without them.
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.gmail.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    DEFAULT_FROM_EMAIL = f"{SHOP_INFO['name']} <{EMAIL_HOST_USER}>"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = f"{SHOP_INFO['name']} <noreply@localhost>"
+EMAIL_TIMEOUT = 10  # seconds, so a stuck mail server can't hang the page
 
 
 # django-unfold admin theme
