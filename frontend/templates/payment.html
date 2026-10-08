@@ -47,6 +47,11 @@
         .detail label { display: block; font-size: 12px; font-weight: 600; color: var(--charcoal); margin-bottom: 6px; }
         .detail input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: 14px; background: #fff; }
         .detail input:focus { outline: none; border-color: var(--green); }
+        .detail input[type=file] { padding: 8px; font-size: 13px; cursor: pointer; }
+        .detail .submit-btn { display: block; width: 100%; margin-top: 16px; padding: 12px; border: 0; cursor: pointer; text-align: center; font-size: 14px; }
+        .detail .submit-btn[disabled] { opacity: .65; cursor: wait; }
+        .detail .sep { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+        .pp-amt { margin-top: 8px; font-weight: 600; color: var(--charcoal); }
 
         .err { display: none; color: var(--coral); font-size: 13px; margin-top: 10px; font-weight: 600; }
 
@@ -67,6 +72,28 @@
         .place-btn { width: 100%; margin-top: 18px; padding: 14px; border: 0; cursor: pointer; font-size: 15px; text-align: center; }
         .place-btn[disabled] { opacity: .65; cursor: wait; }
         .fine { text-align: center; font-size: 12px; color: var(--muted); margin-top: 10px; }
+        /* Payment method card */
+        .method { position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 12px; margin-bottom: 10px; cursor: pointer; background: #fff; transition: border-color .15s, box-shadow .15s, background .15s; }
+        .method:hover { border-color: var(--green); }
+        .method input { position: absolute; opacity: 0; pointer-events: none; }
+
+        /* Logo (eSewa, PayPal, cash, bank) */
+        .pm-img { width: 52px; height: 40px; object-fit: contain; flex: none; border-radius: 8px; background: #fff; padding: 4px; border: 1px solid var(--line); }
+
+        /* Name and description */
+        .pm-text { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.35; }
+        .pm-name { font-size: 15px; font-weight: 700; color: var(--charcoal); }
+        .pm-sub { font-size: 12.5px; font-weight: 400; color: var(--muted); }
+
+        /* Round tick on the right */
+        .pm-tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; transition: background .15s, border-color .15s; }
+        .pm-tick::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; transform: scale(0); transition: transform .15s; }
+
+        /* Selected state */
+        .method:has(input:checked) { border-color: var(--green); background: rgba(47,122,77,.06); box-shadow: 0 0 0 3px rgba(47,122,77,.12); }
+        .method:has(input:checked) .pm-tick { background: var(--green); border-color: var(--green); }
+        .method:has(input:checked) .pm-tick::after { transform: scale(1); }
+        .method:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 2px; }
     </style>
 </head>
 
@@ -74,7 +101,7 @@
     <header class="header">
         <div class="header-content">
             <div class="logo">
-                <a href="index.html"><img src="../static/images/logo.png" alt="Logo" class="logo-img"></a>
+                <a href="home2.html"><img src="../static/images/logo.png" alt="Logo" class="logo-img"></a>
             </div>
 
             <a href="" class="header-phone">
@@ -150,31 +177,42 @@
                     <h2>Payment method</h2>
 
                     <label class="method"><input type="radio" name="pm" value="cod" checked>
-                        <span class="badge-m" style="background:#6f716a">Rs</span> Cash on delivery <small id="codNote">Pay when you receive</small></label>
+                        <img class="pm-img" src="../static/images/cod.png" alt="Cash on delivery">
+                        Cash on delivery <small id="codNote">Pay when you receive</small></label>
                     <div class="detail on" id="d-cod">Keep the exact amount ready if you can. You will pay the delivery person when your order arrives.</div>
 
                     <label class="method"><input type="radio" name="pm" value="esewa">
-                        <span class="badge-m" style="background:#60bb46">eS</span> eSewa <small>Wallet</small></label>
+                        <img class="pm-img" src="../static/images/esewa.png" alt="eSewa">
+                        eSewa <small>Wallet</small></label>
                     <div class="detail" id="d-esewa">
                         <label for="esewaId">eSewa ID (mobile number)</label>
                         <input id="esewaId" type="tel" inputmode="numeric" placeholder="98XXXXXXXX" autocomplete="tel">
                     </div>
 
-                    <label class="method"><input type="radio" name="pm" value="khalti">
-                        <span class="badge-m" style="background:#5c2d91">Kh</span> Khalti <small>Wallet</small></label>
-                    <div class="detail" id="d-khalti">
-                        <label for="khaltiId">Khalti mobile number</label>
-                        <input id="khaltiId" type="tel" inputmode="numeric" placeholder="98XXXXXXXX" autocomplete="tel">
+                    <label class="method"><input type="radio" name="pm" value="paypal">
+                        <img class="pm-img" src="../static/images/paypal.png" alt="PayPal">
+                        PayPal <small>International</small></label>
+                    <div class="detail" id="d-paypal">
+                        You will be taken to PayPal to log in and approve the payment. PayPal charges in US dollars, so the amount is converted from Rs.
+                        <div class="pp-amt" id="ppAmt"></div>
                     </div>
 
                     <label class="method"><input type="radio" name="pm" value="bank">
-                        <span class="badge-m" style="background:var(--green)">Bk</span> Bank transfer <small>Send proof later</small></label>
+                        <img class="pm-img" src="../static/images/banktransfer.png" alt="Bank Transfer">
+                        Bank transfer <small>Send proof later</small></label>
                     <div class="detail" id="d-bank">
                         Transfer the total to the account below and keep your receipt.<br>
                         <b>Account name:</b> Go Cart Pvt. Ltd.<br>
                         <b>Bank:</b> Your bank name<br>
                         <b>Account number:</b> XXXXXXXXXXXX<br>
-                        Use your order number as the payment reference. We confirm the order once the payment arrives.
+                        Use your order number as the payment reference. We confirm the order once we verify your payment.
+                        <div class="sep">
+                            <label for="bankTxn">Transaction / reference ID</label>
+                            <input id="bankTxn" type="text" placeholder="e.g. 20261008-123456" autocomplete="off">
+                            <label for="bankReceipt" style="margin-top:12px">Upload payment receipt (screenshot or PDF)</label>
+                            <input id="bankReceipt" type="file" accept="image/*,.pdf">
+                            <button type="button" class="btn-primary submit-btn" id="bankSubmit">Submit</button>
+                        </div>
                     </div>
                     <div class="err" id="err"></div>
                 </section>
@@ -306,40 +344,79 @@
         // Show the detail box for the selected method
         document.querySelectorAll("[name=pm]").forEach(function (r) {
             r.onchange = function () {
-                ["cod", "esewa", "khalti", "bank"].forEach(function (k) {
+                ["cod", "esewa", "paypal", "bank"].forEach(function (k) {
                     $("d-" + k).classList.toggle("on", k === r.value);
                 });
                 $("err").style.display = "none";
+                syncBtn();
             };
+        });
+
+        document.querySelectorAll(".method").forEach(function (lbl) {
+            var radio = lbl.querySelector("input"), wasChecked = false;
+            lbl.addEventListener("mousedown", function () { wasChecked = radio.checked; });
+            radio.addEventListener("click", function () {
+                if (wasChecked) {
+                    radio.checked = false;                        // unselect it
+                    $("d-" + radio.value).classList.remove("on"); // close its box
+                    wasChecked = false;
+                }
+            });
         });
         function showErr(m) { $("err").textContent = m; $("err").style.display = "block" }
         function validNp(v) { return /^9[78]\d{8}$/.test(v.replace(/\D/g, "")) }
-        var LABEL = { cod: "Cash on delivery", esewa: "eSewa", khalti: "Khalti", bank: "Bank transfer" };
+        var LABEL = { cod: "Cash on delivery", esewa: "eSewa", paypal: "PayPal", bank: "Bank transfer" };
 
-        $("pay").onclick = function () {
-            var m = document.querySelector("[name=pm]:checked").value, wallet = "";
-            if (m === "esewa" || m === "khalti") {
+        // Placeholder exchange rate for the PayPal estimate. Get the real rate from your server.
+        var NPR_PER_USD = 135;
+        if (order) {
+            $("ppAmt").textContent = "Estimated charge: about $" + (order.totals.total / NPR_PER_USD).toFixed(2) + " USD";
+        }
+        // Bank transfer uses its own Submit button, so hide "Place order" for it
+        function syncBtn() {
+            var sel = document.querySelector("[name=pm]:checked");
+            if (!sel) { showErr("Please choose a payment method."); return }
+            var m = sel.value, wallet = "";
+            $("pay").style.display = m === "bank" ? "none" : "";
+        }
+        syncBtn();
+
+        $("pay").onclick = place;
+        $("bankSubmit").onclick = place;
+        function place() {
+            var m = document.querySelector("[name=pm]:checked").value, wallet = "", extra = {};
+            if (m === "esewa") {
                 wallet = $(m + "Id").value.trim();
                 if (!validNp(wallet)) { showErr("Enter a valid 10 digit mobile number starting with 97 or 98."); return }
             }
+            if (m === "bank") {
+                var txn = $("bankTxn").value.trim(), f = $("bankReceipt").files[0];
+                if (!txn) { showErr("Enter your transaction or reference ID."); return }
+                if (!f) { showErr("Upload a screenshot or PDF of your payment receipt."); return }
+                if (!/^(image\/|application\/pdf)/.test(f.type)) { showErr("The receipt must be an image or a PDF."); return }
+                if (f.size > 5 * 1024 * 1024) { showErr("The receipt must be under 5 MB."); return }
+                extra = { txn: txn, receipt: f.name };
+            }
+            $("err").style.display = "none";
             $("pay").disabled = true; $("pay").textContent = "Processing...";
+            $("bankSubmit").disabled = true; $("bankSubmit").textContent = "Submitting...";
 
             /* ---------------------------------------------------------------
                PAYMENT GATEWAY HOOK
-               eSewa and Khalti must be completed through their own checkout,
+               eSewa and PayPal must be completed through their own checkout,
                and the result verified on your server. This demo skips that
                step and treats the payment as started. To go live:
                  1. POST the order to your Django backend and get an order id.
-                 2. Redirect to the eSewa / Khalti payment page it returns.
+                 2. Redirect to the eSewa / PayPal payment page it returns.
                  3. Mark the order as paid only after your server verifies it.
                --------------------------------------------------------------- */
             setTimeout(function () {
                 var d = new Date(),
                     id = "GC-" + d.getFullYear().toString().slice(2) + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2) + "-" + Math.floor(1000 + Math.random() * 9000);
-                var status = (m === "esewa" || m === "khalti") ? "Paid" : (m === "bank" ? "Awaiting transfer" : (order.service === "home" ? "Pay on delivery" : "Pay at store"));
-                var done = { id: id, placedAt: d.toISOString(), method: m, methodLabel: LABEL[m], wallet: wallet ? wallet.slice(0, 2) + "******" + wallet.slice(-2) : "", status: status, order: order };
+                var status = (m === "esewa" || m === "paypal") ? "Paid" : (m === "bank" ? "Payment submitted, verifying" : (order.service === "home" ? "Pay on delivery" : "Pay at store"));
+                var done = { id: id, placedAt: d.toISOString(), method: m, methodLabel: LABEL[m], wallet: wallet ? wallet.slice(0, 2) + "******" + wallet.slice(-2) : "", status: status, extra: extra, order: order };
                 try { sessionStorage.setItem("gc_confirmed", JSON.stringify(done)); sessionStorage.removeItem("gc_order") } catch (e) {}
-                location.href = "order.html";
+                location.href = "order.html"; 
             }, 900);
         };
     </script>
