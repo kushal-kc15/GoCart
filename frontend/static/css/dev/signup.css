@@ -1,0 +1,158 @@
+/* Sign-up page: home-theme composition and responsive refinements. */
+.auth-section--signup {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.auth-section--signup::before,
+.auth-section--signup::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.auth-section--signup::before {
+  width: 390px;
+  height: 390px;
+  top: -210px;
+  left: -100px;
+  background: rgba(47, 122, 77, 0.1);
+}
+
+.auth-section--signup::after {
+  width: 300px;
+  height: 300px;
+  right: -120px;
+  bottom: -150px;
+  background: rgba(255, 107, 74, 0.1);
+}
+
+.auth-section--signup .auth-wrapper {
+  max-width: 1200px;
+  grid-template-columns: minmax(380px, 0.9fr) minmax(570px, 1.25fr);
+  border-radius: 180px 18px 18px 18px;
+  box-shadow: 0 28px 70px rgba(32, 92, 57, 0.14);
+}
+
+.auth-section--signup .auth-showcase {
+  min-height: 790px;
+  padding-top: 70px;
+}
+
+.auth-section--signup .auth-showcase__overlay {
+  background: linear-gradient(150deg, rgba(32, 92, 57, 0.92), rgba(37, 86, 50, 0.68));
+}
+
+.auth-showcase__message {
+  margin-top: auto;
+}
+
+.auth-showcase__message .eyebrow {
+  margin-bottom: 14px;
+  color: #dceacb;
+}
+
+.auth-showcase__message h2 em {
+  display: block;
+  color: #ffb15e;
+  font-weight: 400;
+}
+
+.auth-showcase__message > p:last-child {
+  max-width: 430px;
+  margin-top: 18px;
+}
+
+.auth-doodle {
+  position: absolute;
+  z-index: 3;
+  top: 110px;
+  right: 28px;
+  color: #ffe6b0;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-style: italic;
+  transform: rotate(8deg);
+}
+
+.auth-section--signup .auth-form-panel {
+  padding: 44px clamp(34px, 5vw, 68px);
+}
+
+.auth-section--signup .auth-form-card {
+  max-width: 540px;
+}
+
+.auth-section--signup .auth-header h1 {
+  font-size: clamp(38px, 4vw, 52px);
+}
+
+.auth-section--signup .auth-form {
+  gap: 15px;
+}
+
+.auth-section--signup .button--primary {
+  justify-content: space-between;
+}
+
+.auth-section--signup .password-strength {
+  height: 4px;
+  margin-top: 2px;
+  overflow: hidden;
+  background: var(--paper);
+  border-radius: 999px;
+}
+
+.auth-section--signup .password-strength__bar {
+  width: 0;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--coral);
+  transition: width 0.25s, background 0.25s;
+}
+
+.auth-section--signup .password-strength__bar[data-strength="medium"] {
+  background: var(--gold);
+}
+
+.auth-section--signup .password-strength__bar[data-strength="strong"] {
+  background: var(--green);
+}
+
+@media (max-width: 900px) {
+  .auth-section--signup .auth-wrapper {
+    grid-template-columns: 1fr;
+    max-width: 650px;
+    border-radius: 90px 18px 18px 18px;
+  }
+
+  .auth-section--signup .auth-form-panel {
+    padding: 46px clamp(24px, 7vw, 52px);
+  }
+}
+
+@media (max-width: 620px) {
+  .auth-section--signup {
+    padding: 20px 12px 36px;
+  }
+
+  .auth-section--signup .auth-wrapper {
+    border-radius: 58px 14px 14px 14px;
+  }
+
+  .auth-section--signup .auth-form-panel {
+    padding: 40px 22px;
+  }
+
+  .auth-section--signup .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-section--signup .auth-header h1 {
+    font-size: 36px;
+  }
+}

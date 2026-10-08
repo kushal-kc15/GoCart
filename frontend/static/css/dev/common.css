@@ -1,0 +1,383 @@
+/* Shared styles for every dev page (loaded in base.html after home.css).
+   Uses the home.css colour tokens; adds no new colours.
+   Classes are prefixed "gc-" so they never clash with Bootstrap or the
+   page-specific classes. Pages switch to them one at a time. */
+
+:root {
+  --radius-sm: 8px;
+  --radius: 10px;
+  --shadow-sm: 0 1px 2px rgba(51, 53, 47, 0.06);
+}
+
+/* ============ Sticky footer ============ */
+/* On short pages the footer sits at the bottom of the screen instead of
+   halfway up. The body is a column (header, main, footer) at least one
+   screen tall, and main (base.html) takes up any spare height. */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;  /* fallback for older browsers */
+  min-height: 100dvh; /* phones: the visible height, without the address bar */
+}
+
+.site-main {
+  flex: 1 0 auto;
+}
+
+/* Visible keyboard focus everywhere (mouse clicks don't show it) */
+:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* ============ Buttons ============ */
+.gc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.gc-btn--primary {
+  background: var(--green);
+  color: #fff;
+}
+
+.gc-btn--primary:hover {
+  background: var(--green-dark);
+  color: #fff;
+}
+
+.gc-btn--outline {
+  background: #fff;
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.gc-btn--outline:hover {
+  background: rgba(47, 122, 77, 0.08);
+}
+
+/* Compact size, e.g. page numbers */
+.gc-btn--sm {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.gc-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Any submit button while its form is being sent (see common.js) */
+button[aria-busy="true"] {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* The hidden attribute alone loses to rules like ".cart-badge { display: flex }",
+   so make it win: common.js hides and shows badges and empty states with it. */
+[hidden] {
+  display: none !important;
+}
+
+/* ============ Cards, inputs, badges ============ */
+.gc-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.gc-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 16px; /* 16px stops iOS zooming in on focus */
+}
+
+.gc-input:focus {
+  border-color: var(--green);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(47, 122, 77, 0.15);
+}
+
+.gc-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gc-badge--success { background: #eaf1e7; color: var(--green-dark); }
+.gc-badge--warning { background: #fdf3dc; color: #8a5a00; }
+.gc-badge--danger  { background: #fbeaea; color: #b3261e; }
+
+/* ============ Page layout ============ */
+.gc-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.gc-page-title {
+  font-family: var(--serif);
+  font-size: 32px;
+  color: var(--charcoal);
+}
+
+.gc-empty {
+  color: var(--muted);
+  padding: 24px 0;
+}
+
+/* ============ Flash messages: close button ============ */
+.message {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.message-close {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.message-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ============ Header search icon (a real button) ============ */
+.search-btn {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+/* ============ Header icons (wishlist and cart) ============ */
+/* Same box and icon size for both, so the icons and their badges line up */
+.header-actions .icon-link {
+  width: 28px;
+  height: 28px;
+  justify-content: center;
+}
+
+.header-actions .icon-link .icon-svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* The team's cart badge style: small green circle on the icon's corner */
+.icon-link .cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--green);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============ Account menu (header, logged in) ============ */
+/* A <details> element: the browser opens and closes it, and hides the
+   dropdown list while it is closed. */
+.account-menu {
+  position: relative;
+}
+
+.account-toggle {
+  display: flex;        /* not list-item, so Chrome/Firefox drop the triangle */
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--charcoal);
+  white-space: nowrap;
+}
+
+.account-toggle::-webkit-details-marker {
+  display: none;        /* Safari's triangle */
+}
+
+.account-toggle:hover {
+  color: var(--green);
+}
+
+.account-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.account-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 16px rgba(51, 53, 47, 0.12);
+}
+
+/* Links and the Logout button look the same */
+.account-dropdown a,
+.account-dropdown .logout-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.account-dropdown a:hover,
+.account-dropdown .logout-btn:hover {
+  background: var(--paper);
+  color: var(--green);
+}
+
+.account-dropdown a:focus-visible,
+.account-dropdown .logout-btn:focus-visible {
+  outline-offset: -2px; /* keep the focus ring inside the box */
+}
+
+.account-dropdown .logout-form {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+/* Smaller laptops: just the initials circle */
+@media (max-width: 1199px) {
+  .account-name { display: none; }
+}
+
+/* ============ Wishlist heart (dev/_wish_button.html) ============ */
+/* One design on every product image. The image wrapper gets class
+   "wish-wrap"; the heart sits in its top-right corner. */
+.wish-wrap {
+  position: relative;
+}
+
+/* The form takes no space, so it never shifts the image */
+.wish-form {
+  display: contents;
+}
+
+.wish {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2; /* above the image and the category tag */
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(51, 53, 47, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.wish:hover {
+  transform: scale(1.08);
+}
+
+.wish:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+/* Outline when not saved, filled when saved */
+.wish svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 2;
+}
+
+.wish[aria-pressed="true"] svg {
+  fill: var(--coral);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wish { transition: none; }
+  .wish:hover { transform: none; }
+}
+
+@media (max-width: 576px) {
+  .wish { width: 28px; height: 28px; top: 6px; right: 6px; }
+  .wish svg { width: 14px; height: 14px; }
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 768px) {
+  .gc-section {
+    padding: 32px 16px;
+  }
+  .gc-page-title {
+    font-size: 26px;
+  }
+}

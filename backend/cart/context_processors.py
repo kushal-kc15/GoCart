@@ -5,12 +5,9 @@ from .models import CartItem
 
 
 def cart_count(request):
-    """Total number of items in the signed-in user's cart, for the header badge."""
-    # The admin has no cart badge, so don't spend a query on it.
-    if request.path.startswith(reverse("admin:index")):
-        return {"cart_count": 0}
-
-    if not request.user.is_authenticated:
+    """Total quantity in the user's cart, for the header badge."""
+    # The admin has no badge, so skip the query.
+    if request.path.startswith(reverse("admin:index")) or not request.user.is_authenticated:
         return {"cart_count": 0}
 
     total = CartItem.objects.filter(cart__user=request.user).aggregate(

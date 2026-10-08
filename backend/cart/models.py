@@ -35,5 +35,5 @@ class CartItem(models.Model):
 
     @property
     def line_total(self):
-        """Price x quantity, using the product's current price."""
+        """Uses the product's current price (an order keeps the price paid)."""
         return self.product.price * self.quantity

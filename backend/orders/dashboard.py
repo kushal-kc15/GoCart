@@ -1,8 +1,4 @@
-"""The admin home page: what needs doing now.
-
-Unfold calls dashboard_callback (see UNFOLD["DASHBOARD_CALLBACK"] in settings)
-before showing admin/dashboard.html. All times are Nepal time (settings.TIME_ZONE).
-"""
+"""Admin home page data (unfold DASHBOARD_CALLBACK). Times are Nepal time."""
 from datetime import timedelta
 
 from django.db.models import Count, Q, Sum
@@ -18,9 +14,8 @@ LATEST_ORDERS_SHOWN = 10
 
 
 def day_and_week_start():
-    """Midnight today and midnight last Sunday (the week starts on Sunday), Nepal time."""
     today_start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
-    # weekday(): Monday is 0 ... Sunday is 6, so this counts the days back to Sunday.
+    # weekday(): Monday is 0 ... Sunday is 6, so this counts back to Sunday.
     week_start = today_start - timedelta(days=(today_start.weekday() + 1) % 7)
     return today_start, week_start
 
@@ -35,8 +30,7 @@ def dashboard_callback(request, context):
             payment__method=Payment.Method.COD,
             payment__status=Payment.Status.PENDING,
         )
-        # Rupee totals for today and this week are only for Managers and superusers.
-        # For anyone else they are not even worked out.
+        # Rupee totals are only worked out for those allowed to see them.
         show_totals = request.user.has_perm("orders.view_money_totals")
 
         # Query 1: every order number on the page.
@@ -61,7 +55,6 @@ def dashboard_callback(request, context):
             )
         numbers = Order.objects.aggregate(**wanted)
 
-        # Each card links to the order list with the matching filter.
         context["action_cards"] = [
             {"title": "Pending", "hint": "To confirm", "count": numbers["pending"],
              "url": f"{orders_url}?status__exact=pending"},
@@ -85,8 +78,7 @@ def dashboard_callback(request, context):
                 status=Payment.Status.PAID,
                 paid_at__gte=today_start,
             ).aggregate(count=Count("id"), total=Sum("amount"))
-            # The order list's date filter and totals line match these cards
-            # (cancelled orders are left out of both).
+            # Matches the order list's date filter and totals line (cancelled left out).
             context["order_cards"] = [
                 {"title": "Orders today", "hint": "Placed today, cancelled not counted",
                  "count": numbers["today_count"], "amount": numbers["today_total"] or 0,
@@ -98,7 +90,7 @@ def dashboard_callback(request, context):
                  "count": cash_today["count"], "amount": cash_today["total"] or 0},
             ]
 
-        # Query 3: the latest orders, with the badge colour for each.
+        # Query 3: the latest orders.
         latest = Order.objects.select_related("user").order_by("-created_at")[:LATEST_ORDERS_SHOWN]
         context["latest_orders"] = [
             {"order": order, "colour": STATUS_COLOURS.get(order.status)} for order in latest

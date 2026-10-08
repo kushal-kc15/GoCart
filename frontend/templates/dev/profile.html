@@ -1,0 +1,99 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}My Account — GoCart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dev/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+{# Plain account overview: details, quick links, recent orders and a help line. #}
+{# wishlist_count comes from the wishlist context processor. #}
+<section class="profile-page">
+    <div class="pf-shell">
+        {% include "dev/_account_sidebar.html" with active="account" %}
+
+        <div class="pf-main">
+            <h1 class="pf-title">My Account</h1>
+
+            <!-- Details -->
+            <div class="pf-card pf-details">
+                <div class="pf-details-head">
+                    <span class="pf-avatar pf-avatar--details" aria-hidden="true">{{ initials }}</span>
+                    <h2 class="pf-name">{{ profile_user.get_full_name|default:profile_user.email }}</h2>
+                    <a href="{% url 'accounts:edit_profile' %}" class="pf-btn">Edit profile</a>
+                </div>
+                <dl class="pf-facts">
+                    <div><dt class="pf-label">Phone</dt><dd class="pf-val">{{ profile_user.phone|default:"—" }}</dd></div>
+                    <div><dt class="pf-label">Email</dt><dd class="pf-val">{{ profile_user.email }}</dd></div>
+                    <div><dt class="pf-label">Member since</dt><dd class="pf-val">{{ profile_user.date_joined|date:"M Y" }}</dd></div>
+                </dl>
+            </div>
+
+            <!-- Quick links -->
+            <div class="pf-tiles">
+                <a href="{% url 'orders:order_list' %}" class="pf-tile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" />
+                        <path d="m3 8 9 5 9-5" />
+                        <path d="M12 13v8" />
+                    </svg>
+                    <span class="pf-tile-text">
+                        <strong>My Orders</strong>
+                        <span>{{ order_count }} order{{ order_count|pluralize }}</span>
+                    </span>
+                    <span class="pf-tile-arrow" aria-hidden="true">›</span>
+                </a>
+                <a href="{% url 'wishlist:wishlist_detail' %}" class="pf-tile">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                    <span class="pf-tile-text">
+                        <strong>Wishlist</strong>
+                        <span>{{ wishlist_count }} item{{ wishlist_count|pluralize }}</span>
+                    </span>
+                    <span class="pf-tile-arrow" aria-hidden="true">›</span>
+                </a>
+            </div>
+
+            <!-- Recent orders. The full list is on My Orders. -->
+            <div class="pf-card" id="orders">
+                <div class="pf-card-head">
+                    <h3>Recent Orders</h3>
+                    <a href="{% url 'orders:order_list' %}" class="pf-link">View all orders ›</a>
+                </div>
+                {% if recent_orders %}
+                <div class="pf-orders">
+                    {% for order in recent_orders %}
+                    <a class="pf-order" href="{% url 'orders:order_detail' pk=order.pk %}">
+                        <div>
+                            <div class="pf-order-num">Order #{{ order.pk }}</div>
+                            {% with count=order.items.all|length %}
+                            <div class="pf-order-meta">{{ order.created_at|date:"j M Y" }} · {{ count }} item{{ count|pluralize }}</div>
+                            {% endwith %}
+                        </div>
+                        <div class="pf-order-side">
+                            {% include "dev/_order_badge.html" %}
+                            <span class="pf-order-total">Rs. {{ order.total|floatformat:"-2" }}</span>
+                            <span class="pf-order-view">View ›</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="pf-empty">You haven't placed any orders yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Help (same shop number as the header) -->
+            <p class="pf-help">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
+                </svg>
+                Need help with an order? Call <a href="tel:+9779707046738">+9779707046738</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

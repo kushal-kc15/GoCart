@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.db import models
 
-# A product with stock under this counts as "low stock" (admin filter and dashboard).
+# Under this stock counts as "low" (admin filter and dashboard).
 LOW_STOCK_LIMIT = 10
 
-# Create your models here.
+
 class Category(models.Model):
     name=models.CharField(max_length=200)
     slug=models.SlugField(max_length=200, unique=True)
@@ -77,7 +77,7 @@ class Review(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
     rating = models.PositiveSmallIntegerField(choices=Rating.choices)
     comment = models.TextField(max_length=1000)
-    # Staff can hide a review in the admin; reviews show straight away otherwise.
+    # Staff can hide a review in the admin.
     is_visible = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -101,7 +101,7 @@ class Review(models.Model):
 
     @property
     def reviewer_name(self):
-        """First name and last initial, e.g. "Asha S." (never the email)."""
+        """First name and last initial, e.g. "Asha S.", never the email."""
         first = self.user.first_name or "GoCart customer"
         last = self.user.last_name[:1]
         return f"{first} {last}." if last else first

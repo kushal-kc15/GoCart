@@ -1,0 +1,116 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}My Orders – GoCart{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dev/profile.css' %}">
+<link rel="stylesheet" href="{% static 'css/dev/order_list.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <div class="pf-shell">
+        {% include "dev/_account_sidebar.html" with active="orders" %}
+
+        <div class="pf-main">
+            <div class="ol-top">
+                <div class="ol-head">
+                    <h1 class="ol-title">My Orders</h1>
+                    {% with total=page_obj.paginator.count %}
+                    <span class="ol-count">{{ total }} order{{ total|pluralize }}</span>
+                    {% endwith %}
+                </div>
+
+                <nav class="ol-tabs" aria-label="Filter orders">
+                    {% for key, label in tabs %}
+                    <a href="{% url 'orders:order_list' %}{% if key != 'all' %}?status={{ key }}{% endif %}"{% if key == tab %} class="active" aria-current="page"{% endif %}>{{ label }}</a>
+                    {% endfor %}
+                </nav>
+            </div>
+
+            {% if page_obj.object_list %}
+            <div class="ol-list">
+                {% for order in page_obj %}
+                {% with items=order.items.all %}
+                {% with count=items|length %}
+                <article class="pf-card ol-card">
+                    <div class="ol-card-top">
+                        <div>
+                            <div class="ol-num">Order #{{ order.pk }}</div>
+                            <div class="ol-date">Placed on {{ order.created_at|date:"j M Y" }}</div>
+                        </div>
+                        {% include "dev/_order_badge.html" %}
+                    </div>
+
+                    <div class="ol-card-body">
+                        <div class="ol-thumbs">
+                            {% for item in items|slice:":3" %}
+                            {% with first_image=item.product.images.all|first %}
+                            <img class="ol-thumb" src="{% if first_image %}{{ first_image.image.url }}{% else %}{% static 'images/dev/fruits.jpg' %}{% endif %}" alt="{{ item.product_name|default:item.product.name }}">
+                            {% endwith %}
+                            {% endfor %}
+                            {% if count > 3 %}<span class="ol-more">+{{ count|add:"-3" }} more</span>{% endif %}
+                        </div>
+                        <div class="ol-summary">
+                            <span class="ol-items">{{ count }} item{{ count|pluralize }}</span>
+                            <strong class="ol-total">Rs. {{ order.total|floatformat:"-2" }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="ol-actions">
+                        {% if order.status == "pending" %}
+                        {# No data-once here: with the confirm() prompt, a "Cancel" answer would still disable the button #}
+                        <form method="post" action="{% url 'orders:cancel_order' order.pk %}"
+                              onsubmit="return confirm('Cancel this order? This cannot be undone.');">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <button type="submit" class="pf-btn pf-btn--outline ol-cancel">Cancel</button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'orders:order_detail' pk=order.pk %}" class="pf-btn">View details</a>
+                    </div>
+                </article>
+                {% endwith %}
+                {% endwith %}
+                {% endfor %}
+            </div>
+
+            {# Pagination: the querystring tag keeps ?status= #}
+            {% if page_obj.paginator.num_pages > 1 %}
+            <nav class="ol-pagination" aria-label="Order pages">
+                {% if page_obj.has_previous %}
+                <a href="{% querystring page=page_obj.previous_page_number %}" class="gc-btn gc-btn--outline gc-btn--sm">Previous</a>
+                {% endif %}
+
+                {% for n in page_range %}
+                    {% if n == page_obj.number %}
+                    <span class="gc-btn gc-btn--primary gc-btn--sm" aria-current="page">{{ n }}</span>
+                    {% elif n == page_obj.paginator.ELLIPSIS %}
+                    <span class="ol-page-dots">{{ n }}</span>
+                    {% else %}
+                    <a href="{% querystring page=n %}" class="gc-btn gc-btn--outline gc-btn--sm">{{ n }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a href="{% querystring page=page_obj.next_page_number %}" class="gc-btn gc-btn--outline gc-btn--sm">Next</a>
+                {% endif %}
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="pf-card ol-empty">
+                <p>
+                    {% if tab == "active" %}You have no active orders.
+                    {% elif tab == "delivered" %}No delivered orders yet.
+                    {% elif tab == "cancelled" %}No cancelled orders.
+                    {% else %}You haven't placed any orders yet.{% endif %}
+                </p>
+                <a href="{% url 'products:product_list' %}" class="pf-btn">Start shopping</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

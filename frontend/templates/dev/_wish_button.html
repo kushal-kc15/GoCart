@@ -1,0 +1,18 @@
+{# Wishlist heart: the same round SVG heart on every product image (styles: css/dev/common.css). #}
+{# Include it inside the image wrapper, which needs class "wish-wrap":                          #}
+{#   {% include "dev/_wish_button.html" with product=p anchor="featured" %}                       #}
+{# anchor = id to come back to after the click; card_anchor=True comes back to #product-<id>.     #}
+{# Filled when saved (aria-pressed="true"), outline when not; wishlist_ids is from the context processor. #}
+{# data-ajax: common.js saves it in place (no reload); without JavaScript the form posts and redirects as before. #}
+<form class="wish-form" method="post" action="{% url 'wishlist:toggle' %}" data-ajax="wish-toggle" data-once>
+    {% csrf_token %}
+    <input type="hidden" name="product_id" value="{{ product.id }}">
+    <input type="hidden" name="action" value="{% if product.id in wishlist_ids %}remove{% else %}add{% endif %}">
+    <input type="hidden" name="next" value="{{ request.get_full_path }}{% if card_anchor %}#product-{{ product.id }}{% elif anchor %}#{{ anchor }}{% endif %}">
+    <button type="submit" class="wish" aria-label="Save {{ product.name }} to wishlist"
+        aria-pressed="{% if product.id in wishlist_ids %}true{% else %}false{% endif %}">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+        </svg>
+    </button>
+</form>

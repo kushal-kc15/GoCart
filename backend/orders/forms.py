@@ -5,10 +5,7 @@ from accounts.validators import normalize_nepali_phone
 
 
 class AddressForm(forms.ModelForm):
-    """Delivery address collected at checkout."""
-
-    # Longer than the 10 digits we store, so "+977 981 234 5678" reaches clean_phone.
-    # inputmode="tel" opens the number keypad on phones.
+    # Longer than the 10 stored digits, so "+977 981 234 5678" reaches clean_phone.
     phone = forms.CharField(
         max_length=20,
         widget=forms.TextInput(attrs={
@@ -19,7 +16,6 @@ class AddressForm(forms.ModelForm):
     class Meta:
         model = Address
         fields = ["recipient_name", "phone", "address_line", "city", "area"]
-        # autocomplete lets the browser fill saved details.
         widgets = {
             "recipient_name": forms.TextInput(attrs={
                 "placeholder": "Full name", "autocomplete": "name",

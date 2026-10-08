@@ -74,6 +74,35 @@ Django 6.0 project split between a Django backend and template/static assets tha
 - Add short comments only where the reason isn't obvious.
 - Optimizations, refactors and advanced features wait for the final phase.
 
+## Done
+Admin work, "admin Phases 1-5" (not the storefront Phase 1 in Scope above):
+- Phase 1, orders: status flow Pending > Confirmed > Packed > Out for delivery
+  (or Ready for pickup) > Delivered, plus Cancelled. `Order.change_status` in
+  [backend/orders/models.py](backend/orders/models.py) is the only way to change a status; it
+  checks the allowed next step, restores stock on cancel, and writes `OrderStatusChange`
+  (admin-only history). A staff cancel needs a note. Admin order page is read-only, with a status
+  panel, "Print packing slip" and "Mark cash collected" (records `Payment.collected_by`). Orders
+  can't be added or deleted in the admin.
+- Phase 2, dashboard: first page staff see ([backend/orders/dashboard.py](backend/orders/dashboard.py)):
+  action cards, orders today/this week, cash collected today, low stock, latest orders. Nepal time,
+  week starts on Sunday.
+- Phase 3, products: thumbnail column, stock badges, "Show on site"/"Hide from site" bulk actions,
+  Category list query fix (73 queries to 4) and a product count per category.
+- Phase 4, customers: list with order count, total spent (cancelled not counted) and last order;
+  phone search that finds both saved formats; recent orders on the customer page.
+- Phase 5, roles: "Order staff" and "Managers" groups made by a data migration
+  (`accounts/migrations/0002_staff_groups.py`). Only superusers create staff or touch access;
+  Managers see customers only and can edit first name, last name and Active, not email.
+  Order staff and Managers see only the sidebar links and dashboard sections they can use;
+  `orders.view_money_totals` hides rupee totals from Order staff.
+- Deactivate, don't delete: PROTECT on `Order.user`, `Payment.collected_by` and
+  `OrderStatusChange.changed_by`. An account with orders, collected cash or status changes
+  can't be deleted; untick "Active" instead.
+- `TIME_ZONE = "Asia/Kathmandu"` (dates are stored in UTC).
+- `LOW_STOCK_LIMIT` in [backend/products/models.py](backend/products/models.py), shared by the
+  admin stock filter and the dashboard.
+- The cart and wishlist context processors skip admin pages (no wasted queries there).
+
 ## Later (final phase)
 - Product detail: make page wider/larger image, shrink SHOP banner,
   clickable breadcrumb, bigger qty/Buy Now/Add to Cart controls.
@@ -87,3 +116,16 @@ Django 6.0 project split between a Django backend and template/static assets tha
 - Header search dropdown uses a hardcoded name list.
 - Slider: resizing the window can leave the index past the end until Prev is clicked.
 - Old accounts with mixed-case emails can't log in (login lowercases the email).
+- Fill in `SHOP_INFO` in settings (placeholders now). A tax invoice needs PAN/VAT details.
+- Phones are saved in two formats (+977 and 10-digit) since about Oct 4: check that path still
+  validates, and normalise before OTP.
+- Real product photos (all products use the placeholder).
+- "Flakes & Kids Cereals" is under "Dairy, Bread & Eggs": fix in admin and in the seed data.
+- Admin headings "Is available"/"Is featured" -> "Available"/"Featured".
+- Lowercase the email when a superuser edits an existing account (the add page already does).
+- A mistaken "Mark cash collected" can't be undone in the admin.
+- New admin models need a new migration to add their permissions to the groups.
+- Wishlist page has no account sidebar (My Account and Orders do).
+- Final cleanup: delete demo1-6@gocart.test; deactivate staff@gocart.test and
+  manager@gocart.test (they can't be deleted).
+- Only run one runserver at a time (a stale one fooled us).

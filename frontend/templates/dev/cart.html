@@ -1,0 +1,169 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}Cart – GoCart{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/dev/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cart-page">
+    <div class="cart-wrap">
+        <!-- Slim page heading. cart_count is the header badge's total quantity -->
+        <div class="cart-title-row">
+            <h1 class="cart-title">Shopping Cart</h1>
+            <span class="cart-count" data-cart-items-label>{{ cart_count }} item{{ cart_count|pluralize }}</span>
+        </div>
+
+        <!-- Cart panel -->
+        {# The data-cart-* attributes are what cart.js changes in place (no reload). #}
+        {# Both the cart list and the empty message are always in the page; the one that doesn't apply is hidden. #}
+        <div class="cart-panel">
+            <div class="cart-head" data-cart-filled{% if not cart_items %} hidden{% endif %}>
+                <label class="select-all">
+                    <input type="checkbox" checked disabled title="Coming soon">
+                    SELECT ALL <span data-cart-products-label>({{ cart_items|length }} product{{ cart_items|length|pluralize }})</span>
+                </label>
+                <button type="button" class="delete-link" disabled title="Coming soon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" />
+                    </svg>
+                    DELETE
+                </button>
+            </div>
+
+            <div class="cart-items" data-cart-filled{% if not cart_items %} hidden{% endif %}>
+            {% for item in cart_items %}
+            {# data-ajax-lock: while one button is working, the row's other buttons wait too #}
+            <div class="cart-item" data-cart-row data-ajax-lock>
+                <input type="checkbox" class="item-check" checked disabled title="Coming soon">
+
+                <div class="item-thumb">
+                    {% with first_image=item.product.images.all|first %}
+                    {% if first_image %}
+                    <img src="{{ first_image.image.url }}" alt="{{ item.product.name }}">
+                    {% else %}
+                    <img src="{% static 'images/dev/fruits.jpg' %}" alt="{{ item.product.name }}">
+                    {% endif %}
+                    {% endwith %}
+                </div>
+
+                <div class="item-body">
+                    <div class="item-top">
+                        <h3><a href="{% url 'products:product_detail' slug=item.product.slug %}">{{ item.product.name }}</a></h3>
+                        <form method="post" action="{% url 'cart:remove_from_cart' %}" data-ajax="cart-remove">
+                            {% csrf_token %}
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
+                            <button type="submit" class="trash-btn" aria-label="Remove {{ item.product.name }}">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16z" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="price-row">
+                        <div>
+                            <span class="price-label">Price</span>
+                            <div class="price-now">Rs. {{ item.product.price|floatformat:"-2" }}</div>
+                        </div>
+
+                        <div class="qty-control">
+                            <form method="post" action="{% url 'cart:update_quantity' %}" data-ajax="cart-qty">
+                                {% csrf_token %}
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <input type="hidden" name="action" value="dec">
+                                <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
+                                <button type="submit" aria-label="Decrease quantity" data-cart-dec {% if item.quantity <= 1 %}disabled{% endif %}>−</button>
+                            </form>
+                            <span data-cart-qty>{{ item.quantity }}</span>
+                            <form method="post" action="{% url 'cart:update_quantity' %}" data-ajax="cart-qty">
+                                {% csrf_token %}
+                                <input type="hidden" name="item_id" value="{{ item.id }}">
+                                <input type="hidden" name="action" value="inc">
+                                <input type="hidden" name="next" value="{% url 'cart:cart_detail' %}">
+                                <button type="submit" aria-label="Increase quantity">+</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {% if item.product.unit %}
+                    <div class="weight-row">
+                        <span class="weight-label">Weight :</span>
+                        <div class="weight-options">
+                            <span class="weight-pill active">{{ item.product.unit }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+
+            <a href="{% url 'products:product_list' %}" class="continue-link" data-cart-filled{% if not cart_items %} hidden{% endif %}>&larr; Continue shopping</a>
+
+            <div class="cart-empty" data-cart-empty{% if cart_items %} hidden{% endif %}>
+                <p>Your cart is empty.</p>
+                <a href="{% url 'products:product_list' %}" class="continue-link">&larr; Continue shopping</a>
+            </div>
+        </div>
+
+        <!-- Order summary -->
+        <aside class="summary">
+            <h2>Order Summary</h2>
+            <div class="sum-row"><span class="label">Sub-total</span><span class="value" data-cart-subtotal>Rs. {{ subtotal|floatformat:"-2" }}</span></div>
+            <div class="sum-row discount"><span class="label">Discount</span><span class="value">Rs. 0</span></div>
+            <div class="sum-row"><span class="label">VAT / TAX</span><span class="value">Rs. 0</span></div>
+            <div class="sum-row"><span class="label">Shipping charge</span><span class="value" data-cart-shipping>{% if shipping %}Rs. {{ shipping }}{% else %}Free{% endif %}</span></div>
+
+            <!-- Coupon (display only; no coupon backend yet) -->
+            <div class="coupon-label">Have discount code or coupon ?</div>
+            <div class="coupon-row">
+                <input type="text" placeholder="Enter coupon" disabled title="Coming soon">
+                <button type="button" disabled title="Coming soon">Apply</button>
+            </div>
+
+            <hr class="divider">
+
+            <!-- Delivery (display only; checkout handles delivery later) -->
+            <div class="delivery-label">Choose Delivery Service !</div>
+            <label class="delivery-opt"><input type="radio" name="delivery" value="delivery" checked disabled title="Coming soon"> Home Delivery</label>
+            <label class="delivery-opt"><input type="radio" name="delivery" value="pickup" disabled title="Coming soon"> Pick up at store</label>
+
+            <div class="total-row">
+                <span class="t-label">Total</span>
+                <span class="t-value" data-cart-total>Rs. {{ grand_total|floatformat:"-2" }}</span>
+            </div>
+
+            <a href="{% url 'orders:checkout' %}" class="pay-btn" data-cart-filled{% if not cart_items %} hidden{% endif %}>Proceed to Checkout</a>
+            <span class="pay-btn disabled" aria-disabled="true" data-cart-empty{% if cart_items %} hidden{% endif %}>Proceed to Checkout</span>
+        </aside>
+    </div>
+
+    {% if recommended_products %}
+    <!-- You may also like (team's design; cards are the shared home page cards) -->
+    <section class="recs" id="recs">
+        <div class="recs-head">
+            <h2>You may also like</h2>
+            <span class="recs-line" aria-hidden="true"></span>
+            <div class="recs-nav">
+                <button type="button" id="recsPrev" aria-label="Previous suggestions">&lt;</button>
+                <button type="button" id="recsNext" aria-label="Next suggestions">&gt;</button>
+            </div>
+        </div>
+        <div class="recs-row" id="recsRow">
+            {% for product in recommended_products %}
+            {% include "dev/_product_card.html" with anchor="recs" %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dev/cart.js' %}"></script>
+{% endblock %}

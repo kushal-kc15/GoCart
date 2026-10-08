@@ -1,0 +1,209 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GoCart – Fresh Groceries{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dev/home.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dev/common.css' %}">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css" />
+    {% block extra_css %}{% endblock %}
+    <style>
+        /* Flash messages: float above the page so they are seen even when the
+           page reloads scrolled down (e.g. back at a product card). */
+        .messages {
+            position: fixed; top: 96px; right: 24px; z-index: 1100;
+            width: min(360px, calc(100vw - 32px));
+        }
+        .message {
+            padding: 12px 16px; border-radius: 8px; margin-bottom: 10px;
+            font-size: 14px; font-weight: 600;
+            background: #eaf1e7; color: #205c39; border: 1px solid rgba(47, 122, 77, 0.3);
+            box-shadow: 0 6px 16px rgba(51, 53, 47, 0.12);
+            transition: opacity 0.3s ease;
+        }
+        .message.error { background: #fbeaea; color: #b3261e; border-color: rgba(214, 69, 69, 0.3); }
+        .message.is-hiding { opacity: 0; }
+        @media (max-width: 768px) {
+            .messages { top: auto; bottom: 16px; left: 16px; right: 16px; width: auto; }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'images/dev/logo.png' %}" alt="Logo" class="logo-img">
+                </a>
+            </div>
+
+            <a href="tel:+9779707046738" class="header-phone" aria-label="Call us on +9779707046738">
+                <span class="header-phone-text">+9779707046738</span>
+                <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
+                </svg>
+            </a>
+
+            <div class="search-field">
+                <input type="text" id="searchInput" aria-label="Search products" placeholder="Search" autocomplete="off">
+                <button type="button" class="search-btn" id="searchIcon" aria-label="Search" title="Search">
+                    <svg class="icon-svg search-icon-btn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" fill="currentColor" aria-hidden="true">
+                        <path
+                            d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z">
+                        </path>
+                    </svg>
+                </button>
+                <div class="search-dropdown" id="searchDropdown"></div>
+            </div>
+
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}class="active"{% endif %}>HOME</a></li>
+                    <li><a href="{% url 'products:product_list' %}" {% if request.resolver_match.url_name == 'product_list' %}class="active"{% endif %}>CATEGORIES</a></li>
+                    <li class="nav-extra"><a href="#">ABOUT US</a></li>
+                    <li class="nav-extra"><a href="#">CONTACT US</a></li>
+                </ul>
+            </nav>
+
+            <div class="header-actions">
+                <a href="{% url 'wishlist:wishlist_detail' %}" class="icon-link wishlist-icon" aria-label="Wishlist">
+                    <svg class="icon-svg icon-svg--heart" viewBox="0 0 24 24" fill="red" stroke="var(--coral)"
+                        stroke-width="0" stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                    {# Always rendered (hidden at 0) so common.js can update it without reloading #}
+                    <span class="cart-badge wishlist-badge" data-wishlist-badge{% if not wishlist_count %} hidden{% endif %}>{% if wishlist_count %}{{ wishlist_count }}{% endif %}</span>
+                </a>
+                <span class="header-divider"></span>
+                <a href="{% url 'cart:cart_detail' %}" class="icon-link" aria-label="Cart">
+                    <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1.3" />
+                        <circle cx="18" cy="21" r="1.3" />
+                        <path d="M2.5 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21.5 8H6" />
+                    </svg>
+                    <span class="cart-badge" id="cartBadge" data-cart-badge{% if not cart_count %} hidden{% endif %}>{% if cart_count %}{{ cart_count }}{% endif %}</span>
+                </a>
+                <span class="header-divider"></span>
+                {% if user.is_authenticated %}
+                {# <details> opens and closes without JavaScript; common.js only adds outside-click and Escape #}
+                <details class="account-menu">
+                    <summary class="account-toggle" aria-label="Hi, {{ user.first_name|default:'there' }}: account menu">
+                        <span class="account-avatar" aria-hidden="true">{% if user.first_name %}{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}{% else %}{{ user.email|first|upper }}{% endif %}</span>
+                        <span class="account-name">Hi, {{ user.first_name|default:"there" }}</span>
+                    </summary>
+                    <ul class="account-dropdown" aria-label="Account">
+                        <li><a href="{% url 'accounts:profile' %}">My Account</a></li>
+                        <li><a href="{% url 'orders:order_list' %}">My Orders</a></li>
+                        <li><a href="{% url 'wishlist:wishlist_detail' %}">Wishlist</a></li>
+                        <li>
+                            <form method="POST" action="{% url 'accounts:logout' %}" class="logout-form">
+                                {% csrf_token %}
+                                <button type="submit" class="logout-btn">Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </details>
+                {% else %}
+                <a href="{% url 'accounts:login' %}" class="user-chip">
+                    <span>Login</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    {# Always present, even when empty: common.js adds its own messages here (showMessage), and a screen reader only announces a live region that already exists #}
+    <div class="messages" role="status" aria-live="polite">
+        {% for message in messages %}
+        <div class="message {{ message.tags }}">
+            <span>{{ message }}</span>
+            <button type="button" class="message-close" aria-label="Dismiss message">&times;</button>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# Grows to fill the screen on short pages so the footer sits at the bottom (common.css) #}
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!--FOOTER-->
+    <footer class="site-footer">
+        <div class="container py-5">
+            <div class="row g-4">
+
+                <div class="col-12 col-md-4">
+                    <div class="logo logo--light mb-3">
+                        <img src="{% static 'images/dev/logo.png' %}" alt="logo">
+                    </div>
+                    <p class="mb-1">Everything You Need, All in One Cart.</p>
+                    <p>Fresh Groceries, Delivered with Care.</p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="https://www.flaticon.com/free-icons/instagram" title="instagram icons"></a>
+                        <a href="" class="social-icon">
+                            <img src="{% static 'images/dev/instagram.png' %}" alt="Instagram">
+                        </a>
+                        <a href="" class="social-icon">
+                            <img src="{% static 'images/dev/twitter.png' %}" alt="Twitter">
+                        </a>
+                        <a href="" class="social-icon">
+                            <img src="{% static 'images/dev/facebook.png' %}" alt="Facebook">
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <h4>SHOP</h4>
+                    <a href="{% url 'products:product_list' %}">Meat, Fish and Egg</a>
+                    <a href="{% url 'products:product_list' %}">Bakery and Bread</a>
+                    <a href="{% url 'products:product_list' %}">Soft Drinks</a>
+                    <a href="{% url 'products:product_list' %}">Salt and Spices</a>
+                    <a href="{% url 'products:product_list' %}">Atta, Rice and Daal</a>
+                    <a href="{% url 'products:product_list' %}">Water and Gas</a>
+                    <a href="{% url 'products:product_list' %}">Alcohol</a>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <h4>CUSTOMER SERVICE</h4>
+                    <a href="{% url 'home' %}">Home</a>
+                    <a href="#">About us</a>
+                    <a href="#">Terms and Conditions</a>
+                    <a href="#">Return Policies</a>
+                    <a href="#">Delivery Methods</a>
+                    <a href="#">Payment methods</a>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <h4>CONTACT US</h4>
+                    <p>Location</p>
+                    <p>Phone</p>
+                    <p>Email</p>
+                    <p>Open : 9:00 am</p>
+                    <p class="closed">Close : 8:00 pm</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+    <script src="{% static 'js/dev/common.js' %}"></script>
+    <script src="{% static 'js/dev/home.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

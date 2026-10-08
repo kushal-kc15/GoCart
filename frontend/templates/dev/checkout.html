@@ -1,0 +1,91 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}Checkout – GoCart{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/dev/checkout.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="checkout-page">
+    <section class="checkout-hero">
+        <h1>CHECKOUT</h1>
+        <div class="checkout-crumb"><a href="{% url 'cart:cart_detail' %}">Cart</a> / <span>Checkout</span></div>
+    </section>
+
+    <form method="post" action="{% url 'orders:checkout' %}" class="checkout-wrap" data-once>
+        {% csrf_token %}
+
+        <!-- Left: delivery + payment -->
+        <div class="checkout-main">
+            <div class="checkout-panel">
+                <h2>Delivery Address</h2>
+
+                {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+                {% endif %}
+
+                {% for field in form %}
+                <div class="field-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                    {{ field }}
+                    {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="checkout-panel">
+                <h2>Delivery Method</h2>
+                <label class="opt">
+                    <input type="radio" name="delivery_method" value="delivery" checked>
+                    <span>Home Delivery <small>(Rs. 100)</small></span>
+                </label>
+                <label class="opt">
+                    <input type="radio" name="delivery_method" value="pickup">
+                    <span>Pick up at store <small>(Free)</small></span>
+                </label>
+            </div>
+
+            <div class="checkout-panel">
+                <h2>Payment Method</h2>
+                <label class="opt">
+                    <input type="radio" name="payment_method" value="cod" checked>
+                    <span>Cash on Delivery</span>
+                </label>
+                <label class="opt opt--disabled">
+                    <input type="radio" name="payment_method" value="esewa" disabled title="Coming soon">
+                    <span>eSewa <small>(Coming soon)</small></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Right: order summary -->
+        <aside class="summary">
+            <h2>Order Summary</h2>
+
+            <div class="summary-items">
+                {% for item in cart_items %}
+                <div class="summary-item">
+                    <span class="s-name">{{ item.product.name }} <small>× {{ item.quantity }}</small></span>
+                    <span class="s-price">Rs. {{ item.line_total|floatformat:"-2" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="sum-row"><span class="label">Sub-total</span><span class="value">Rs. {{ subtotal|floatformat:"-2" }}</span></div>
+            <div class="sum-row"><span class="label">Shipping charge</span><span class="value">{% if shipping %}Rs. {{ shipping }}{% else %}Free{% endif %}</span></div>
+
+            <div class="total-row">
+                <span class="t-label">Total</span>
+                <span class="t-value">Rs. {{ grand_total|floatformat:"-2" }}</span>
+            </div>
+
+            <button type="submit" class="place-btn">Place Order</button>
+        </aside>
+    </form>
+</div>
+{% endblock %}

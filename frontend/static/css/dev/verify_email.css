@@ -1,0 +1,32 @@
+/* Verify email page: one narrow card, using the shared auth.css styles. */
+.auth-wrapper--verify {
+  max-width: 520px;
+  grid-template-columns: 1fr;
+}
+
+.auth-section--verify .auth-form-panel {
+  padding: 44px clamp(24px, 6vw, 52px);
+}
+
+.verify-code-input {
+  font-size: 22px;
+  letter-spacing: 0.3em;
+}
+
+.verify-resend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.verify-resend__button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}

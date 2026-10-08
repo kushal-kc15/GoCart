@@ -1,0 +1,48 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}Order Placed – GoCart{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/dev/checkout.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="checkout-page">
+    <section class="checkout-hero">
+        <div class="success-badge" aria-hidden="true">✓</div>
+        <h1>ORDER PLACED</h1>
+        <div class="checkout-crumb">Thank you! Your order <span>#{{ order.pk }}</span> has been placed. · <a href="{% url 'orders:order_list' %}">My orders</a></div>
+    </section>
+
+    <div class="success-wrap">
+        <div class="checkout-panel success-panel">
+            <h2>Items</h2>
+            <div class="summary-items">
+                {% for item in order.items.all %}
+                <div class="summary-item">
+                    <span class="s-name">{{ item.product_name }} <small>× {{ item.quantity }}</small></span>
+                    <span class="s-price">Rs. {{ item.line_total|floatformat:"-2" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="checkout-panel success-panel">
+            <h2>Summary</h2>
+            <div class="kv"><span class="k">Sub-total</span><span>Rs. {{ order.subtotal|floatformat:"-2" }}</span></div>
+            <div class="kv"><span class="k">Shipping charge</span><span>{% if order.shipping_fee %}Rs. {{ order.shipping_fee|floatformat:"-2" }}{% else %}Free{% endif %}</span></div>
+            <div class="kv"><span class="k">Total</span><span><strong>Rs. {{ order.total|floatformat:"-2" }}</strong></span></div>
+            <div class="kv"><span class="k">Delivery method</span><span>{{ order.get_delivery_method_display }}</span></div>
+            <div class="kv"><span class="k">Payment</span><span>Cash on Delivery</span></div>
+            <div class="success-addr">{{ order.address }}</div>
+        </div>
+
+        <div class="success-actions">
+            <a href="{% url 'orders:order_detail' pk=order.pk %}" class="btn-line btn-ghost">Track this order</a>
+            <a href="{% url 'products:product_list' %}" class="btn-line btn-fill">Continue shopping</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

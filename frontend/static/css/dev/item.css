@@ -1,0 +1,703 @@
+/* Product detail page.
+   Ported from the team's item.html, minus its header/nav/footer (those come
+   from dev/base.html). Colours/fonts use home.css tokens so the page matches
+   the rest of the dev site. Sizes are kept compact on purpose. */
+
+/* ===== PAGE CONTAINER ===== */
+/* One centred column; the sections inside don't set their own widths. */
+.item-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ===== BREADCRUMB (slim line, no banner) ===== */
+.item-breadcrumb {
+  padding: 16px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.item-breadcrumb a:hover {
+  color: var(--green);
+}
+
+.item-breadcrumb .current {
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* ===== PRODUCT SECTION ===== */
+.product-wrap {
+  display: flex;
+  gap: 40px;
+  padding-bottom: 32px;
+}
+
+.product-gallery {
+  flex: 0 0 45%;
+  min-width: 0;
+}
+
+.main-image {
+  width: 100%;
+  aspect-ratio: 1 / 0.95;
+  max-height: 420px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  transition: opacity 0.2s ease;
+}
+
+.main-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.main-image.fade {
+  opacity: 0;
+}
+
+.thumb-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  background: #fff;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 2px solid var(--line);
+  padding: 4px;
+  overflow: hidden;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.thumb.active-thumb {
+  border-color: var(--green);
+}
+
+.product-info {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.cat-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.prod-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.prod-title-row h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--charcoal);
+  margin: 0;
+}
+
+.stock-badge {
+  font-size: 12px;
+  color: var(--green);
+  background: #e5f3ea;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stock-badge.out {
+  color: var(--coral);
+  background: rgba(255, 107, 74, 0.12);
+}
+
+.price {
+  margin-top: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--charcoal);
+}
+
+.price span {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.desc {
+  margin-top: 12px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 520px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 20px 0;
+}
+
+.buy-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.qty-selector {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.qty-selector button {
+  background: #f3f1ea;
+  border: none;
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.qty-selector button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qty-selector span {
+  width: 40px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.stock-note {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stock-note.low {
+  color: var(--coral);
+  font-weight: 600;
+}
+
+/* Buy Now / Add to Cart. Named item-btn so it doesn't clash with Bootstrap's .btn */
+.item-btn {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--green);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.item-btn:active {
+  transform: scale(0.96);
+}
+
+.item-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.item-btn--buy {
+  background: var(--green);
+  color: #fff;
+}
+
+.item-btn--buy:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
+.item-btn--cart {
+  background: #fff;
+  color: var(--green);
+}
+
+.item-btn--cart:hover:not(:disabled) {
+  background: rgba(47, 122, 77, 0.08);
+}
+
+/* ===== RATINGS ===== */
+.section-heading {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+hr.section-rule {
+  margin: 12px 0 24px;
+  border: none;
+  border-top: 1px solid var(--line);
+}
+
+.ratings-wrap {
+  padding-bottom: 32px;
+  display: flex;
+  gap: 40px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.rating-score {
+  text-align: center;
+  min-width: 130px;
+}
+
+.rating-score .num {
+  font-size: 36px;
+  font-weight: 800;
+}
+
+.rating-score .out-of {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.stars {
+  color: var(--gold);
+  letter-spacing: 2px;
+  margin: 6px 0;
+}
+
+.rating-score .count {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rating-bars {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.bar-track {
+  flex: 1;
+  height: 7px;
+  background: var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--gold);
+}
+
+.review-cta {
+  text-align: center;
+  min-width: 220px;
+}
+
+.review-cta h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.review-cta p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+/* Team's "Write a review" button: a login link, or the summary that opens the form */
+.review-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 22px;
+  border: 1px solid var(--green);
+  background: transparent;
+  color: var(--green);
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.review-cta-btn:hover { background: rgba(47, 122, 77, 0.08); color: var(--green); }
+
+/* The summary shows no triangle */
+summary.review-cta-btn { list-style: none; }
+summary.review-cta-btn::-webkit-details-marker { display: none; }
+
+/* Buyers get a wider box so the form fits */
+.review-cta--form { flex: 1 1 280px; }
+.review-note { color: var(--coral); }
+
+.review-form {
+  margin-top: 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-stars { border: none; padding: 0; margin: 0; }
+
+.review-stars legend,
+.review-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 6px;
+}
+
+/* Rating radios as small pills that wrap */
+.review-stars { display: flex; flex-wrap: wrap; gap: 6px; }
+.star-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--gold);
+  cursor: pointer;
+}
+.star-pill input { accent-color: var(--green); }
+.star-pill:has(input:checked) { border-color: var(--green); }
+
+.review-form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.review-form textarea:focus { outline: none; border-color: var(--green); }
+
+.review-submit {
+  align-self: flex-start;
+  height: 38px;
+  padding: 0 20px;
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  background: var(--green);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-submit:hover { background: var(--green-dark); }
+
+.review-delete {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.review-delete:hover { color: var(--coral); }
+
+/* ===== REVIEWS LIST ===== */
+.review-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-item:last-child { border-bottom: none; }
+
+/* After posting, the page comes back to #reviews; stay clear of the sticky header */
+#reviews { scroll-margin-top: 100px; }
+
+.rev-empty {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 8px 0 24px;
+}
+
+.rev-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #e8b98c, #c9895a);
+}
+
+.rev-body {
+  flex: 1;
+  min-width: 0; /* lets long comments wrap instead of widening the page */
+}
+
+.rev-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rev-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.rev-date {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rev-stars {
+  color: var(--gold);
+  font-size: 13px;
+  margin: 4px 0 8px;
+}
+
+.rev-text {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 760px;
+  overflow-wrap: anywhere;
+}
+
+/* Team's like button; disabled ("Coming soon") until likes are saved */
+.rev-likes {
+  margin-top: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.rev-likes:disabled { cursor: not-allowed; opacity: 0.7; }
+
+.rev-likes.liked {
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ===== RELATED PRODUCTS ===== */
+.related-heading-row {
+  margin: 32px 0 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.related-heading-row h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+.related-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.related-nav button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+}
+
+/* A scrolling row of ~200px cards, so the ‹ › buttons can scroll it */
+.related-grid {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding-bottom: 48px;
+}
+
+.related-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.rp-card {
+  flex: 0 0 200px;
+  width: 200px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  color: var(--charcoal);
+  display: block;
+  transition: border-color 0.15s ease;
+}
+
+.rp-card:hover {
+  border-color: var(--green);
+}
+
+/* The card is a div: the image and the text are links, the heart (common.css .wish) is a form */
+.rp-link { display: block; color: inherit; }
+
+/* After a heart click the page comes back here; stay clear of the sticky header */
+#relatedGrid { scroll-margin-top: 100px; }
+
+.rp-image {
+  aspect-ratio: 1 / 0.9;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.rp-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.rp-body {
+  padding: 10px 12px 14px;
+}
+
+.rp-cat {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rp-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  gap: 8px;
+}
+
+.rp-title-row .name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.rp-stock {
+  font-size: 12px;
+  color: var(--green);
+  white-space: nowrap;
+}
+
+.rp-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rp-price-row .price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--charcoal);
+  margin: 0;
+}
+
+.rp-empty {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--green-dark);
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 999;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .item-page {
+    padding: 0 16px;
+  }
+  .product-wrap {
+    flex-direction: column;
+    gap: 24px;
+  }
+  .main-image {
+    max-height: 320px;
+  }
+  .ratings-wrap {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  #relatedGrid,
+  #reviews { scroll-margin-top: 16px; } /* the header is not sticky on phones */
+
+  /* Reviews: compact, and 16px text stops iOS zooming into the textarea */
+  .ratings-wrap { gap: 20px; }
+  .review-cta { min-width: 0; flex: 1 1 100%; }
+  .review-form textarea { font-size: 16px; }
+  .review-item { gap: 12px; padding: 16px 0; }
+  .rev-avatar { width: 32px; height: 32px; }
+  .rev-text { font-size: 14px; }
+}

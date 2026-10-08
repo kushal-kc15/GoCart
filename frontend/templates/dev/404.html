@@ -1,0 +1,25 @@
+{% extends "dev/base.html" %}
+
+{% block title %}Page not found – GoCart{% endblock %}
+
+{% block extra_css %}
+<style>
+    .error-page { max-width: 640px; margin: 0 auto; padding: 80px 24px; text-align: center; }
+    .error-page .error-code { font-size: 72px; font-weight: 700; color: var(--green); line-height: 1; }
+    .error-page h1 { font-size: 28px; color: var(--charcoal); margin: 16px 0 8px; }
+    .error-page p { color: var(--muted); margin-bottom: 28px; }
+    .error-page .error-links { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="error-page">
+    <div class="error-code">404</div>
+    <h1>Page not found</h1>
+    <p>Sorry, we couldn't find the page you were looking for.</p>
+    <div class="error-links">
+        <a href="{% url 'home' %}" class="gc-btn gc-btn--primary">Back to Home</a>
+        <a href="{% url 'products:product_list' %}" class="gc-btn gc-btn--outline">Browse products</a>
+    </div>
+</section>
+{% endblock %}

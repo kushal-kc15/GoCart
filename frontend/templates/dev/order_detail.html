@@ -1,0 +1,76 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}Order #{{ order.pk }} – GoCart{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/dev/checkout.css' %}">
+{% endblock %}
+
+{% block content %}
+{# Same look as order_success.html, plus a status tracker and a Cancel button. #}
+<div class="checkout-page">
+    <section class="checkout-hero">
+        <h1>ORDER #{{ order.pk }}</h1>
+        <div class="checkout-crumb"><a href="{% url 'orders:order_list' %}">My orders</a> · Placed on <span>{{ order.created_at|date:"j M Y, g:i A" }}</span></div>
+    </section>
+
+    <div class="success-wrap">
+        <div class="checkout-panel success-panel">
+            <h2>Order status</h2>
+            {% if order.status == "cancelled" %}
+            <div class="track-cancelled">✕ This order was cancelled.</div>
+            {% else %}
+            <ol class="tracker">
+                {% for step in steps %}
+                <li class="track-step{% if step.done %} is-done{% endif %}{% if step.current %} is-current{% endif %}"{% if step.current %} aria-current="step"{% endif %}>
+                    <span class="track-dot" aria-hidden="true">{% if step.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
+                    {{ step.label }}
+                </li>
+                {% endfor %}
+            </ol>
+            {% endif %}
+
+            {% if order.status == "pending" %}
+            <form method="post" action="{% url 'orders:cancel_order' order.pk %}" class="cancel-form"
+                  onsubmit="return confirm('Cancel this order? This cannot be undone.');">
+                {% csrf_token %}
+                <button type="submit" class="btn-line btn-cancel">Cancel order</button>
+                <p class="cancel-hint">You can cancel while the order is pending.</p>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="checkout-panel success-panel">
+            <h2>Items</h2>
+            <div class="summary-items">
+                {% for item in order.items.all %}
+                <div class="summary-item">
+                    <span class="s-name">{{ item.product_name }} <small>× {{ item.quantity }}</small></span>
+                    <span class="s-price">Rs. {{ item.line_total|floatformat:"-2" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="checkout-panel success-panel">
+            <h2>Summary</h2>
+            <div class="kv"><span class="k">Sub-total</span><span>Rs. {{ order.subtotal|floatformat:"-2" }}</span></div>
+            <div class="kv"><span class="k">Shipping charge</span><span>{% if order.shipping_fee %}Rs. {{ order.shipping_fee|floatformat:"-2" }}{% else %}Free{% endif %}</span></div>
+            <div class="kv"><span class="k">Total</span><span><strong>Rs. {{ order.total|floatformat:"-2" }}</strong></span></div>
+            <div class="kv"><span class="k">Delivery method</span><span>{{ order.get_delivery_method_display }}</span></div>
+            {# Older orders may have no Payment row; every order so far is cash on delivery. #}
+            <div class="kv"><span class="k">Payment method</span><span>{{ order.payment.get_method_display|default:"Cash on Delivery" }}</span></div>
+            <div class="kv"><span class="k">Payment status</span><span>{{ order.payment.get_status_display|default:"—" }}</span></div>
+            <div class="kv"><span class="k">Delivery address</span></div>
+            <div class="success-addr">{{ order.address }}</div>
+        </div>
+
+        <div class="success-actions">
+            <a href="{% url 'orders:order_list' %}" class="btn-line btn-ghost">Back to my orders</a>
+            <a href="{% url 'products:product_list' %}" class="btn-line btn-fill">Continue shopping</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+/* Wishlist page. The cards and grid come from product_list.css (pl-*). */
+
+.wl-title {
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--charcoal);
+  margin-bottom: 16px;
+}
+
+.wl-title span {
+  font-size: 18px;
+  color: var(--muted);
+}
+
+/* Small text button under Add to Cart */
+.wl-remove {
+  width: 100%;
+  margin-top: 6px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.wl-remove:hover {
+  color: var(--coral);
+}
+
+.wl-browse {
+  margin-left: 8px;
+}
+
+@media (max-width: 576px) {
+  .wl-title { font-size: 24px; margin-bottom: 12px; }
+  .wl-title span { font-size: 16px; }
+  .wl-browse { display: flex; width: fit-content; margin: 12px 0 0; }
+}

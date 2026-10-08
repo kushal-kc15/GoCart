@@ -1,0 +1,206 @@
+/* My Orders page. The account shell, sidebar, cards (.pf-card) and buttons
+   (.pf-btn) come from profile.css, so the team's profile colours apply.
+   Classes here use an ol- prefix. */
+
+/* ============ Title and tabs ============ */
+.ol-top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ol-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ol-title {
+  margin: 0; /* Bootstrap adds a bottom margin to h1 */
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ol-count {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Status tabs: pills; on narrow screens the row scrolls inside itself */
+.ol-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ol-tabs::-webkit-scrollbar { display: none; }
+
+.ol-tabs a {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel);
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a4a44;
+  white-space: nowrap;
+}
+
+.ol-tabs a:hover {
+  border-color: var(--green);
+  color: var(--green-dark);
+}
+
+.ol-tabs a.active,
+.ol-tabs a.active:hover {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+/* ============ Order cards ============ */
+.ol-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ol-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+.ol-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ol-num {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ol-date {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.ol-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ol-thumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ol-thumb {
+  width: 52px;
+  height: 52px;
+  padding: 4px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--green-light);
+}
+
+.ol-more {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.ol-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.ol-items {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ol-total {
+  font-size: 16px;
+}
+
+.ol-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.ol-actions form { margin: 0; }
+
+.ol-actions a.pf-btn:hover {
+  background: var(--green-dark);
+  color: #fff;
+}
+
+.ol-actions .ol-cancel:not(:disabled):hover {
+  border-color: #b3261e; /* same red as the cancelled badge */
+  color: #b3261e;
+}
+
+/* ============ Empty state and pagination ============ */
+.ol-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ol-empty p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.ol-empty .pf-btn:hover {
+  background: var(--green-dark);
+  color: #fff;
+}
+
+.ol-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ol-page-dots {
+  align-self: center;
+  padding: 0 4px;
+  color: var(--muted);
+}
+
+/* ============ Responsive ============ */
+@media (max-width: 768px) {
+  .ol-title { font-size: 20px; }
+  .ol-card { padding: 14px; gap: 12px; }
+  .ol-thumb { width: 44px; height: 44px; }
+}
+
+/* Phones: buttons share the row, full width */
+@media (max-width: 480px) {
+  .ol-actions > * { flex: 1; }
+  .ol-actions .pf-btn { width: 100%; justify-content: center; }
+}

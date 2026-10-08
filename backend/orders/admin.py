@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Sum
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import path, reverse
+from django.urls import path
 from django.utils import timezone
 from django.utils.formats import date_format
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
@@ -13,10 +13,9 @@ from unfold.decorators import action, display
 from unfold.utils import parse_date_str
 
 from .models import Order, OrderItem, OrderStatusChange, Payment
-# Register your models here.
 
 
-# Badge colours (unfold label types) for the order list and order page.
+# Unfold badge colours by status.
 STATUS_COLOURS = {
     Order.Status.PENDING: "warning",
     Order.Status.CONFIRMED: "info",
@@ -33,7 +32,7 @@ PAYMENT_COLOURS = {
     Payment.Status.REFUNDED: "info",
 }
 
-# Text on the status panel buttons, by the status the button moves the order to.
+# Button text by the status the button moves the order to.
 BUTTON_LABELS = {
     Order.Status.CONFIRMED: "Confirm order",
     Order.Status.PACKED: "Mark as packed",
@@ -44,12 +43,10 @@ BUTTON_LABELS = {
 
 
 class PlacedDateFilter(RangeDateFilter):
-    """Unfold's date range filter, comparing only the date (in Nepal time).
-    The original compares a datetime with a date, which leaves out orders
-    placed during the "to" day."""
+    """Compares only the date (Nepal time); unfold's version misses orders placed on the "to" day."""
 
     def queryset(self, request, queryset):
-        # parse_date_str gives None for a blank or badly typed date: that side is ignored.
+        # parse_date_str gives None for a blank or bad date; that side is ignored.
         date_from = parse_date_str(self.used_parameters.get(f"{self.parameter_name}_from", ""))
         date_to = parse_date_str(self.used_parameters.get(f"{self.parameter_name}_to", ""))
         if date_from:
@@ -72,7 +69,6 @@ class PaymentStatusFilter(admin.SimpleListFilter):
         return queryset
 
 
-# The order page is read-only, so the inlines only show data.
 class OrderItemInline(TabularInline):
     model = OrderItem
     extra = 0
@@ -85,7 +81,7 @@ class OrderItemInline(TabularInline):
 
     @admin.display(description="Product")
     def item_name(self, obj):
-        # The name saved at checkout; older rows may not have one.
+        # Older rows may have no saved name.
         return obj.product_name or obj.product.name
 
 
@@ -150,10 +146,8 @@ class OrderAdmin(ModelAdmin):
     readonly_fields = ('customer', 'customer_email', 'phone', 'order_number', 'current_status')
     inlines = [OrderItemInline, PaymentInline, StatusHistoryInline]
 
-    # Cancel and Delivered are deliberately not bulk actions: they are done
-    # one order at a time from the order page.
+    # Cancel and Delivered are done one order at a time, from the order page.
     actions = ['mark_confirmed', 'mark_packed', 'mark_out_for_delivery']
-    # Button at the top of the order page.
     actions_detail = ['packing_slip']
 
     # ---- permissions ----
@@ -165,9 +159,7 @@ class OrderAdmin(ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
-        # The order page itself is view-only: its status changes only through
-        # the buttons in the status panel. The list keeps the normal check,
-        # which the bulk actions use.
+        # The order page is view-only; status changes go through the status panel buttons.
         if obj is not None:
             return False
         return super().has_change_permission(request)
@@ -194,11 +186,10 @@ class OrderAdmin(ModelAdmin):
 
     @display(description="Status", ordering="status", label=STATUS_COLOURS)
     def status_badge(self, obj):
-        # (value, text): the value picks the colour; pickup orders show "Picked up".
+        # (value, text): the value picks the colour.
         return obj.status, obj.status_label
 
-    # Unfold only draws badges in the list, so the order page shows plain text
-    # (the status panel above it has the badge).
+    # Unfold draws badges only in the list.
     @admin.display(description="Status")
     def current_status(self, obj):
         return obj.status_label
@@ -224,11 +215,10 @@ class OrderAdmin(ModelAdmin):
     # ---- order list: totals line above the table ----
     def changelist_view(self, request, extra_context=None):
         response = super().changelist_view(request, extra_context)
-        # Not a page (e.g. a redirect after a bulk action): nothing to add.
+        # Not a page (e.g. a redirect after a bulk action).
         if not hasattr(response, "context_data") or "cl" not in response.context_data:
             return response
-        # Money sums are only for those allowed to see them: otherwise a date
-        # filter would give packers and riders the same numbers as the dashboard.
+        # Otherwise a date filter would show packers the dashboard's money totals.
         if not request.user.has_perm("orders.view_money_totals"):
             return response
         # Same filters and search as the table, without cancelled orders.
@@ -267,7 +257,6 @@ class OrderAdmin(ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
     def _cash_receipt(self, payment):
-        """"Cash collected by X on 5 Oct 2026, 2:06 PM", or "" until the cash is recorded."""
         if payment is None or payment.status != Payment.Status.PAID or payment.paid_at is None:
             return ""
         when = date_format(timezone.localtime(payment.paid_at), "j M Y, g:i A")
@@ -288,11 +277,10 @@ class OrderAdmin(ModelAdmin):
                 name="orders_order_cash_collected",
             ),
         ]
-        # Ours first, so they match before the admin's catch-all order URLs.
+        # Ours first, so they match before the admin's catch-all URLs.
         return custom_urls + super().get_urls()
 
     def change_status_view(self, request, pk):
-        """POST from the status panel: move the order one step, or cancel it."""
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
         if not self._can_change_status(request):
@@ -311,10 +299,9 @@ class OrderAdmin(ModelAdmin):
                 "That change isn't allowed from the order's current status "
                 "(it may have just been changed by someone else). Nothing was changed.",
             )
-        return redirect(reverse("admin:orders_order_change", args=[order.pk]))
+        return redirect("admin:orders_order_change", order.pk)
 
     def cash_collected_view(self, request, pk):
-        """POST from the status panel: the cash for a delivered COD order was received."""
         if request.method != "POST":
             return HttpResponseNotAllowed(["POST"])
         if not self._can_change_status(request):
@@ -327,7 +314,7 @@ class OrderAdmin(ModelAdmin):
             messages.error(
                 request, "Cash can only be recorded once, for a delivered cash-on-delivery order."
             )
-        return redirect(reverse("admin:orders_order_change", args=[order.pk]))
+        return redirect("admin:orders_order_change", order.pk)
 
     # ---- packing slip ----
     @action(
@@ -335,10 +322,9 @@ class OrderAdmin(ModelAdmin):
         url_path="slip",
         permissions=["view"],
         icon="print",
-        attrs={"target": "_blank"},  # opens in a new tab
+        attrs={"target": "_blank"},
     )
     def packing_slip(self, request, object_id):
-        """A printable page to pack the order with and hand over on delivery."""
         order = get_object_or_404(
             Order.objects.select_related("user", "payment__collected_by").prefetch_related("items__product"),
             pk=object_id,
@@ -351,7 +337,6 @@ class OrderAdmin(ModelAdmin):
 
     # ---- bulk actions ----
     def _change_selected(self, request, queryset, new_status):
-        """Move each selected order one step on, skipping those that can't take that step."""
         changed = 0
         skipped = 0
         for order in queryset:
@@ -375,5 +360,5 @@ class OrderAdmin(ModelAdmin):
 
     @admin.action(description="Mark selected orders as out for delivery", permissions=["change"])
     def mark_out_for_delivery(self, request, queryset):
-        # Pickup orders are skipped: their next step is "Ready for pickup".
+        # Pickup orders are skipped: their next step is Ready for pickup.
         self._change_selected(request, queryset, Order.Status.OUT_FOR_DELIVERY)
