@@ -1,0 +1,370 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — GoCart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dev/home2.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dev/admin_dashboard.css' %}">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <a href="{% url 'home' %}" class="logo">
+                <span class="logo-img" style="font-family:var(--serif);font-size:22px;color:var(--green-dark);height:auto;width:auto;">GoCart</span>
+            </a>
+
+            <a href="tel:+9779707046738" class="header-phone">
+                <span class="header-phone-text">+9779707046738</span>
+                <svg class="class-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
+                </svg>
+            </a>
+
+            <form class="search-field" action="{% url 'products:product_list' %}" method="get">
+                <input type="text" id="searchInput" name="q" placeholder="Search ........." autocomplete="off" value="{{ query|default:'' }}">
+                <button type="submit" class="icon-svg search-icon-btn" style="border:0;background:transparent;padding:0;cursor:pointer;" aria-label="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" fill="currentColor" width="18" height="18">
+                        <path d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z"></path>
+                    </svg>
+                </button>
+                <div class="search-dropdown" id="searchDropdown"></div>
+            </form>
+
+            <div class="header-actions">
+                <a href="#" class="icon-link wishlist-icon" aria-label="Wishlist">
+                    <svg class="icon-svg icon-svg--heart" viewBox="0 0 24 24" fill="red" stroke="var(--coral)" stroke-width="0">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                    </svg>
+                </a>
+                <span class="header-divider"></span>
+                <a href="{% url 'cart:cart_detail' %}" class="icon-link" aria-label="Cart">
+                    <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1.3" />
+                        <circle cx="18" cy="21" r="1.3" />
+                        <path d="M2.5 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 2-1.6L21.5 8H6" />
+                    </svg>
+                    {% if cart_count %}
+                    <span class="cart-badge">{{ cart_count }}</span>
+                    {% endif %}
+                </a>
+                <span class="header-divider"></span>
+                <a href="{% url 'accounts:profile' %}" class="user-chip">
+                    <span>{{ request.user.first_name|default:request.user.email }}</span>
+                </a>
+                <form method="POST" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="header-logout">Log out</button>
+                </form>
+            </div>
+        </div>
+        <nav class="main-nav">
+            <ul>
+                <li><a href="{% url 'home' %}">HOME</a></li>
+                <li><a href="{% url 'products:product_list' %}">CATEGORIES</a></li>
+                <li><a href="{% url 'accounts:dashboard' %}" class="active">DASHBOARD</a></li>
+                <li><a href="{% url 'cart:cart_detail' %}">CART</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="page-hero">
+        <h1>Admin Dashboard</h1>
+        <p class="crumb">Home / <span>Admin</span></p>
+    </section>
+
+    <div class="dash-wrap">
+        <aside class="dash-sidebar">
+            <div class="dash-brand">
+                <div class="dash-brand__mark">🌿</div>
+                <div>
+                    <strong>GoCart</strong>
+                    <small>Staff tools</small>
+                </div>
+            </div>
+            <nav class="dash-menu">
+                <a href="?tab=dashboard" class="{% if tab == 'dashboard' %}is-active{% endif %}">Dashboard</a>
+                <a href="?tab=products" class="{% if tab == 'products' %}is-active{% endif %}">Products</a>
+                <a href="?tab=orders" class="{% if tab == 'orders' %}is-active{% endif %}">Orders</a>
+                <a href="?tab=customers" class="{% if tab == 'customers' %}is-active{% endif %}">Customers</a>
+                <a href="?tab=stock" class="{% if tab == 'stock' %}is-active{% endif %}">Stock</a>
+            </nav>
+        </aside>
+
+        <div class="dash-main">
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if tab == "dashboard" %}
+            <div class="welcome-banner">
+                <h2>Welcome back, {{ request.user.first_name|default:request.user.email }}</h2>
+                <p>Overview of products, orders, and customers for cash-on-delivery operations.</p>
+            </div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-card__icon">📦</div>
+                    <div>
+                        <div class="stat-card__num">{{ product_count }}</div>
+                        <div class="stat-card__lbl">Products</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card__icon">🛒</div>
+                    <div>
+                        <div class="stat-card__num">{{ order_count }}</div>
+                        <div class="stat-card__lbl">Orders</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card__icon">👥</div>
+                    <div>
+                        <div class="stat-card__num">{{ customer_count }}</div>
+                        <div class="stat-card__lbl">Customers</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card__icon">💰</div>
+                    <div>
+                        <div class="stat-card__num">Rs. {{ revenue }}</div>
+                        <div class="stat-card__lbl">Revenue</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <h3>Recent orders</h3>
+                {% if recent_orders %}
+                <div class="table-wrap">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>#{{ order.pk }}</td>
+                                <td>{{ order.user.email }}</td>
+                                <td><span class="badge badge--{{ order.status }}">{{ order.get_status_display }}</span></td>
+                                <td>Rs. {{ order.total }}</td>
+                                <td>{{ order.created_at|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-note">No orders yet.</p>
+                {% endif %}
+            </div>
+
+            <div class="dash-card">
+                <h3>Low stock</h3>
+                {% if low_stock %}
+                <div class="table-wrap">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in low_stock %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.category.name }}</td>
+                                <td><span class="badge badge--low">{{ product.stock }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-note">All products have enough stock.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if tab == "products" %}
+            <div class="dash-card">
+                <h3>Products</h3>
+                {% if products %}
+                <div class="table-wrap">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Available</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.category.name }}</td>
+                                <td>Rs. {{ product.price }}</td>
+                                <td>{{ product.stock }}</td>
+                                <td>{% if product.is_available %}Yes{% else %}No{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-note">No products in the catalog.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if tab == "orders" %}
+            <div class="dash-card">
+                <h3>Orders</h3>
+                {% if orders %}
+                <div class="table-wrap">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                                <th>Address</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>#{{ order.pk }}</td>
+                                <td>{{ order.user.email }}</td>
+                                <td><span class="badge badge--{{ order.status }}">{{ order.get_status_display }}</span></td>
+                                <td>Rs. {{ order.total }}</td>
+                                <td>{{ order.address }}</td>
+                                <td>{{ order.created_at|date:"d M Y, H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-note">No orders yet.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if tab == "customers" %}
+            <div class="dash-card">
+                <h3>Customers</h3>
+                {% if customers %}
+                <div class="table-wrap">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in customers %}
+                            <tr>
+                                <td>{{ customer.get_full_name|default:"—" }}</td>
+                                <td>{{ customer.email }}</td>
+                                <td>{{ customer.phone|default:"—" }}</td>
+                                <td>{{ customer.date_joined|date:"d M Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-note">No customers yet.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if tab == "stock" %}
+            <div class="dash-card">
+                <h3>Stock management</h3>
+                <p class="empty-note" style="margin-bottom:16px;">Products with 5 or fewer items left.</p>
+                {% if low_stock %}
+                <div class="table-wrap">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Stock</th>
+                                <th>Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in low_stock %}
+                            <tr>
+                                <td>{{ product.name }}</td>
+                                <td>{{ product.category.name }}</td>
+                                <td><span class="badge badge--low">{{ product.stock }}</span></td>
+                                <td>Rs. {{ product.price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="empty-note">All products have enough stock.</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-grid">
+            <div>
+                <p>Everything You Need, All in One Cart.</p>
+                <p>Fresh Groceries, Delivered with Care.</p>
+            </div>
+            <div>
+                <h4>SHOP</h4>
+                <a href="{% url 'products:product_list' %}">Categories</a>
+                <a href="{% url 'home' %}">Home</a>
+            </div>
+            <div>
+                <h4>CUSTOMER SERVICE</h4>
+                <a href="{% url 'home' %}">Home</a>
+                <a href="{% url 'accounts:login' %}">Login</a>
+            </div>
+            <div>
+                <h4>CONTACT US</h4>
+                <p>Phone</p>
+                <p>Email</p>
+                <p>Open : 9:00 am</p>
+                <p class="closed">Close : 8:00 pm</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{% static 'js/dev/home2.js' %}"></script>
+</body>
+</html>
