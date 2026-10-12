@@ -34,19 +34,16 @@
         .card-box + .card-box { margin-top: 20px; }
         .card-box h2 { font-family: var(--serif); font-weight: 400; font-size: 1.25rem; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 
-        .method { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; cursor: pointer; background: var(--cream); font-size: 14px; font-weight: 600; }
-        .method input { width: 17px; height: 17px; accent-color: var(--green); flex: none; }
-        .method small { margin-left: auto; color: var(--muted); font-weight: 400; font-size: 12px; }
-        .method:has(input:checked) { border-color: var(--green); background: rgba(47,122,77,.08); }
-        .method:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 2px; }
-        .badge-m { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12px; flex: none; }
-
         .detail { display: none; background: var(--cream); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin: -2px 0 10px; font-size: 13.5px; line-height: 1.8; color: var(--muted); }
         .detail.on { display: block; }
         .detail b { color: var(--charcoal); }
         .detail label { display: block; font-size: 12px; font-weight: 600; color: var(--charcoal); margin-bottom: 6px; }
         .detail input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: 14px; background: #fff; }
         .detail input:focus { outline: none; border-color: var(--green); }
+        .detail .submit-btn { display: block; width: 100%; margin-top: 16px; padding: 12px; border: 0; cursor: pointer; text-align: center; font-size: 14px; }
+        .detail .submit-btn[disabled] { opacity: .65; cursor: wait; }
+        .detail .sep { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+        .pp-amt { margin-top: 8px; font-weight: 600; color: var(--charcoal); }
 
         .err { display: none; color: var(--coral); font-size: 13px; margin-top: 10px; font-weight: 600; }
 
@@ -67,6 +64,42 @@
         .place-btn { width: 100%; margin-top: 18px; padding: 14px; border: 0; cursor: pointer; font-size: 15px; text-align: center; }
         .place-btn[disabled] { opacity: .65; cursor: wait; }
         .fine { text-align: center; font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+        /* Payment method card */
+        .method { position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 12px; margin-bottom: 10px; cursor: pointer; background: #fff; transition: border-color .15s, box-shadow .15s, background .15s; }
+        .method:hover { border-color: var(--green); }
+        .method input { position: absolute; opacity: 0; pointer-events: none; }
+
+        /* Logo (cash, eSewa, PayPal, bank) */
+        .pm-img { width: 52px; height: 40px; object-fit: contain; flex: none; border-radius: 8px; background: #fff; padding: 4px; border: 1px solid var(--line); }
+
+        /* Name and description */
+        .pm-text { display: flex; flex-direction: column; flex: 1; min-width: 0; line-height: 1.35; }
+        .pm-name { font-size: 15px; font-weight: 700; color: var(--charcoal); }
+        .pm-sub { font-size: 12.5px; font-weight: 400; color: var(--muted); }
+
+        /* Round tick on the right */
+        .pm-tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex: none; display: grid; place-items: center; transition: background .15s, border-color .15s; }
+        .pm-tick::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; transform: scale(0); transition: transform .15s; }
+
+        /* Selected state */
+        .method:has(input:checked) { border-color: var(--green); background: rgba(47,122,77,.06); box-shadow: 0 0 0 3px rgba(47,122,77,.12); }
+        .method:has(input:checked) .pm-tick { background: var(--green); border-color: var(--green); }
+        .method:has(input:checked) .pm-tick::after { transform: scale(1); }
+        .method:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 2px; }
+
+        /* Receipt upload: square tiles, up to 5 files */
+        .drop { border: 1.5px dashed var(--line); border-radius: 10px; background: #fff; padding: 8px; transition: border-color .15s, background .15s; }
+        .drop.over { border-color: var(--green); background: rgba(47,122,77,.08); }
+        .tiles { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tile { position: relative; height: 96px; border-radius: 8px; border: 1px solid var(--line); overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
+        .tile img { display: block; height: 100%; width: auto; max-width: 200px; object-fit: contain; }
+        .tile button { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; font-size: 14px; line-height: 1; cursor: pointer; padding: 0; }
+        .tile.add { width: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 1.5px dashed var(--green); background: rgba(47,122,77,.06); color: var(--green); font-size: 11px; line-height: 1.25; text-align: center; cursor: pointer; }
+        .tile.add:hover, .tile.add:focus-visible { background: rgba(47,122,77,.14); outline: none; }
+        .tile.add.full { border-color: var(--line); background: #f4f4f0; color: var(--muted); opacity: .75; cursor: not-allowed; }
+        .tile.add.full svg { stroke: var(--muted); }
+        .tile.add svg { width: 20px; height: 20px; stroke: var(--green); fill: none; stroke-width: 1.8; stroke-linecap: round; }
     </style>
 </head>
 
@@ -74,7 +107,7 @@
     <header class="header">
         <div class="header-content">
             <div class="logo">
-                <a href="index.html"><img src="../static/images/logo.png" alt="Logo" class="logo-img"></a>
+                <a href="home2.html"><img src="../static/images/logo.png" alt="Logo" class="logo-img"></a>
             </div>
 
             <a href="" class="header-phone">
@@ -150,31 +183,45 @@
                     <h2>Payment method</h2>
 
                     <label class="method"><input type="radio" name="pm" value="cod" checked>
-                        <span class="badge-m" style="background:#6f716a">Rs</span> Cash on delivery <small id="codNote">Pay when you receive</small></label>
+                        <img class="pm-img" src="../static/images/cod.png" alt="Cash on delivery">
+                        Cash on delivery <small id="codNote"></small></label>
                     <div class="detail on" id="d-cod">Keep the exact amount ready if you can. You will pay the delivery person when your order arrives.</div>
 
                     <label class="method"><input type="radio" name="pm" value="esewa">
-                        <span class="badge-m" style="background:#60bb46">eS</span> eSewa <small>Wallet</small></label>
+                        <img class="pm-img" src="../static/images/esewa.png" alt="eSewa">
+                        eSewa </label>
                     <div class="detail" id="d-esewa">
                         <label for="esewaId">eSewa ID (mobile number)</label>
                         <input id="esewaId" type="tel" inputmode="numeric" placeholder="98XXXXXXXX" autocomplete="tel">
                     </div>
 
-                    <label class="method"><input type="radio" name="pm" value="khalti">
-                        <span class="badge-m" style="background:#5c2d91">Kh</span> Khalti <small>Wallet</small></label>
-                    <div class="detail" id="d-khalti">
-                        <label for="khaltiId">Khalti mobile number</label>
-                        <input id="khaltiId" type="tel" inputmode="numeric" placeholder="98XXXXXXXX" autocomplete="tel">
+                    <label class="method"><input type="radio" name="pm" value="paypal">
+                        <img class="pm-img" src="../static/images/paypal.png" alt="PayPal">
+                        PayPal</label>
+                    <div class="detail" id="d-paypal">
+                        You will be taken to PayPal to log in and approve the payment. PayPal charges in US dollars, so the amount is converted from Rs.
+                        <div class="pp-amt" id="ppAmt"></div>
                     </div>
 
                     <label class="method"><input type="radio" name="pm" value="bank">
-                        <span class="badge-m" style="background:var(--green)">Bk</span> Bank transfer <small>Send proof later</small></label>
+                        <img class="pm-img" src="../static/images/banktransfer.png" alt="Bank Transfer">
+                        Bank transfer</label>
                     <div class="detail" id="d-bank">
                         Transfer the total to the account below and keep your receipt.<br>
                         <b>Account name:</b> Go Cart Pvt. Ltd.<br>
                         <b>Bank:</b> Your bank name<br>
                         <b>Account number:</b> XXXXXXXXXXXX<br>
-                        Use your order number as the payment reference. We confirm the order once the payment arrives.
+                        Use your order number as the payment reference. We confirm the order once we verify your payment.
+                        <div class="sep">
+                            <label for="bankTxn">Transaction / reference ID</label>
+                            <input id="bankTxn" type="text" placeholder="e.g. 20261008" autocomplete="off">
+
+                            <label style="margin-top:12px">Upload payment receipt images <span id="rcCount" style="font-weight:400;color:var(--muted)"></span></label>
+                            <div class="drop" id="drop"><div class="tiles" id="tiles"></div></div>
+                            <input id="bankReceipt" type="file" accept="image/*" multiple hidden>
+
+                            <button type="button" class="btn-primary submit-btn" id="bankSubmit">Submit</button>
+                        </div>
                     </div>
                     <div class="err" id="err"></div>
                 </section>
@@ -258,7 +305,7 @@
         var order = null;
         try { order = JSON.parse(sessionStorage.getItem("gc_order")) } catch (e) {}
         // No order saved (page opened directly): go back to checkout
-        if (!order || !order.items || !order.items.length) { location.replace("checkout.html") }
+        if (!order || !order.items || !order.items.length) { location.replace("checkoutpage.html") }
 
         function kv(parent, k, v) {
             if (!v) return;
@@ -303,45 +350,156 @@
             }
         }
 
+        function showErr(m) { $("err").textContent = m; $("err").style.display = "block" }
+        function validNp(v) { return /^9[78]\d{8}$/.test(v.replace(/\D/g, "")) }
+        var LABEL = { cod: "Cash on delivery", esewa: "eSewa", paypal: "PayPal", bank: "Bank transfer" };
+
+        // Bank transfer uses its own Submit button, so hide "Place order" for it
+        function syncBtn() {
+            var sel = document.querySelector("[name=pm]:checked");
+            $("pay").style.display = (sel && sel.value === "bank") ? "none" : "";
+        }
+
         // Show the detail box for the selected method
         document.querySelectorAll("[name=pm]").forEach(function (r) {
             r.onchange = function () {
-                ["cod", "esewa", "khalti", "bank"].forEach(function (k) {
+                ["cod", "esewa", "paypal", "bank"].forEach(function (k) {
                     $("d-" + k).classList.toggle("on", k === r.value);
                 });
                 $("err").style.display = "none";
+                syncBtn();
             };
         });
-        function showErr(m) { $("err").textContent = m; $("err").style.display = "block" }
-        function validNp(v) { return /^9[78]\d{8}$/.test(v.replace(/\D/g, "")) }
-        var LABEL = { cod: "Cash on delivery", esewa: "eSewa", khalti: "Khalti", bank: "Bank transfer" };
 
-        $("pay").onclick = function () {
-            var m = document.querySelector("[name=pm]:checked").value, wallet = "";
-            if (m === "esewa" || m === "khalti") {
-                wallet = $(m + "Id").value.trim();
+        // Click the selected method again to unselect it and close its box
+        document.querySelectorAll(".method").forEach(function (lbl) {
+            var radio = lbl.querySelector("input"), wasChecked = false;
+            lbl.addEventListener("mousedown", function () { wasChecked = radio.checked; });
+            radio.addEventListener("click", function () {
+                if (wasChecked) {
+                    radio.checked = false;                        // unselect it
+                    $("d-" + radio.value).classList.remove("on"); // close its box
+                    wasChecked = false;
+                    syncBtn();
+                }
+            });
+        });
+
+        // Placeholder exchange rate for the PayPal estimate. Get the real rate from your server.
+        var NPR_PER_USD = 135;
+        if (order) {
+            $("ppAmt").textContent = "Estimated charge: about $" + (order.totals.total / NPR_PER_USD).toFixed(2) + " USD";
+        }
+        syncBtn();
+
+        // Bank receipts: add tile on the left, uploaded files appear to its right (up to 5)
+        var receipts = [], MAX_RC = 5, rcUrls = [];
+        function renderReceipts() {
+            rcUrls.forEach(function (u) { URL.revokeObjectURL(u) }); rcUrls = [];
+            var box = $("tiles"); box.innerHTML = "";
+            var full = receipts.length >= MAX_RC;
+            var a = document.createElement("div"); a.className = "tile add" + (full ? " full" : ""); a.tabIndex = 0;
+            a.setAttribute("role", "button"); a.setAttribute("aria-label", full ? "Limit reached" : "Add receipt");
+            if (full) a.setAttribute("aria-disabled", "true");
+            a.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>' + (full ? "Limit of " + MAX_RC + "<br>reached" : "Drop, paste<br>or browse") + '</span>';
+            var openPicker = function () {
+                if (full) { showErr("You can add up to " + MAX_RC + " images. Remove one to add another."); return }
+                $("bankReceipt").click();
+            };
+            a.onclick = openPicker;
+            a.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker() } };
+            box.appendChild(a);
+            receipts.forEach(function (f, i) {
+                var t = document.createElement("div"); t.className = "tile"; t.title = f.name;
+                var im = document.createElement("img"), u = URL.createObjectURL(f);
+                rcUrls.push(u); im.src = u; im.alt = f.name; t.appendChild(im);
+                var x = document.createElement("button"); x.type = "button"; x.innerHTML = "&times;";
+                x.setAttribute("aria-label", "Remove " + f.name);
+                x.onclick = function (e) { e.stopPropagation(); receipts.splice(i, 1); renderReceipts(); $("err").style.display = "none" };
+                t.appendChild(x); box.appendChild(t);
+            });
+            $("rcCount").textContent = receipts.length + "/" + MAX_RC;
+        }
+        function addReceipts(list) {
+            var msg = "";
+            Array.prototype.forEach.call(list, function (f) {
+                if (receipts.length >= MAX_RC) { msg = "You can add up to " + MAX_RC + " files."; return }
+                if (!/^image\//.test(f.type)) { msg = "Only image files are allowed."; return }
+                if (f.size > 5 * 1024 * 1024) { msg = "Each file must be under 5 MB."; return }
+                if (receipts.some(function (r) { return r.name === f.name && r.size === f.size })) return;
+                receipts.push(f);
+            });
+            renderReceipts();
+            if (msg) showErr(msg); else $("err").style.display = "none";
+        }
+        $("bankReceipt").onchange = function () { addReceipts(this.files); this.value = "" };
+        var drop = $("drop");
+        ["dragenter", "dragover"].forEach(function (t) {
+            drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add("over") });
+        });
+        ["dragleave", "drop"].forEach(function (t) {
+            drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove("over") });
+        });
+        drop.addEventListener("drop", function (e) { addReceipts(e.dataTransfer.files) });
+        // Paste an image (Ctrl+V / Cmd+V) while the bank transfer box is open
+        document.addEventListener("paste", function (e) {
+            if (!$("d-bank").classList.contains("on")) return;
+            var cd = e.clipboardData, found = [];
+            if (!cd) return;
+            Array.prototype.forEach.call(cd.items || [], function (it) {
+                if (it.kind === "file" && /^image\//.test(it.type)) {
+                    var f = it.getAsFile();
+                    if (f) found.push(new File([f], "pasted-" + Date.now() + "-" + found.length + "." + (f.type.split("/")[1] || "png"), { type: f.type }));
+                }
+            });
+            if (!found.length) return;          // plain text paste works as normal
+            e.preventDefault();
+            addReceipts(found);
+        });
+        // Stop the browser opening a file that is dropped outside the box
+        window.addEventListener("dragover", function (e) { e.preventDefault() });
+        window.addEventListener("drop", function (e) { e.preventDefault() });
+        renderReceipts();
+
+        $("pay").onclick = place;
+        $("bankSubmit").onclick = place;
+        function place() {
+            var sel = document.querySelector("[name=pm]:checked");
+            if (!sel) { showErr("Please choose a payment method."); return }
+            var m = sel.value, wallet = "", extra = {};
+            if (m === "esewa") {
+                wallet = $("esewaId").value.trim();
                 if (!validNp(wallet)) { showErr("Enter a valid 10 digit mobile number starting with 97 or 98."); return }
             }
+            if (m === "bank") {
+                var txn = $("bankTxn").value.trim();
+                if (!txn) { showErr("Enter your transaction or reference ID."); return }
+                if (!receipts.length) { showErr("Upload an image of your payment receipt."); return }
+                var names = receipts.map(function (f) { return f.name });
+                extra = { txn: txn, receipt: names.join(", "), receipts: names };
+            }
+            $("err").style.display = "none";
             $("pay").disabled = true; $("pay").textContent = "Processing...";
+            $("bankSubmit").disabled = true; $("bankSubmit").textContent = "Submitting...";
 
             /* ---------------------------------------------------------------
                PAYMENT GATEWAY HOOK
-               eSewa and Khalti must be completed through their own checkout,
+               eSewa and PayPal must be completed through their own checkout,
                and the result verified on your server. This demo skips that
                step and treats the payment as started. To go live:
                  1. POST the order to your Django backend and get an order id.
-                 2. Redirect to the eSewa / Khalti payment page it returns.
+                 2. Redirect to the eSewa / PayPal payment page it returns.
                  3. Mark the order as paid only after your server verifies it.
                --------------------------------------------------------------- */
             setTimeout(function () {
                 var d = new Date(),
                     id = "GC-" + d.getFullYear().toString().slice(2) + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2) + "-" + Math.floor(1000 + Math.random() * 9000);
-                var status = (m === "esewa" || m === "khalti") ? "Paid" : (m === "bank" ? "Awaiting transfer" : (order.service === "home" ? "Pay on delivery" : "Pay at store"));
-                var done = { id: id, placedAt: d.toISOString(), method: m, methodLabel: LABEL[m], wallet: wallet ? wallet.slice(0, 2) + "******" + wallet.slice(-2) : "", status: status, order: order };
+                var status = (m === "esewa" || m === "paypal") ? "Paid" : (m === "bank" ? "Payment submitted, verifying" : (order.service === "home" ? "Pay on delivery" : "Pay at store"));
+                var done = { id: id, placedAt: d.toISOString(), method: m, methodLabel: LABEL[m], wallet: wallet ? wallet.slice(0, 2) + "******" + wallet.slice(-2) : "", status: status, extra: extra, order: order };
                 try { sessionStorage.setItem("gc_confirmed", JSON.stringify(done)); sessionStorage.removeItem("gc_order") } catch (e) {}
                 location.href = "order.html";
             }, 900);
-        };
+        }
     </script>
 </body>
 </html>
