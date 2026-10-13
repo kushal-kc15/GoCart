@@ -16,6 +16,7 @@ SUGGESTION_LIMIT = 6
 REVIEWS_SHOWN = 10
 
 
+
 def product_list(request):
     category_slug = request.GET.get("category", "").strip()
     subcategory_slug = request.GET.get("sub", "").strip()
@@ -54,16 +55,17 @@ def product_list(request):
             selected_subcategory = get_object_or_404(subcategories, slug=subcategory_slug)
             products = products.filter(category=selected_subcategory)
 
-    # "id" breaks ties so items don't repeat or vanish between pages.
+       # "id" breaks ties so items don't repeat or vanish between pages.
     if sort == "price_low":
         products = products.order_by("price", "id")
     elif sort == "price_high":
         products = products.order_by("-price", "id")
-    else:
+    elif sort == "name":
         products = products.order_by("name", "id")
-        if sort != "name":
-            sort = ""
-
+    else:
+        # Default: the order staff set by dragging in the admin.
+        products = products.order_by("weight", "name", "id")
+        sort = ""
     paginator = Paginator(products, PRODUCTS_PER_PAGE)
     page_obj = paginator.get_page(request.GET.get("page"))
     page_range = paginator.get_elided_page_range(page_obj.number, on_each_side=2, on_ends=1)

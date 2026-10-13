@@ -8,6 +8,11 @@ from unfold.admin import ModelAdmin, TabularInline
 from .models import LOW_STOCK_LIMIT, Category, Product, ProductImage, Review
 
 
+class SortableAdminMixin:
+    ordering_field = "weight"
+    hide_ordering_field = True
+    list_per_page = 200
+
 class StockFilter(admin.SimpleListFilter):
     title = "stock status"
     parameter_name = "stock_status"
@@ -27,7 +32,7 @@ class StockFilter(admin.SimpleListFilter):
 
 
 @admin.register(Category)
-class CategoryAdmin(ModelAdmin):
+class CategoryAdmin(SortableAdminMixin,ModelAdmin):
     list_display = ('name', 'slug', 'department', 'product_count', 'created_at')
     list_filter = ('parent',)
     # Without this, the list fetches every row's parent separately.
@@ -49,9 +54,6 @@ class CategoryAdmin(ModelAdmin):
     def product_count(self, obj):
         return obj._product_count
 
-    ordering_field = "weight"
-    hide_ordering_field = True
-    list_per_page = 200
 
 class ProductImageInline(TabularInline):
     model = ProductImage
@@ -62,7 +64,7 @@ class ProductImageInline(TabularInline):
     hide_ordering_field = True
 
 @admin.register(Product)
-class ProductAdmin(ModelAdmin):
+class ProductAdmin(SortableAdminMixin,ModelAdmin):
     list_display = (
         'thumbnail', 'name', 'category', 'price', 'stock', 'stock_badge',
         'is_available', 'is_featured', 'updated_at',
@@ -76,9 +78,6 @@ class ProductAdmin(ModelAdmin):
     inlines = [ProductImageInline]
     actions = ['show_on_site', 'hide_from_site']
 
-    ordering_field = "weight"
-    hide_ordering_field = True
-    list_per_page = 200
 
     def get_queryset(self, request):
         # All images in one query, so the thumbnail column costs nothing per row.
@@ -114,9 +113,8 @@ class ProductAdmin(ModelAdmin):
         updated = queryset.update(is_available=False, updated_at=timezone.now())
         self.message_user(request, f"{updated} product(s) now hidden from the site.")
 
-
 @admin.register(Review)
-class ReviewAdmin(ModelAdmin):
+class ReviewAdmin(SortableAdminMixin,ModelAdmin):
     list_display = ('product', 'reviewer_email', 'rating', 'is_visible', 'created_at')
     # The product filter lists only products that have reviews.
     list_filter = ('rating', 'is_visible', ('product', admin.RelatedOnlyFieldListFilter))

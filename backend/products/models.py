@@ -5,7 +5,15 @@ from django.db import models
 LOW_STOCK_LIMIT = 10
 
 
-class Category(models.Model):
+class SortableModel(models.Model):
+    """Position set by drag-and-drop in the admin. Lower comes first."""
+    weight = models.PositiveIntegerField(default=0, db_index=True)
+
+    class Meta:
+        abstract = True
+        ordering = ["weight"]
+
+class Category(SortableModel):
     name=models.CharField(max_length=200)
     slug=models.SlugField(max_length=200, unique=True)
     image=models.ImageField(upload_to='category', blank=True, null=True)
@@ -18,7 +26,6 @@ class Category(models.Model):
         null=True,
         related_name="subcategories",
     )
-    weight = models.PositiveIntegerField(default=0, db_index=True)
     class Meta:
         verbose_name_plural='Categories'
         ordering=['name']
@@ -26,7 +33,7 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
-class Product(models.Model):
+class Product(SortableModel):
     category=models.ForeignKey(Category,on_delete=models.CASCADE, related_name='products')
     name=models.CharField(max_length=200)
     slug=models.SlugField(max_length=200, unique=True)
@@ -38,9 +45,6 @@ class Product(models.Model):
     is_featured=models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
-
-    weight = models.PositiveIntegerField(default=0, db_index=True)   
-
     class Meta:
         ordering=['weight', 'name']                                   
 
@@ -68,7 +72,7 @@ def star_text(rating):
     return "★" * rating + "☆" * (5 - rating)
 
 
-class Review(models.Model):
+class Review(SortableModel):
     class Rating(models.IntegerChoices):
         ONE_STAR = 1, "1 star"
         TWO_STARS = 2, "2 stars"
