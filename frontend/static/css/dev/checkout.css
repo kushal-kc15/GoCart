@@ -204,6 +204,58 @@
 }
 .checkout-page .place-btn:hover { background: var(--green-dark); }
 
+/* ===== Checkout: contact, addresses, map and pickup ===== */
+.checkout-page [hidden] { display: none !important; }
+.checkout-page .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.checkout-page .panel-hint { margin: -6px 0 14px; font-size: 13px; color: var(--muted); }
+.checkout-page .contact-name-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.checkout-page .contact-name { padding: 11px 0; font-size: 14px; overflow-wrap: anywhere; }
+
+/* Saved address cards */
+.checkout-page .address-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.checkout-page .address-card {
+  display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--cream);
+}
+.checkout-page .address-card:has(input:checked) { border-color: var(--green); background: var(--green-pale); }
+.checkout-page .address-card input { accent-color: var(--green); width: 16px; height: 16px; margin-top: 2px; }
+.checkout-page .address-card__body { display: flex; flex-direction: column; gap: 2px; font-size: 14px; min-width: 0; }
+.checkout-page .address-card__body small { color: var(--muted); }
+.checkout-page .address-card__pin { color: var(--green) !important; font-weight: 600; }
+
+/* Map */
+.checkout-page .map-box { margin-bottom: 16px; }
+.checkout-page .map-search { display: flex; gap: 8px; margin-bottom: 10px; }
+.checkout-page .map-search input {
+  flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 7px;
+  padding: 10px 12px; font: inherit; font-size: 14px; background: var(--cream);
+}
+.checkout-page .map {
+  height: 340px; border: 1px solid var(--border); border-radius: 8px;
+  background: #e8e6dc; position: relative; z-index: 0;  /* stays under the site header */
+}
+.checkout-page .map-status { margin: 8px 0; font-size: 13px; color: var(--green); font-weight: 600; }
+.checkout-page .btn-small {
+  background: var(--green); color: #fff; border: 1px solid var(--green); border-radius: 7px;
+  padding: 10px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.checkout-page .btn-small:hover { background: var(--green-dark); }
+.checkout-page .btn-small:disabled { opacity: 0.5; cursor: default; }
+.checkout-page .btn-small--ghost { background: var(--white); color: var(--green); }
+.checkout-page .btn-small--ghost:hover { background: var(--green-pale); }
+
+/* Pickup store */
+.checkout-page .store-box {
+  display: flex; flex-direction: column; gap: 2px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--cream); font-size: 14px;
+}
+
+/* Delivery choice in the summary */
+.checkout-page .summary-label { margin: 14px 0 6px; font-size: 13px; color: var(--muted); }
+.checkout-page .opt--card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.checkout-page .opt--card small { margin-left: auto; }
+.checkout-page .opt--card:has(input:checked) { border-color: var(--green); background: var(--green-pale); }
+
 /* ===== Order success page (dev/order_success.html) ===== */
 .checkout-page .success-wrap { max-width: 720px; margin: 0 auto; padding: 0 24px 60px; }
 
@@ -296,7 +348,15 @@
   .checkout-page .summary h2 { padding-bottom: 10px; margin-bottom: 12px; }
 
   /* Fields are already full width; 16px text stops iOS zooming in on tap */
-  .checkout-page .field-group input { font-size: 16px; }
+  .checkout-page .field-group input,
+  .checkout-page .map-search input { font-size: 16px; }
+
+  /* Checkout: one field per row, map buttons wrap under the search box */
+  .checkout-page .field-row { grid-template-columns: 1fr; }
+  .checkout-page .map-search { flex-wrap: wrap; }
+  .checkout-page .map-search input { flex-basis: 100%; }
+  .checkout-page .map-search .btn-small { flex: 1; }
+  .checkout-page .map { height: 280px; }
 
   /* Summary items: part of the page scroll, long names wrap */
   .checkout-page .summary-items { max-height: none; overflow-y: visible; }

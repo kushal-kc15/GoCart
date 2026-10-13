@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import display
-
+from unfold.admin import ModelAdmin, TabularInline
 from .models import LOW_STOCK_LIMIT, Category, Product, ProductImage, Review
 
 
@@ -49,12 +49,17 @@ class CategoryAdmin(ModelAdmin):
     def product_count(self, obj):
         return obj._product_count
 
+    ordering_field = "weight"
+    hide_ordering_field = True
+    list_per_page = 200
 
 class ProductImageInline(TabularInline):
     model = ProductImage
-    extra = 1
+    extra = 0
     fields = ("image", "alt_text", "sort_order")
 
+    ordering_field = "sort_order"
+    hide_ordering_field = True
 
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
@@ -70,6 +75,10 @@ class ProductAdmin(ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
     inlines = [ProductImageInline]
     actions = ['show_on_site', 'hide_from_site']
+
+    ordering_field = "weight"
+    hide_ordering_field = True
+    list_per_page = 200
 
     def get_queryset(self, request):
         # All images in one query, so the thumbnail column costs nothing per row.

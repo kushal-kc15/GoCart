@@ -1,17 +1,21 @@
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
+from django.template.defaultfilters import floatformat
+from django.urls import reverse
 from django.views import View
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import F, Prefetch
 from django.views.decorators.http import require_POST
 
+from accounts.models import Address
 from accounts.views import _safe_next_url
 from cart.models import Cart
-from products.models import ProductImage
-from .forms import AddressForm
+from products.models import Product, ProductImage
+from .forms import CheckoutForm
 from .models import Order, OrderItem, OrderStatusChange, Payment
 
 SHIPPING_FEE = 100
@@ -44,55 +48,127 @@ def _checkout_totals(cart_items, delivery_method):
     return subtotal, shipping, subtotal + shipping
 
 
+def _rupees(amount):
+    return f"Rs. {floatformat(amount, '-2')}"
+
+
+def _account_name(user):
+    # The name orders use for now: the account's full name, else its email.
+    return user.get_full_name() or user.email
+
+
+def _delivery_details(form, user):
+    """What the order saves about where it goes: (saved Address or None, fields for Order)."""
+    data = form.cleaned_data
+    name = _account_name(user)
+    details = {"landmark": "", "latitude": None, "longitude": None}
+    address = None
+
+    if data["delivery_method"] == Order.DeliveryMethod.PICKUP:
+        where = f"Pick up at {settings.SHOP_INFO['name']}"
+    elif data["saved_address"]:
+        address = data["saved_address"]
+        where = ", ".join(part for part in (address.address_line, address.area, address.city) if part)
+        details.update(landmark=address.landmark, latitude=address.latitude, longitude=address.longitude)
+    else:
+        where = data["address_line"]
+        details.update(landmark=data["landmark"], latitude=data["lat"], longitude=data["lng"])
+        if data["save_address"]:
+            address = Address.objects.create(
+                user=user, recipient_name=name, phone=data["phone"],
+                address_line=data["address_line"], landmark=data["landmark"],
+                latitude=data["lat"], longitude=data["lng"],
+            )
+
+    # Same "Name, address — phone" text as before, cut to fit the column.
+    details["address"] = f"{name}, {where} — {data['phone']}"[:255]
+    return address, details
+
+
 class CheckoutView(LoginRequiredMixin, View):
-    def get(self, request):
+    def _cart_items(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_items = cart.items.select_related("product").all()
+        return cart.items.select_related("product").all()
 
-        if not cart_items:
-            messages.info(request, "Your cart is empty. Add some items before checkout.")
-            return redirect("cart:cart_detail")
+    def _render(self, request, form, cart_items):
+        method = form["delivery_method"].value()
+        if method not in Order.DeliveryMethod.values:
+            method = Order.DeliveryMethod.DELIVERY
+        subtotal, shipping, grand_total = _checkout_totals(cart_items, method)
 
-        subtotal, shipping, grand_total = _checkout_totals(cart_items, Order.DeliveryMethod.DELIVERY)
+        # Totals for both methods, worked out here. The page's JavaScript only
+        # swaps which one is shown; it never calculates a price.
+        totals = {}
+        for choice in Order.DeliveryMethod.values:
+            _, choice_shipping, choice_total = _checkout_totals(cart_items, choice)
+            totals[choice] = {
+                "shipping": _rupees(choice_shipping) if choice_shipping else "Free",
+                "total": _rupees(choice_total),
+            }
 
-        context = {
-            "form": AddressForm(),
+        addresses = request.user.addresses.order_by("-is_default", "-created_at")
+        try:
+            selected_address_id = int(form["address_id"].value())
+        except (TypeError, ValueError):
+            selected_address_id = None  # "Add new address"
+
+        store = {"name": settings.SHOP_INFO["name"], "address": settings.SHOP_INFO["address"]}
+        page_data = {
+            "totals": totals,
+            "store": store,
+            "addresses": [
+                {"id": a.pk, "lat": a.latitude, "lng": a.longitude}
+                for a in addresses if a.latitude is not None
+            ],
+            "urls": {"reverse": reverse("geocode_reverse"), "search": reverse("geocode_search")},
+        }
+        return render(request, "dev/checkout.html", {
+            "form": form,
+            "method": method,
+            "account_name": _account_name(request.user),
             "cart_items": cart_items,
             "subtotal": subtotal,
             "shipping": shipping,
             "grand_total": grand_total,
-        }
-        return render(request, "dev/checkout.html", context)
+            "totals": totals,
+            "saved_addresses": addresses,
+            "selected_address_id": selected_address_id,
+            "store": store,
+            "page_data": page_data,
+        })
+
+    def get(self, request):
+        cart_items = self._cart_items(request)
+        if not cart_items:
+            messages.info(request, "Your cart is empty. Add some items before checkout.")
+            return redirect("cart:cart_detail")
+
+        newest = request.user.addresses.order_by("-is_default", "-created_at").first()
+        form = CheckoutForm(user=request.user, initial={
+            "phone": request.user.phone or "",
+            "address_id": newest.pk if newest else None,
+        })
+        return self._render(request, form, cart_items)
 
     @transaction.atomic
     def post(self, request):
-        cart, _ = Cart.objects.get_or_create(user=request.user)
-        cart_items = cart.items.select_related("product").all()
-
+        cart_items = self._cart_items(request)
         if not cart_items:
             messages.error(request, "Your cart is empty.")
             return redirect("cart:cart_detail")
 
-        form = AddressForm(request.POST)
-        delivery_method = request.POST.get("delivery_method", Order.DeliveryMethod.DELIVERY)
-        if delivery_method not in Order.DeliveryMethod.values:
-            delivery_method = Order.DeliveryMethod.DELIVERY
-
-        subtotal, shipping, grand_total = _checkout_totals(cart_items, delivery_method)
-
+        form = CheckoutForm(request.POST, user=request.user)
         if not form.is_valid():
-            context = {
-                "form": form,
-                "cart_items": cart_items,
-                "subtotal": subtotal,
-                "shipping": shipping,
-                "grand_total": grand_total,
-            }
-            return render(request, "dev/checkout.html", context)
+            return self._render(request, form, cart_items)
 
-        # Re-validate stock inside the transaction; roll back on any shortfall.
+        # Take the stock now. The filter only matches if enough is left, so two
+        # shoppers can't both buy the last one; any shortfall undoes everything.
         for item in cart_items:
-            if item.product.stock < item.quantity:
+            taken = Product.objects.filter(pk=item.product_id, stock__gte=item.quantity).update(
+                stock=F("stock") - item.quantity
+            )
+            if not taken:
+                item.product.refresh_from_db(fields=["stock"])  # before the rollback: no queries after it
                 messages.error(
                     request,
                     f"Sorry, '{item.product.name}' only has {item.product.stock} items in stock.",
@@ -100,23 +176,20 @@ class CheckoutView(LoginRequiredMixin, View):
                 transaction.set_rollback(True)
                 return redirect("orders:checkout")
 
-        address = form.save(commit=False)
-        address.user = request.user
-        address.save()
-        address_line = f"{address.recipient_name}, {address.address_line}"
-        if address.area:
-            address_line += f", {address.area}"
-        address_line += f", {address.city} — {address.phone}"
+        method = form.cleaned_data["delivery_method"]
+        subtotal, shipping, grand_total = _checkout_totals(cart_items, method)
+        address, details = _delivery_details(form, request.user)
 
         order = Order.objects.create(
             user=request.user,
             shipping_address=address,
             status=Order.Status.PENDING,
-            delivery_method=delivery_method,
+            delivery_method=method,
             subtotal=subtotal,
             shipping_fee=shipping,
             total=grand_total,
-            address=address_line,
+            phone=form.cleaned_data["phone"],
+            **details,
         )
         # First status history row (no "from" status).
         OrderStatusChange.objects.create(
@@ -132,8 +205,6 @@ class CheckoutView(LoginRequiredMixin, View):
                 quantity=item.quantity,
                 price=item.product.price,
             )
-            item.product.stock -= item.quantity
-            item.product.save(update_fields=["stock"])
 
         # Pending until the courier collects the cash.
         Payment.objects.create(

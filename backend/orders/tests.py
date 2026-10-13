@@ -1,12 +1,19 @@
+import io
+import json
 import re
+import time
 from datetime import date, datetime, timedelta
+from decimal import Decimal
+from unittest import mock
 from unittest.mock import patch
+from urllib.error import URLError
 
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.models import Permission
 from django.contrib.messages import get_messages
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.core.cache import cache
 from django.db import connection
 from django.db.models import ProtectedError
 from django.test import Client, RequestFactory, TestCase
@@ -20,24 +27,32 @@ from cart.models import Cart, CartItem
 from accounts.models import Address
 from .admin import OrderAdmin
 from .dashboard import day_and_week_start
-from .forms import AddressForm
+from .forms import CheckoutForm, is_in_nepal
 from .models import Order, OrderItem, OrderStatusChange, Payment
 
 User = get_user_model()
 
-VALID_ADDRESS = {
-    "recipient_name": "Asha Sharma",
+CHECKOUT_DATA = {
+    "delivery_method": "delivery",
     "phone": "9800000000",
-    "address_line": "12 Market Rd",
-    "city": "Kathmandu",
-    "area": "Thamel",
+    "address_id": "",
+    "address_line": "12 Market Rd, Thamel, Kathmandu",
+    "landmark": "Near the blue gate",
+    "lat": "",
+    "lng": "",
+    "save_address": "on",
+    "payment_method": "cod",
 }
+# A point in Kathmandu, and one in Delhi (outside Nepal).
+KATHMANDU = ("27.717200", "85.324000")
+DELHI = ("28.613900", "77.209000")
 
 
-class CheckoutTests(TestCase):
+class CheckoutTestBase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            username="asha", email="asha@example.com", password="pass12345"
+            username="asha", email="asha@example.com", password="pass12345",
+            first_name="Asha", last_name="Sharma",
         )
         self.category = Category.objects.create(name="Fruits", slug="fruits")
         self.product = Product.objects.create(
@@ -45,15 +60,31 @@ class CheckoutTests(TestCase):
         )
         self.url = reverse("orders:checkout")
 
-    def _fill_cart(self, quantity=2):
+    def _fill_cart(self, quantity=2, product=None):
         cart, _ = Cart.objects.get_or_create(user=self.user)
-        return CartItem.objects.create(cart=cart, product=self.product, quantity=quantity)
+        return CartItem.objects.create(cart=cart, product=product or self.product, quantity=quantity)
 
     def _post(self, **overrides):
-        data = {**VALID_ADDRESS, "delivery_method": "delivery", "payment_method": "cod"}
-        data.update(overrides)
+        data = {**CHECKOUT_DATA, **overrides}
+        data = {key: value for key, value in data.items() if value is not None}  # None leaves a field out
         return self.client.post(self.url, data)
 
+    def _saved_address(self, user=None, **fields):
+        values = {
+            "recipient_name": "Asha Sharma", "phone": "9800000000",
+            "address_line": "5 Lake Rd", "city": "Pokhara", "landmark": "Opposite the temple",
+            "latitude": Decimal("28.209600"), "longitude": Decimal("83.959000"),
+        }
+        values.update(fields)
+        return Address.objects.create(user=user or self.user, **values)
+
+    def _page_data(self, response):
+        html = response.content.decode()
+        found = re.search(r'<script id="checkout-data" type="application/json">(.*?)</script>', html, re.S)
+        return json.loads(found.group(1))
+
+
+class CheckoutTests(CheckoutTestBase):
     # ---- happy path ----
     def test_valid_order_is_created(self):
         self.client.force_login(self.user)
@@ -63,10 +94,15 @@ class CheckoutTests(TestCase):
 
         order = Order.objects.get(user=self.user)
         self.assertRedirects(res, reverse("orders:order_success", args=[order.pk]))
-        # Address saved and linked
-        self.assertTrue(Address.objects.filter(user=self.user, recipient_name="Asha Sharma").exists())
-        self.assertEqual(order.shipping_address.city, "Kathmandu")
-        self.assertIn("Asha Sharma", order.address)
+        # Address saved and linked, and copied onto the order
+        address = Address.objects.get(user=self.user)
+        self.assertEqual(order.shipping_address, address)
+        self.assertEqual(address.address_line, "12 Market Rd, Thamel, Kathmandu")
+        self.assertEqual(address.landmark, "Near the blue gate")
+        self.assertEqual(order.address, "Asha Sharma, 12 Market Rd, Thamel, Kathmandu — 9800000000")
+        self.assertEqual(order.phone, "9800000000")
+        self.assertEqual(address.recipient_name, "Asha Sharma")  # the account's name
+        self.assertEqual(order.landmark, "Near the blue gate")
         # Items + totals
         self.assertEqual(OrderItem.objects.filter(order=order).count(), 1)
         self.assertEqual(order.subtotal, 200)
@@ -100,14 +136,16 @@ class CheckoutTests(TestCase):
         self._post()
         self.assertFalse(OrderStatusChange.objects.exists())
 
-    # ---- invalid address ----
-    def test_invalid_address_creates_no_order(self):
+    # ---- invalid details ----
+    def test_invalid_details_create_no_order(self):
         self.client.force_login(self.user)
         self._fill_cart(quantity=2)
 
-        res = self._post(recipient_name="", address_line="", city="")
+        res = self._post(phone="", address_line="")
 
         self.assertEqual(res.status_code, 200)  # re-rendered with errors
+        self.assertIn("phone", res.context["form"].errors)
+        self.assertContains(res, "Enter your street, tole or house number.")
         self.assertFalse(Order.objects.exists())
         self.assertFalse(Payment.objects.exists())
         self.product.refresh_from_db()
@@ -134,6 +172,7 @@ class CheckoutTests(TestCase):
         self._fill_cart(quantity=1)
         self._post(phone="+977 981 234 5678")
         order = Order.objects.get(user=self.user)
+        self.assertEqual(order.phone, "9812345678")
         self.assertEqual(order.shipping_address.phone, "9812345678")
         self.assertTrue(order.address.endswith("9812345678"))
 
@@ -149,6 +188,21 @@ class CheckoutTests(TestCase):
         self.assertFalse(Address.objects.exists())
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock, 5)
+
+    def test_one_short_item_leaves_every_stock_unchanged(self):
+        self.client.force_login(self.user)
+        pear = Product.objects.create(category=self.category, name="Pear", slug="pear", price=50, stock=1)
+        self._fill_cart(quantity=2)                 # enough apples
+        self._fill_cart(quantity=3, product=pear)   # not enough pears
+        res = self._post()
+        self.assertRedirects(res, self.url)
+        self.assertEqual(
+            [str(m) for m in get_messages(res.wsgi_request)], ["Sorry, 'Pear' only has 1 items in stock."]
+        )
+        self.product.refresh_from_db()
+        pear.refresh_from_db()
+        self.assertEqual((self.product.stock, pear.stock), (5, 1))
+        self.assertFalse(Order.objects.exists())
 
     # ---- shipping by delivery method ----
     def test_pickup_has_no_shipping(self):
@@ -166,6 +220,21 @@ class CheckoutTests(TestCase):
         order = Order.objects.get(user=self.user)
         self.assertEqual(order.shipping_fee, 100)
         self.assertEqual(order.total, 200)
+
+    def test_posted_prices_are_ignored(self):
+        self.client.force_login(self.user)
+        self._fill_cart(quantity=2)
+        self._post(subtotal="1", shipping="0", shipping_fee="0", total="1", grand_total="1")
+        order = Order.objects.get(user=self.user)
+        self.assertEqual((order.subtotal, order.shipping_fee, order.total), (200, 100, 300))
+
+    def test_unknown_delivery_method_is_refused(self):
+        self.client.force_login(self.user)
+        self._fill_cart(quantity=1)
+        res = self._post(delivery_method="express")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("delivery_method", res.context["form"].errors)
+        self.assertFalse(Order.objects.exists())
 
     # ---- line totals on the summaries ----
     def test_checkout_summary_shows_line_total(self):
@@ -188,6 +257,199 @@ class CheckoutTests(TestCase):
         self.assertRedirects(res, reverse("cart:cart_detail"))
 
 
+class CheckoutPageTests(CheckoutTestBase):
+    """What GET /orders/checkout/ shows and hands to checkout.js."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self._fill_cart(quantity=2)
+
+    def test_page_data_has_the_server_totals_store_and_urls(self):
+        data = self._page_data(self.client.get(self.url))
+        self.assertEqual(data["totals"], {
+            "delivery": {"shipping": "Rs. 100", "total": "Rs. 300"},
+            "pickup": {"shipping": "Free", "total": "Rs. 200"},
+        })
+        self.assertEqual(data["store"]["name"], settings.SHOP_INFO["name"])
+        self.assertEqual(data["urls"], {
+            "reverse": reverse("geocode_reverse"), "search": reverse("geocode_search"),
+        })
+
+    def test_saved_addresses_are_listed_newest_first_and_preselected(self):
+        older = self._saved_address(address_line="1 Old Rd", latitude=None, longitude=None)
+        newer = self._saved_address(address_line="2 New Rd")
+        Address.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(days=3))
+        theirs = self._saved_address(
+            user=User.objects.create_user(username="bob", email="bob@example.com"), address_line="9 Their Rd",
+        )
+        res = self.client.get(self.url)
+        html = res.content.decode()
+        self.assertLess(html.index("2 New Rd"), html.index("1 Old Rd"))
+        self.assertNotContains(res, "9 Their Rd")
+        self.assertInHTML(f'<input type="radio" name="address_id" value="{newer.pk}" checked>', html)
+        self.assertInHTML(f'<input type="radio" name="address_id" value="{theirs.pk}">', html, count=0)
+        self.assertContains(res, "Pinned on the map", count=1)
+        # Only pinned addresses go to the map, as starting points.
+        self.assertEqual(self._page_data(res)["addresses"], [
+            {"id": newer.pk, "lat": "28.209600", "lng": "83.959000"},
+        ])
+
+    def test_without_saved_addresses_the_typed_fields_work_without_javascript(self):
+        res = self.client.get(self.url)
+        self.assertNotContains(res, 'name="address_id"')
+        for field in ("phone", "address_line", "landmark", "save_address"):
+            self.assertContains(res, f'name="{field}"')
+        # The map only appears once checkout.js runs.
+        self.assertContains(res, '<div class="map-box" id="map-box" hidden>')
+        self.assertContains(res, "Only needed for home delivery.")
+
+    def test_no_pin_on_page_load(self):
+        html = self.client.get(self.url).content.decode()
+        self.assertInHTML('<input type="hidden" name="lat" id="id_lat">', html)
+        self.assertInHTML('<input type="hidden" name="lng" id="id_lng">', html)
+
+    def test_contact_details_come_from_the_account(self):
+        self.user.phone = "9811111111"
+        self.user.save()
+        res = self.client.get(self.url)
+        # The name is the account's, shown as text; there is no name field to fill in.
+        self.assertContains(res, '<p class="contact-name">Asha Sharma</p>', html=True)
+        self.assertNotContains(res, 'name="full_name"')
+        self.assertContains(res, 'value="9811111111"')
+
+    def test_leaflet_is_pinned_with_integrity_hashes(self):
+        res = self.client.get(self.url)
+        self.assertContains(res, 'src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"')
+        self.assertContains(res, 'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="')
+        self.assertContains(res, 'integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="')
+        self.assertContains(res, "js/dev/checkout.js")
+
+    def test_a_confirmed_pin_survives_a_form_error(self):
+        res = self._post(phone="", lat=KATHMANDU[0], lng=KATHMANDU[1])
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, f'value="{KATHMANDU[0]}"')
+        self.assertContains(res, f'value="{KATHMANDU[1]}"')
+
+    def test_pickup_chosen_before_an_error_stays_chosen(self):
+        res = self._post(delivery_method="pickup", phone="")
+        self.assertInHTML('<input type="radio" name="delivery_method" value="pickup" checked>', res.content.decode())
+        self.assertContains(res, '<span class="t-value" id="summary-total">Rs. 200</span>')
+
+
+class CheckoutAddressTests(CheckoutTestBase):
+    """Saved addresses, the map pin and the copy kept on the order."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.user)
+        self._fill_cart(quantity=2)
+
+    def assertRefused(self, res, message):
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, message)
+        self.assertFalse(Order.objects.exists())
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.stock, 5)
+
+    # ---- saved addresses ----
+    def test_a_saved_address_is_copied_onto_the_order(self):
+        address = self._saved_address()
+        self._post(address_id=address.pk, address_line="", landmark="")
+        order = Order.objects.get()
+        self.assertEqual(order.shipping_address, address)
+        self.assertEqual(order.address, "Asha Sharma, 5 Lake Rd, Pokhara — 9800000000")
+        self.assertEqual(order.landmark, "Opposite the temple")
+        self.assertEqual((order.latitude, order.longitude), (Decimal("28.209600"), Decimal("83.959000")))
+        self.assertEqual(Address.objects.count(), 1)  # nothing new saved
+
+    def test_someone_elses_address_is_refused(self):
+        theirs = self._saved_address(user=User.objects.create_user(username="bob", email="bob@example.com"))
+        self.assertRefused(self._post(address_id=theirs.pk), "Choose one of your saved addresses.")
+
+    def test_an_unknown_address_is_refused(self):
+        self.assertRefused(self._post(address_id="99999"), "Choose one of your saved addresses.")
+
+    def test_the_order_keeps_its_copy_when_the_address_changes(self):
+        self._post(lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        address = order.shipping_address
+        address.address_line, address.landmark, address.latitude = "Changed", "Changed", Decimal("27.0")
+        address.save()
+        address.delete()
+        order.refresh_from_db()
+        self.assertIsNone(order.shipping_address)
+        self.assertIn("12 Market Rd", order.address)
+        self.assertEqual(order.landmark, "Near the blue gate")
+        self.assertEqual(order.latitude, Decimal(KATHMANDU[0]))
+
+    # ---- a new address and the map pin ----
+    def test_a_confirmed_pin_is_saved_on_the_order_and_address(self):
+        self._post(lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertEqual((order.latitude, order.longitude), (Decimal(KATHMANDU[0]), Decimal(KATHMANDU[1])))
+        self.assertEqual(order.shipping_address.latitude, Decimal(KATHMANDU[0]))
+        self.assertEqual(
+            order.map_url, "https://www.google.com/maps/search/?api=1&query=27.717200,85.324000"
+        )
+
+    def test_the_pin_is_optional(self):
+        self._post()
+        order = Order.objects.get()
+        self.assertIsNone(order.latitude)
+        self.assertEqual(order.map_url, "")
+
+    def test_a_pin_outside_nepal_is_refused(self):
+        self.assertRefused(self._post(lat=DELHI[0], lng=DELHI[1]), "The map pin must be inside Nepal.")
+        self.assertFalse(Address.objects.exists())
+
+    def test_half_a_pin_is_refused(self):
+        self.assertRefused(self._post(lat=KATHMANDU[0]), "The map location was incomplete.")
+
+    def test_a_pin_must_be_numbers(self):
+        for lat in ("abc", "nan", "inf"):
+            with self.subTest(lat=lat):
+                self.assertRefused(self._post(lat=lat, lng=KATHMANDU[1]), "Map pin:")
+
+    def test_a_new_address_needs_a_street(self):
+        self.assertRefused(self._post(address_line="  "), "Enter your street, tole or house number.")
+
+    def test_without_save_address_nothing_is_saved_but_the_order_keeps_everything(self):
+        self._post(save_address=None, lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertFalse(Address.objects.exists())
+        self.assertIsNone(order.shipping_address)
+        self.assertEqual(order.phone, "9800000000")
+        self.assertTrue(order.address.startswith("Asha Sharma, 12 Market Rd"))
+        self.assertEqual(order.landmark, "Near the blue gate")
+        self.assertEqual(order.latitude, Decimal(KATHMANDU[0]))
+
+    def test_an_account_without_a_name_uses_its_email(self):
+        self.user.first_name = self.user.last_name = ""
+        self.user.save()
+        self.assertContains(self.client.get(self.url), '<p class="contact-name">asha@example.com</p>', html=True)
+        self._post()
+        order = Order.objects.get()
+        self.assertTrue(order.address.startswith("asha@example.com, 12 Market Rd"))
+        self.assertEqual(order.shipping_address.recipient_name, "asha@example.com")
+
+    def test_pickup_ignores_the_address_fields(self):
+        theirs = self._saved_address(user=User.objects.create_user(username="bob", email="bob@example.com"))
+        self._post(delivery_method="pickup", address_id=theirs.pk, address_line="", lat=DELHI[0], lng=DELHI[1])
+        order = Order.objects.get()
+        self.assertEqual(order.address, f"Asha Sharma, Pick up at {settings.SHOP_INFO['name']} — 9800000000")
+        self.assertIsNone(order.shipping_address)
+        self.assertIsNone(order.latitude)
+        self.assertEqual(order.landmark, "")
+        self.assertEqual(Address.objects.filter(user=self.user).count(), 0)
+
+    def test_the_nepal_box(self):
+        for lat, lng, inside in ((27.7172, 85.324, True), (26.3, 80.0, True), (30.5, 88.3, True),
+                                 (28.6139, 77.209, False), (31.0, 85.0, False), (27.7, 88.5, False)):
+            with self.subTest(lat=lat, lng=lng):
+                self.assertEqual(is_in_nepal(lat, lng), inside)
+
+
 class LineTotalAndFormTests(TestCase):
     def test_order_item_line_total_uses_saved_price(self):
         user = User.objects.create_user(username="asha", email="asha@example.com", password="pass12345")
@@ -202,14 +464,127 @@ class LineTotalAndFormTests(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.line_total, 300)
 
-    def test_address_form_has_autofill_and_keyboard_hints(self):
-        form = AddressForm()
-        self.assertIn('autocomplete="name"', str(form["recipient_name"]))
+    def test_checkout_form_has_autofill_and_keyboard_hints(self):
+        form = CheckoutForm(user=None)
         self.assertIn('autocomplete="tel"', str(form["phone"]))
         self.assertIn('inputmode="tel"', str(form["phone"]))
-        self.assertIn('autocomplete="address-line1"', str(form["address_line"]))
-        self.assertIn('autocomplete="address-level2"', str(form["city"]))
-        self.assertIn('autocomplete="address-line2"', str(form["area"]))
+        self.assertIn('autocomplete="street-address"', str(form["address_line"]))
+
+
+def nominatim_answer(payload):
+    """A stand-in for urllib's response to a Nominatim request."""
+    response = mock.MagicMock()
+    response.__enter__.return_value = io.BytesIO(json.dumps(payload).encode())
+    return response
+
+
+REVERSE_ANSWER = {
+    "name": "Kathmandu Mall",
+    "address": {"road": "Sundhara Road", "suburb": "Sundhara", "city": "Kathmandu"},
+}
+SEARCH_ANSWER = [
+    {"display_name": "Thamel, Kathmandu", "lat": "27.7154", "lon": "85.3123"},
+    {"display_name": "Connaught Place, Delhi", "lat": "28.6315", "lon": "77.2167"},  # outside Nepal
+    {"display_name": "Broken"},  # no coordinates
+]
+
+
+@mock.patch("orders.geocode.urllib.request.urlopen")
+class GeocodeTests(TestCase):
+    """The /api/geocode/ views. They never reach the real Nominatim in tests."""
+
+    reverse_url = reverse("geocode_reverse")
+    search_url = reverse("geocode_search")
+
+    def setUp(self):
+        cache.clear()  # cached answers and the once-a-second lock live in the cache
+        self.client.force_login(User.objects.create_user(username="asha", email="asha@example.com"))
+
+    def later(self, seconds):
+        """Pretend `seconds` have passed, as far as the cache's expiry times go."""
+        fake_time = mock.Mock(time=mock.Mock(return_value=time.time() + seconds))
+        return mock.patch("django.core.cache.backends.locmem.time", fake_time)
+
+    def reverse_at(self, lat=KATHMANDU[0], lng=KATHMANDU[1]):
+        return self.client.get(self.reverse_url, {"lat": lat, "lng": lng})
+
+    def test_login_required(self, urlopen):
+        res = Client().get(self.reverse_url, {"lat": KATHMANDU[0], "lng": KATHMANDU[1]})
+        self.assertEqual(res.status_code, 302)
+        self.assertIn(reverse("accounts:login"), res.url)
+        urlopen.assert_not_called()
+
+    def test_get_only(self, urlopen):
+        self.assertEqual(self.client.post(self.reverse_url).status_code, 405)
+        self.assertEqual(self.client.post(self.search_url).status_code, 405)
+
+    def test_reverse_gives_a_landmark_and_address(self, urlopen):
+        urlopen.return_value = nominatim_answer(REVERSE_ANSWER)
+        res = self.reverse_at()
+        self.assertEqual(res.json(), {
+            "landmark": "Near Kathmandu Mall", "address": "Sundhara Road, Sundhara, Kathmandu",
+        })
+        request = urlopen.call_args[0][0]
+        self.assertTrue(request.full_url.startswith("https://nominatim.openstreetmap.org/reverse?"))
+        self.assertIn("lat=27.71720&lon=85.32400", request.full_url)
+        self.assertEqual(request.get_header("User-agent"), settings.NOMINATIM_USER_AGENT)
+
+    def test_reverse_answers_are_cached(self, urlopen):
+        urlopen.return_value = nominatim_answer(REVERSE_ANSWER)
+        first = self.reverse_at()
+        with self.later(5):
+            second = self.reverse_at("27.7172001", "85.3240001")  # same spot to 5 places
+        self.assertEqual(first.json(), second.json())
+        self.assertEqual(urlopen.call_count, 1)
+
+    def test_at_most_one_request_a_second(self, urlopen):
+        urlopen.side_effect = lambda *args, **kwargs: nominatim_answer(REVERSE_ANSWER)
+        self.assertEqual(self.reverse_at().status_code, 200)
+        busy = self.reverse_at("27.7000", "85.3000")  # another spot, straight away
+        self.assertEqual(busy.status_code, 429)
+        self.assertEqual(urlopen.call_count, 1)
+        with self.later(2):
+            self.assertEqual(self.reverse_at("27.7000", "85.3000").status_code, 200)
+        self.assertEqual(urlopen.call_count, 2)
+
+    def test_reverse_refuses_bad_or_outside_points(self, urlopen):
+        for params in ({}, {"lat": "abc", "lng": "85.3"}, {"lat": "nan", "lng": "85.3"},
+                       {"lat": "inf", "lng": "85.3"}, {"lat": DELHI[0], "lng": DELHI[1]}):
+            with self.subTest(params=params):
+                self.assertEqual(self.client.get(self.reverse_url, params).status_code, 400)
+        urlopen.assert_not_called()
+
+    def test_a_nominatim_failure_is_502_and_not_cached(self, urlopen):
+        urlopen.side_effect = URLError("no connection")
+        with self.assertLogs("orders.geocode", level="WARNING"):
+            self.assertEqual(self.reverse_at().status_code, 502)
+        urlopen.side_effect = None
+        urlopen.return_value = nominatim_answer(REVERSE_ANSWER)
+        with self.later(2):
+            self.assertEqual(self.reverse_at().status_code, 200)
+
+    def test_search_gives_places_in_nepal_only(self, urlopen):
+        urlopen.return_value = nominatim_answer(SEARCH_ANSWER)
+        res = self.client.get(self.search_url, {"q": "Thamel"})
+        self.assertEqual(res.json(), {"results": [{"name": "Thamel, Kathmandu", "lat": 27.7154, "lng": 85.3123}]})
+        url = urlopen.call_args[0][0].full_url
+        self.assertTrue(url.startswith("https://nominatim.openstreetmap.org/search?"))
+        self.assertIn("countrycodes=np", url)
+        self.assertIn("q=Thamel", url)
+
+    def test_search_is_cached_whatever_the_case(self, urlopen):
+        urlopen.return_value = nominatim_answer(SEARCH_ANSWER)
+        self.client.get(self.search_url, {"q": "Thamel"})
+        with self.later(5):
+            res = self.client.get(self.search_url, {"q": "  thamel "})
+        self.assertEqual(len(res.json()["results"]), 1)
+        self.assertEqual(urlopen.call_count, 1)
+
+    def test_search_text_must_be_3_to_100_letters(self, urlopen):
+        for query in ("", "ab", "x" * 101):
+            with self.subTest(length=len(query)):
+                self.assertEqual(self.client.get(self.search_url, {"q": query}).status_code, 400)
+        urlopen.assert_not_called()
 
 
 class OrderSuccessTests(TestCase):
@@ -1174,6 +1549,76 @@ class PackingSlipTests(AdminTestData, TestCase):
         res = self.client.get(self._slip_url())
         self.assertEqual(res.status_code, 302)
         self.assertIn(reverse("admin:login"), res.url)
+
+
+class OrderLocationAdminTests(AdminTestData, TestCase):
+    """The landmark, map link and phone saved on the order, in the admin and on the slip."""
+
+    MAP_URL = "https://www.google.com/maps/search/?api=1&amp;query=27.717200,85.324000"
+
+    def _pin(self, order=None):
+        order = order or self.order
+        order.landmark = "Near the blue gate"
+        order.latitude, order.longitude = Decimal("27.717200"), Decimal("85.324000")
+        order.save()
+        return order
+
+    def _slip(self, order=None):
+        return self.client.get(reverse("admin:orders_order_packing_slip", args=[(order or self.order).pk]))
+
+    def test_order_page_shows_the_landmark_and_a_map_link(self):
+        self._pin()
+        res = self.client.get(self._change_url())
+        self.assertContains(res, "Near the blue gate")
+        self.assertContains(
+            res, f'<a href="{self.MAP_URL}" target="_blank" rel="noopener">Open in Google Maps</a>', html=True
+        )
+
+    def test_order_without_a_pin_has_no_map_link(self):
+        res = self.client.get(self._change_url())
+        self.assertContains(res, "No landmark given")
+        self.assertNotContains(res, "Open in Google Maps")
+
+    def test_landmark_text_is_escaped(self):
+        self.order.landmark = '<script>alert("x")</script>'
+        self.order.latitude, self.order.longitude = Decimal("27.7"), Decimal("85.3")
+        self.order.save()
+        for res in (self.client.get(self._change_url()), self._slip()):
+            self.assertNotContains(res, '<script>alert("x")</script>')
+            self.assertContains(res, "&lt;script&gt;")
+
+    def test_packing_slip_shows_the_landmark_and_pin(self):
+        self._pin()
+        res = self._slip()
+        self.assertContains(res, "Landmark: Near the blue gate")
+        self.assertContains(res, "Map pin: 27.717200, 85.324000")
+        self.assertContains(res, f'href="{self.MAP_URL}"')
+
+    def test_pickup_slip_has_no_delivery_location(self):
+        pickup = self._pin(self._order(method=Order.DeliveryMethod.PICKUP))
+        res = self._slip(pickup)
+        self.assertNotContains(res, "Landmark:")
+        self.assertNotContains(res, "Map pin:")
+
+    def test_phone_saved_on_the_order_is_shown_and_searchable(self):
+        order = Order.objects.create(
+            user=self.customer, total=200, address="Asha Sharma, 1 Road — 9811111111", phone="9811111111",
+        )
+        listed = self.client.get(reverse("admin:orders_order_changelist"), {"q": "9811111111"})
+        self.assertEqual([o.pk for o in listed.context["cl"].result_list], [order.pk])
+        self.assertContains(listed, "9811111111")
+        self.assertContains(self._slip(order), "Phone: 9811111111")
+
+    def test_slip_uses_the_account_name(self):
+        self.order.shipping_address.recipient_name = "Someone Else"
+        self.order.shipping_address.save()
+        res = self._slip()
+        self.assertContains(res, "<p>Asha Sharma</p>", html=True)
+        self.assertNotContains(res, "Someone Else")
+        # An account without a name shows its email.
+        self.customer.first_name = self.customer.last_name = ""
+        self.customer.save()
+        self.assertContains(self._slip(), "<p>asha@example.com</p>", html=True)
 
 
 class CashCollectedTests(AdminTestData, TestCase):

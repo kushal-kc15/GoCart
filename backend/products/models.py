@@ -18,7 +18,7 @@ class Category(models.Model):
         null=True,
         related_name="subcategories",
     )
-
+    weight = models.PositiveIntegerField(default=0, db_index=True)
     class Meta:
         verbose_name_plural='Categories'
         ordering=['name']
@@ -39,8 +39,10 @@ class Product(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
+    weight = models.PositiveIntegerField(default=0, db_index=True)   
+
     class Meta:
-        ordering=['name']
+        ordering=['weight', 'name']                                   
 
     def __str__(self):
         return self.name
@@ -51,10 +53,15 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to="products/gallery")
     alt_text = models.CharField(max_length=255, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
-
+    sort_order = models.PositiveIntegerField(default=0, db_index=True)
     def __str__(self):
         return f"Image for {self.product.name}"
 
+    class Meta:                                                           # ← NEW
+        ordering = ["sort_order", "id"]
+
+    def __str__(self):
+        return f"Image for {self.product.name}"
 
 def star_text(rating):
     """Rating as stars, e.g. 4 -> "★★★★☆"."""

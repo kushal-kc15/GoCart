@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path
 from django.utils import timezone
 from django.utils.formats import date_format
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter, RangeDateFilter
 from unfold.decorators import action, display
@@ -116,7 +117,7 @@ class StatusHistoryInline(TabularInline):
 @admin.register(Order)
 class OrderAdmin(ModelAdmin):
     list_display = (
-        'order_number', 'customer', 'phone', 'status_badge', 'delivery_method',
+        'order_number', 'customer', 'customer_phone', 'status_badge', 'delivery_method',
         'payment_badge', 'total', 'created_at',
     )
     list_display_links = ('order_number',)
@@ -129,7 +130,7 @@ class OrderAdmin(ModelAdmin):
     list_filter_submit = True  # the date range filter needs a submit button
     search_fields = (
         'user__first_name', 'user__last_name', 'user__email',
-        'shipping_address__phone', 'address',
+        'phone', 'shipping_address__phone', 'address',
     )
     search_help_text = "Order number (#12 or 12), customer name, email or phone."
     ordering = ('-created_at',)
@@ -138,12 +139,15 @@ class OrderAdmin(ModelAdmin):
     change_form_outer_before_template = "admin/orders/order/status_panel.html"
 
     fieldsets = (
-        ("Customer", {"fields": ('customer', 'customer_email', 'phone')}),
-        ("Delivery", {"fields": ('delivery_method', 'address')}),
+        ("Customer", {"fields": ('customer', 'customer_email', 'customer_phone')}),
+        ("Delivery", {"fields": ('delivery_method', 'address', 'delivery_location')}),
         ("Order", {"fields": ('order_number', 'current_status', 'created_at', 'updated_at')}),
         ("Totals", {"fields": ('subtotal', 'shipping_fee', 'total')}),
     )
-    readonly_fields = ('customer', 'customer_email', 'phone', 'order_number', 'current_status')
+    readonly_fields = (
+        'customer', 'customer_email', 'customer_phone', 'order_number', 'current_status',
+        'delivery_location',
+    )
     inlines = [OrderItemInline, PaymentInline, StatusHistoryInline]
 
     # Cancel and Delivered are done one order at a time, from the order page.
@@ -180,9 +184,23 @@ class OrderAdmin(ModelAdmin):
     def customer_email(self, obj):
         return obj.user.email
 
+    # Not called "phone": Django would show the model field of that name instead.
     @admin.display(description="Phone")
-    def phone(self, obj):
+    def customer_phone(self, obj):
+        # Orders from before the map checkout keep the phone on the saved address.
+        if obj.phone:
+            return obj.phone
         return obj.shipping_address.phone if obj.shipping_address else "-"
+
+    @admin.display(description="Landmark and map")
+    def delivery_location(self, obj):
+        landmark = obj.landmark or "No landmark given"
+        if not obj.map_url:
+            return landmark
+        return format_html(
+            '{}<br><a href="{}" target="_blank" rel="noopener">Open in Google Maps</a>',
+            landmark, obj.map_url,
+        )
 
     @display(description="Status", ordering="status", label=STATUS_COLOURS)
     def status_badge(self, obj):

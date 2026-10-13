@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from config import views
+from orders import geocode
 
 # The admin home page is our dashboard (orders/templates/admin/dashboard.html,
 # data from orders/dashboard.py). A different name from unfold's own
@@ -19,6 +20,9 @@ urlpatterns = [
     path("cart/", include("cart.urls")),
     path("orders/", include("orders.urls")),
     path("wishlist/", include("wishlist.urls")),
+    # Map lookups for checkout (orders/geocode.py).
+    path("api/geocode/reverse/", geocode.reverse_geocode, name="geocode_reverse"),
+    path("api/geocode/search/", geocode.search_geocode, name="geocode_search"),
 ]
 
 handler404 = "config.views.page_not_found"

@@ -5,7 +5,16 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <link rel="stylesheet" href="{% static 'css/dev/checkout.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{{ page_data|json_script:"checkout-data" }}
+<script src="{% static 'js/dev/checkout.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -18,36 +27,96 @@
     <form method="post" action="{% url 'orders:checkout' %}" class="checkout-wrap" data-once>
         {% csrf_token %}
 
-        <!-- Left: delivery + payment -->
         <div class="checkout-main">
+            {% if form.non_field_errors %}
+            <div class="form-errors" role="alert">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Contact details: needed for delivery and pickup -->
             <div class="checkout-panel">
-                <h2>Delivery Address</h2>
-
-                {% if form.non_field_errors %}
-                <div class="form-errors">
-                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                <h2>Contact details</h2>
+                <div class="field-row">
+                    <div class="field-group">
+                        <p class="contact-name-label">Name</p>
+                        {# The order uses the account's name; it can be changed on the profile page. #}
+                        <p class="contact-name">{{ account_name }}</p>
+                    </div>
+                    <div class="field-group">
+                        <label for="{{ form.phone.id_for_label }}">Phone *</label>
+                        {{ form.phone }}
+                        {% for error in form.phone.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                    </div>
                 </div>
-                {% endif %}
-
-                {% for field in form %}
-                <div class="field-group">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
-                    {{ field }}
-                    {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
-                </div>
-                {% endfor %}
             </div>
 
-            <div class="checkout-panel">
-                <h2>Delivery Method</h2>
-                <label class="opt">
-                    <input type="radio" name="delivery_method" value="delivery" checked>
-                    <span>Home Delivery <small>(Rs. 100)</small></span>
-                </label>
-                <label class="opt">
-                    <input type="radio" name="delivery_method" value="pickup">
-                    <span>Pick up at store <small>(Free)</small></span>
-                </label>
+            <!-- Home delivery: a saved address, or a new one (typed, with an optional map pin) -->
+            <div class="checkout-panel" id="delivery-panel">
+                <h2>Delivery address</h2>
+                <p class="panel-hint" data-no-js>Only needed for home delivery.</p>
+
+                {% if saved_addresses %}
+                <div class="address-list">
+                    {% for address in saved_addresses %}
+                    <label class="address-card">
+                        <input type="radio" name="address_id" value="{{ address.pk }}"{% if address.pk == selected_address_id %} checked{% endif %}>
+                        <span class="address-card__body">
+                            <strong>{{ address.recipient_name }}</strong>
+                            <span>{{ address.address_line }}{% if address.area %}, {{ address.area }}{% endif %}{% if address.city %}, {{ address.city }}{% endif %}</span>
+                            {% if address.landmark %}<small>{{ address.landmark }}</small>{% endif %}
+                            {% if address.latitude is not None %}<small class="address-card__pin">Pinned on the map</small>{% endif %}
+                        </span>
+                    </label>
+                    {% endfor %}
+                    <label class="address-card">
+                        <input type="radio" name="address_id" value=""{% if not selected_address_id %} checked{% endif %}>
+                        <span class="address-card__body"><strong>Add new address</strong></span>
+                    </label>
+                </div>
+                {% endif %}
+                {% for error in form.address_id.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+
+                <div class="new-address" id="new-address">
+                    <!-- Shown by checkout.js; without JavaScript the typed address below is enough -->
+                    <div class="map-box" id="map-box" hidden>
+                        <div class="map-search">
+                            <input type="search" id="map-search" placeholder="Search your area, street or landmark"
+                                   aria-label="Search for a place on the map" autocomplete="off">
+                            <button type="button" class="btn-small" id="map-search-btn">Search</button>
+                            <button type="button" class="btn-small btn-small--ghost" id="map-locate-btn">Use my location</button>
+                        </div>
+                        <div id="map" class="map" role="application" aria-label="Delivery map. Tap to drop a pin, then drag it to your exact spot."></div>
+                        <p class="map-status" id="map-status" aria-live="polite">Search, use your location or tap the map to drop a pin.</p>
+                        <button type="button" class="btn-small" id="map-confirm-btn" disabled>Confirm this location</button>
+                    </div>
+                    {{ form.lat }}{{ form.lng }}
+                    {% for error in form.lat.errors %}<p class="field-error">Map pin: {{ error }}</p>{% endfor %}
+                    {% for error in form.lng.errors %}<p class="field-error">Map pin: {{ error }}</p>{% endfor %}
+
+                    <div class="field-group">
+                        <label for="{{ form.address_line.id_for_label }}">{{ form.address_line.label }}</label>
+                        {{ form.address_line }}
+                        {% for error in form.address_line.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="field-group">
+                        <label for="{{ form.landmark.id_for_label }}">{{ form.landmark.label }}</label>
+                        {{ form.landmark }}
+                        {% for error in form.landmark.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+                    </div>
+
+                    <label class="opt">{{ form.save_address }} <span>{{ form.save_address.label }}</span></label>
+                </div>
+            </div>
+
+            <!-- Pickup: the shop's own address -->
+            <div class="checkout-panel" id="pickup-panel">
+                <h2>Pick up at store</h2>
+                <p class="panel-hint" data-no-js>Only for pick up orders.</p>
+                <div class="store-box">
+                    <strong>{{ store.name }}</strong>
+                    <span>{{ store.address }}</span>
+                </div>
             </div>
 
             <div class="checkout-panel">
@@ -63,7 +132,7 @@
             </div>
         </div>
 
-        <!-- Right: order summary -->
+        <!-- Right: order summary. All prices come from the server. -->
         <aside class="summary">
             <h2>Order Summary</h2>
 
@@ -77,11 +146,22 @@
             </div>
 
             <div class="sum-row"><span class="label">Sub-total</span><span class="value">Rs. {{ subtotal|floatformat:"-2" }}</span></div>
-            <div class="sum-row"><span class="label">Shipping charge</span><span class="value">{% if shipping %}Rs. {{ shipping }}{% else %}Free{% endif %}</span></div>
+            <div class="sum-row"><span class="label">Shipping charge</span><span class="value" id="summary-shipping">{% if shipping %}Rs. {{ shipping|floatformat:"-2" }}{% else %}Free{% endif %}</span></div>
+
+            <p class="summary-label">Choose delivery service</p>
+            {% for error in form.delivery_method.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+            <label class="opt opt--card">
+                <input type="radio" name="delivery_method" value="delivery"{% if method == "delivery" %} checked{% endif %}>
+                <span>Home delivery</span> <small>{{ totals.delivery.shipping }}</small>
+            </label>
+            <label class="opt opt--card">
+                <input type="radio" name="delivery_method" value="pickup"{% if method == "pickup" %} checked{% endif %}>
+                <span>Pick up at store</span> <small>{{ totals.pickup.shipping }}</small>
+            </label>
 
             <div class="total-row">
                 <span class="t-label">Total</span>
-                <span class="t-value">Rs. {{ grand_total|floatformat:"-2" }}</span>
+                <span class="t-value" id="summary-total">Rs. {{ grand_total|floatformat:"-2" }}</span>
             </div>
 
             <button type="submit" class="place-btn">Place Order</button>

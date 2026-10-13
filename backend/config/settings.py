@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'products',
+    'adminsortable2',
     'cart',
     'wishlist',
     'orders',
@@ -159,6 +160,10 @@ EMAIL_TIMEOUT = 10  # seconds, so a stuck mail server can't hang the page
 # ALLOWED_HOSTS = '*' a faked Host could point a reset link at another site.
 SITE_DOMAIN = os.getenv("SITE_DOMAIN") or "127.0.0.1:8000"
 PASSWORD_RESET_TIMEOUT = 60 * 60  # reset links work for 1 hour
+
+# OpenStreetMap's Nominatim (checkout map lookups) asks every app to say who it is.
+# Before going live, set NOMINATIM_USER_AGENT in .env with a real contact address.
+NOMINATIM_USER_AGENT = os.getenv("NOMINATIM_USER_AGENT") or "GoCart/1.0 (student project, local development)"
 
 
 # django-unfold admin theme

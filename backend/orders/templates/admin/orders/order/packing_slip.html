@@ -55,12 +55,19 @@
     {% endif %}
 
     <h2>Customer</h2>
-    <p>{{ order.shipping_address.recipient_name|default:order.user.get_full_name|default:order.user.email }}</p>
-    {% if order.shipping_address %}<p>Phone: {{ order.shipping_address.phone }}</p>{% endif %}
+    {# The account's name. The phone is saved on the order; older orders have it on the saved address. #}
+    <p>{{ order.user.get_full_name|default:order.user.email }}</p>
+    {% if order.phone %}<p>Phone: {{ order.phone }}</p>
+    {% elif order.shipping_address %}<p>Phone: {{ order.shipping_address.phone }}</p>{% endif %}
     {% if order.is_pickup %}
         <p>Collects the order from the shop.</p>
     {% else %}
         <p>Deliver to: {{ order.address }}</p>
+        {% if order.landmark %}<p>Landmark: {{ order.landmark }}</p>{% endif %}
+        {% if order.map_url %}
+            {# The coordinates too, since a printed link can't be clicked. #}
+            <p>Map pin: {{ order.latitude }}, {{ order.longitude }} – <a href="{{ order.map_url }}" target="_blank" rel="noopener">Open in Google Maps</a></p>
+        {% endif %}
     {% endif %}
 
     <h2>Items</h2>

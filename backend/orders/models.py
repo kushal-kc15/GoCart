@@ -29,7 +29,12 @@ class Order(models.Model):
     subtotal=models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_fee=models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total=models.DecimalField(max_digits=10, decimal_places=2)
+
     address=models.CharField(max_length=255)
+    phone=models.CharField(max_length=15, blank=True)
+    landmark=models.CharField(max_length=255, blank=True)
+    latitude=models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude=models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
@@ -54,6 +59,13 @@ class Order(models.Model):
     @property
     def is_pickup(self):
         return self.delivery_method == Order.DeliveryMethod.PICKUP
+
+    @property
+    def map_url(self):
+        """A Google Maps link to the delivery pin, or "" if there is no pin."""
+        if self.latitude is None or self.longitude is None:
+            return ''
+        return f'https://www.google.com/maps/search/?api=1&query={self.latitude},{self.longitude}'
 
     def allowed_next_statuses(self):
         if self.status == Order.Status.PACKED:
@@ -117,10 +129,9 @@ class Order(models.Model):
 
 class OrderStatusChange(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='status_changes')
-    # Blank for the "Order placed" row.
     from_status = models.CharField(max_length=20, choices=Order.Status.choices, blank=True)
     to_status = models.CharField(max_length=20, choices=Order.Status.choices)
-    # PROTECT: keeps who made each change.
+    
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
         related_name='status_changes_made',
@@ -143,7 +154,6 @@ class OrderItem(models.Model):
     price=models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        # The name saved at checkout, so a later rename doesn't change it.
         return f'{self.quantity} x {self.product_name or self.product.name} in Order #{self.order_id}'
 
     @property

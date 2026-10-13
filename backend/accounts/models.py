@@ -46,8 +46,13 @@ class Address(models.Model):
     recipient_name = models.CharField(max_length=200)
     phone = models.CharField(max_length=15)
     address_line = models.CharField(max_length=255)
-    city = models.CharField(max_length=100)
+    # Blank for addresses from the map checkout, where the city is part of address_line.
+    city = models.CharField(max_length=100, blank=True)
     area = models.CharField(max_length=100, blank=True)
+    landmark = models.CharField(max_length=255, blank=True)
+    # The confirmed map pin, if the customer set one.
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
