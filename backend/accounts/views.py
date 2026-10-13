@@ -170,7 +170,11 @@ def verify_email(request):
             if result == "ok":
                 return _finish_verification(request, verification)
             error = CODE_ERRORS[result]
-    return render(request, "dev/verify_email.html", {"email": verification.user.email, "error": error})
+    return render(request, "dev/verify_email.html", {
+        "email": verification.user.email,
+        "code_sent": bool(verification.code_hash),  # False if every send so far failed
+        "error": error,
+    })
 
 
 def _finish_verification(request, verification):

@@ -153,6 +153,11 @@ else:
     DEFAULT_FROM_EMAIL = f"{SHOP_INFO['name']} <noreply@localhost>"
 EMAIL_TIMEOUT = 10  # seconds, so a stuck mail server can't hang the page
 
+# Links in emails use this address, never the request's Host header: with
+# ALLOWED_HOSTS = '*' a faked Host could point a reset link at another site.
+SITE_DOMAIN = os.getenv("SITE_DOMAIN") or "127.0.0.1:8000"
+PASSWORD_RESET_TIMEOUT = 60 * 60  # reset links work for 1 hour
+
 
 # django-unfold admin theme
 UNFOLD = {

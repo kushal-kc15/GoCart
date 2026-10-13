@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import importlib
 import re
@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core import mail
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.tokens import PasswordResetTokenGenerator, default_token_generator
 from django.core.exceptions import ValidationError
 from django.db import connection
 from django.db.models import ProtectedError
@@ -17,7 +18,9 @@ from django.test import Client, TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.encoding import force_bytes
 from django.utils.formats import date_format
+from django.utils.http import urlsafe_base64_encode
 
 from orders.models import Order, OrderItem, Payment
 from products.models import Category, Product, Review
@@ -1415,7 +1418,7 @@ class EmailCodeSignupTests(EmailCodeTestBase):
         self.signup()
         response = self.client.get(self.verify_url)
         self.assertTemplateUsed(response, "dev/verify_email.html")
-        self.assertContains(response, "asha@example.com")
+        self.assertContains(response, "We sent a 6-digit code to <strong>asha@example.com</strong>")
         self.assertContains(response, 'name="code"')
         self.assertContains(response, f'action="{self.resend_url}"')
         self.assertContains(response, 'name="csrfmiddlewaretoken"')
@@ -1535,6 +1538,8 @@ class EmailCodeSmtpFailureTests(EmailCodeTestBase):
                 response = self.signup(follow=True)
         self.assertRedirects(response, self.verify_url)
         self.assertContains(response, "We couldn&#x27;t send the code right now. Please try Resend.")
+        self.assertNotContains(response, "We sent a 6-digit code")
+        self.assertContains(response, "Your 6-digit code will be sent to <strong>asha@example.com</strong>")
         self.assertTrue(User.objects.filter(email="asha@example.com").exists())
         # Nothing was sent, so no code is saved and Resend may be used straight away.
         self.assertEqual(self.verification().code_hash, "")
@@ -1550,6 +1555,8 @@ class EmailCodeSmtpFailureTests(EmailCodeTestBase):
             with self.assertLogs("accounts.views", level="ERROR"):
                 response = self.resend(follow=True)
         self.assertContains(response, "We couldn&#x27;t send the code right now. Please try Resend.")
+        # The first code did go out and still works, so the page may say so.
+        self.assertContains(response, "We sent a 6-digit code to <strong>asha@example.com</strong>")
         self.verify(code_in(mail.outbox[0]))
         self.assertLoggedIn()
 
@@ -1753,3 +1760,133 @@ class EmailCodeReplacementTests(EmailCodeTestBase):
                 self.assertNotLoggedIn()
                 User.objects.all().delete()
                 mail.outbox.clear()
+
+
+# ---- password reset ----
+class PasswordResetTests(TestCase):
+    reset_url = reverse("accounts:password_reset")
+    done_url = reverse("accounts:password_reset_done")
+    login_url = reverse("accounts:login")
+    NEW_PASSWORD = "Green-Market-2027"
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="asha", email="asha@example.com", password=STRONG_PASSWORD,
+            first_name="Asha", email_verified=True,
+        )
+
+    def link_path(self, message):
+        """The path of the reset link in an email, e.g. /accounts/reset/MQ/abc-123/."""
+        return re.search(r"http://127\.0\.0\.1:8000(/accounts/reset/\S+/)", message.body).group(1)
+
+    def path_for(self, token):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        return reverse("accounts:password_reset_confirm", args=[uid, token])
+
+    def set_password_with(self, path, password=NEW_PASSWORD, password2=None, client=None):
+        """Open a reset link, then post the new password on the page it leads to."""
+        client = client or self.client
+        response = client.get(path)
+        self.assertEqual(response.status_code, 302)  # Django moves the token out of the URL
+        return client.post(response.url, {
+            "new_password1": password, "new_password2": password2 or password,
+        })
+
+    def log_in(self, password):
+        client = Client()
+        client.post(self.login_url, {"email": "asha@example.com", "password": password})
+        return "_auth_user_id" in client.session
+
+    # ---- asking for a link ----
+    def test_login_page_links_to_the_reset_page(self):
+        response = self.client.get(self.login_url)
+        self.assertContains(response, f'href="{self.reset_url}" class="forgot-password-link"')
+        self.assertTemplateUsed(self.client.get(self.reset_url), "dev/password_reset_form.html")
+
+    def test_known_email_gets_a_link_with_the_shop_name(self):
+        response = self.client.post(self.reset_url, {"email": "ASHA@example.com"})
+        self.assertRedirects(response, self.done_url)
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.to, ["asha@example.com"])
+        self.assertEqual(message.subject, "Reset your GoCart password")
+        self.assertIn("Hi Asha", message.body)
+        self.assertIn("your GoCart account", message.body)
+        self.assertIn("for 1 hour", message.body)
+        self.assertEqual(message.from_email, settings.DEFAULT_FROM_EMAIL)
+        # The link opens the "choose a new password" form.
+        page = self.client.get(self.link_path(message), follow=True)
+        self.assertTemplateUsed(page, "dev/password_reset_confirm.html")
+        self.assertContains(page, 'name="new_password1"')
+
+    def test_unknown_email_sees_the_same_page_and_gets_no_email(self):
+        known = self.client.post(self.reset_url, {"email": "asha@example.com"}, follow=True)
+        unknown = self.client.post(self.reset_url, {"email": "ghost@example.com"}, follow=True)
+        self.assertRedirects(unknown, self.done_url)
+        self.assertEqual(len(mail.outbox), 1)  # only the known one
+        self.assertContains(unknown, "If an account exists for that email, we sent a link")
+        self.assertEqual(known.content, unknown.content)
+
+    def test_deactivated_account_gets_no_email(self):
+        self.user.is_active = False
+        self.user.save()
+        self.assertRedirects(self.client.post(self.reset_url, {"email": "asha@example.com"}), self.done_url)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_link_ignores_a_faked_host_header(self):
+        self.client.post(self.reset_url, {"email": "asha@example.com"}, HTTP_HOST="evil.example")
+        self.assertNotIn("evil.example", mail.outbox[0].body)
+        self.assertIn("http://127.0.0.1:8000/accounts/reset/", mail.outbox[0].body)
+
+    def test_a_failed_send_still_shows_the_same_page(self):
+        with mock.patch("django.core.mail.EmailMessage.send", side_effect=smtplib.SMTPException("down")):
+            with self.assertLogs("django.contrib.auth", level="ERROR"):
+                response = self.client.post(self.reset_url, {"email": "asha@example.com"})
+        self.assertRedirects(response, self.done_url)
+
+    # ---- using the link ----
+    def test_invalid_token_is_refused(self):
+        response = self.client.get(self.path_for("abc-not-a-real-token"))
+        self.assertContains(response, "This reset link is invalid or has expired.")
+        self.assertNotContains(response, 'name="new_password1"')
+
+    def test_link_expires_after_one_hour(self):
+        an_hour_ago = datetime.now() - timedelta(hours=1, seconds=1)
+        with mock.patch.object(PasswordResetTokenGenerator, "_now", return_value=an_hour_ago):
+            token = default_token_generator.make_token(self.user)
+        response = self.client.get(self.path_for(token), follow=True)
+        self.assertContains(response, "This reset link is invalid or has expired.")
+
+    def test_link_still_works_just_before_the_hour(self):
+        almost_an_hour_ago = datetime.now() - timedelta(minutes=59)
+        with mock.patch.object(PasswordResetTokenGenerator, "_now", return_value=almost_an_hour_ago):
+            token = default_token_generator.make_token(self.user)
+        self.assertContains(self.client.get(self.path_for(token), follow=True), 'name="new_password1"')
+
+    def test_successful_reset_changes_the_password(self):
+        self.client.post(self.reset_url, {"email": "asha@example.com"})
+        response = self.set_password_with(self.link_path(mail.outbox[0]))
+        self.assertRedirects(response, reverse("accounts:password_reset_complete"))
+        self.assertContains(self.client.get(response.url), "Your new password is saved.")
+        self.assertTrue(self.log_in(self.NEW_PASSWORD))
+        self.assertFalse(self.log_in(STRONG_PASSWORD))  # the old one stops working
+
+    def test_link_works_only_once(self):
+        self.client.post(self.reset_url, {"email": "asha@example.com"})
+        path = self.link_path(mail.outbox[0])
+        self.set_password_with(path)
+        response = Client().get(path, follow=True)
+        self.assertContains(response, "This reset link is invalid or has expired.")
+
+    def test_weak_password_is_refused_and_nothing_changes(self):
+        self.client.post(self.reset_url, {"email": "asha@example.com"})
+        response = self.set_password_with(self.link_path(mail.outbox[0]), password="12345678")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This password is entirely numeric.")
+        self.assertTrue(self.log_in(STRONG_PASSWORD))
+
+    def test_mismatched_passwords_are_refused(self):
+        self.client.post(self.reset_url, {"email": "asha@example.com"})
+        response = self.set_password_with(self.link_path(mail.outbox[0]), password2="Other-Market-2027")
+        self.assertContains(response, "The two password fields")
+        self.assertTrue(self.log_in(STRONG_PASSWORD))

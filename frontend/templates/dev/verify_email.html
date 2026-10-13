@@ -15,7 +15,11 @@
         <div class="auth-header">
           <p class="eyebrow eyebrow--green"><span></span>One last step</p>
           <h1 id="auth-heading">Verify your email</h1>
-          <p class="auth-subtitle">We sent a 6-digit code to <strong>{{ email }}</strong>. It expires in 10 minutes.</p>
+          {% if code_sent %}
+            <p class="auth-subtitle">We sent a 6-digit code to <strong>{{ email }}</strong>. It expires in 10 minutes.</p>
+          {% else %}
+            <p class="auth-subtitle">Your 6-digit code will be sent to <strong>{{ email }}</strong>.</p>
+          {% endif %}
         </div>
 
         {% if error %}
