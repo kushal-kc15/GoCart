@@ -254,12 +254,12 @@ var COUPONS={SAVE15:0.15};
 // ---------------------------------------------------------------------
 var $=function(i){return document.getElementById(i)},rs=function(n){return "Rs. "+Math.round(n).toLocaleString()};
 var rate=0,T={};
-var map=null,pin=null,spin=null,info=null,geocoder=null;   // Google Maps objects (set in initMap)
 var how="map";                                    // "map" = pin on map, "type" = typed address
 var geo={province:"",area:"",address:""},rq=0;    // what we know about the pin's location
- 
+var userManuallyEdited = false;
+
 $("items").innerHTML=ITEMS.map(function(i){return '<div class="item"><i style="background:'+i.c+'"></i><span>'+i.n+'<small>'+i.w+' × '+i.q+'</small></span><b>'+rs(i.p*i.q)+'</b></div>'}).join("");
- 
+
 function calc(){
   var sub=ITEMS.reduce(function(s,i){return s+i.p*i.q},0),home=document.querySelector('[name=svc]:checked').value==="home";
   var dis=sub*rate,ship=home?(fee()||0):0;T={sub:sub,dis:dis,ship:ship,total:sub-dis+ship};
@@ -270,56 +270,98 @@ $("apply").onclick=function(){
   var c=COUPONS[$("coupon").value.trim().toUpperCase()];
   rate=c||0;$("cpMsg").textContent=c?(c*100)+"% discount applied.":"That coupon code isn't valid.";calc();
 };
- 
+
+// Listen to customer edits on landmark field so custom directions are preserved
+$("landmark").addEventListener("input", function(){
+  userManuallyEdited = true;
+  var tag = $("landmarkTag");
+  if (tag) {
+    tag.style.display = "inline";
+    tag.innerHTML = "✏️ Custom landmark / instructions";
+    tag.style.color = "#444";
+    tag.style.background = "#f4f4f4";
+    tag.style.borderColor = "#ddd";
+  }
+});
+
 // ---- Leaflet OpenStreetMap (Street View Map) ----
 var STORE = { lat: 27.7040, lng: 85.3131 }; // New Road, Kathmandu default center
 var map = null, pin = null, storeMarkers = [];
 
 // Curated landmarks across Nepal for instant distance matching & fallback
 var NEPAL_LANDMARKS = [
-  // Kathmandu & Lalitpur & Bhaktapur
+  // Kathmandu Center & Downtown
   { name: "New Road Gate / Peepal Bot", lat: 27.7038, lng: 85.3125, area: "Kathmandu", prov: "Bagmati" },
   { name: "Basantapur Durbar Square", lat: 27.7040, lng: 85.3073, area: "Kathmandu", prov: "Bagmati" },
   { name: "Ratna Park / Tundikhel", lat: 27.7056, lng: 85.3160, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Sundhara / Dharahara", lat: 27.7003, lng: 85.3120, area: "Kathmandu", prov: "Bagmati" },
   { name: "Thamel Chowk", lat: 27.7154, lng: 85.3123, area: "Kathmandu", prov: "Bagmati" },
   { name: "Asan Bazaar Chowk", lat: 27.7073, lng: 85.3113, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Indra Chowk", lat: 27.7057, lng: 85.3093, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Durbarmarg / Narayanhiti Palace", lat: 27.7127, lng: 85.3175, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Putalisadak Chowk", lat: 27.7034, lng: 85.3223, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Kamalpokhari Pond", lat: 27.7088, lng: 85.3241, area: "Kathmandu", prov: "Bagmati" },
   { name: "Maitighar Mandala", lat: 27.6938, lng: 85.3218, area: "Kathmandu", prov: "Bagmati" },
-  { name: "New Baneshwor Chowk", lat: 27.6917, lng: 85.3374, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Koteshwor Chowk", lat: 27.6756, lng: 85.3458, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Tripureshwor Chowk", lat: 27.6946, lng: 85.3148, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Kalimati Vegetable Market", lat: 27.6980, lng: 85.2974, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Balkhu Chowk", lat: 27.6840, lng: 85.2952, area: "Kathmandu", prov: "Bagmati" },
   { name: "Kalanki Chowk", lat: 27.6939, lng: 85.2817, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Swayambhunath Stupa (Monkey Temple)", lat: 27.7149, lng: 85.2903, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Balaju Bypass Chowk", lat: 27.7317, lng: 85.3019, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Gongabu New Bus Park", lat: 27.7360, lng: 85.3106, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Maharajgunj Chakrapath", lat: 27.7369, lng: 85.3312, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Bhatbhateni Supermarket, Naxal", lat: 27.7158, lng: 85.3275, area: "Kathmandu", prov: "Bagmati" },
   { name: "Chabahil Chowk / Stupa", lat: 27.7172, lng: 85.3482, area: "Kathmandu", prov: "Bagmati" },
   { name: "Boudhanath Stupa", lat: 27.7215, lng: 85.3620, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Swayambhunath Stupa", lat: 27.7149, lng: 85.2903, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Maharajgunj Chakrapath", lat: 27.7369, lng: 85.3312, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Tribhuvan International Airport Gate", lat: 27.6966, lng: 85.3591, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Patan Durbar Square", lat: 27.6727, lng: 85.3253, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Jorpati Chowk", lat: 27.7238, lng: 85.3789, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Sinamangal / Airport Gate", lat: 27.6966, lng: 85.3591, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Tinkune Chowk", lat: 27.6865, lng: 85.3479, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Koteshwor Chowk", lat: 27.6756, lng: 85.3458, area: "Kathmandu", prov: "Bagmati" },
+  { name: "New Baneshwor Chowk", lat: 27.6917, lng: 85.3374, area: "Kathmandu", prov: "Bagmati" },
+  { name: "Old Baneshwor Chowk", lat: 27.7011, lng: 85.3397, area: "Kathmandu", prov: "Bagmati" },
+
+  // Lalitpur (Patan)
+  { name: "Kupondole Bridge", lat: 27.6885, lng: 85.3175, area: "Lalitpur", prov: "Bagmati" },
   { name: "Pulchowk Engineering Campus", lat: 27.6783, lng: 85.3175, area: "Lalitpur", prov: "Bagmati" },
   { name: "Jawalakhel Zoo Roundabout", lat: 27.6713, lng: 85.3134, area: "Lalitpur", prov: "Bagmati" },
   { name: "Kumaripati Shopping Street", lat: 27.6689, lng: 85.3195, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Lagankhel Bus Park", lat: 27.6664, lng: 85.3238, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Patan Durbar Square", lat: 27.6727, lng: 85.3253, area: "Lalitpur", prov: "Bagmati" },
   { name: "Satdobato Chowk", lat: 27.6534, lng: 85.3256, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Gwarko Chowk", lat: 27.6667, lng: 85.3346, area: "Lalitpur", prov: "Bagmati" },
+  { name: "Balkumari Ring Road", lat: 27.6715, lng: 85.3415, area: "Lalitpur", prov: "Bagmati" },
+
+  // Bhaktapur
+  { name: "Radhe Radhe Chowk", lat: 27.6765, lng: 85.3855, area: "Bhaktapur", prov: "Bagmati" },
+  { name: "Sallaghari Chowk", lat: 27.6712, lng: 85.4093, area: "Bhaktapur", prov: "Bagmati" },
   { name: "Bhaktapur Durbar Square", lat: 27.6722, lng: 85.4280, area: "Bhaktapur", prov: "Bagmati" },
   { name: "Suryabinayak Chowk", lat: 27.6626, lng: 85.4302, area: "Bhaktapur", prov: "Bagmati" },
-  { name: "Sallaghari Chowk", lat: 27.6712, lng: 85.4093, area: "Bhaktapur", prov: "Bagmati" },
 
   // Pokhara & Gandaki
   { name: "Lakeside Barahi Chowk", lat: 28.2096, lng: 83.9590, area: "Pokhara", prov: "Gandaki" },
+  { name: "Hallanchowk, Lakeside", lat: 28.2163, lng: 83.9576, area: "Pokhara", prov: "Gandaki" },
+  { name: "Damside Chowk", lat: 28.1965, lng: 83.9680, area: "Pokhara", prov: "Gandaki" },
+  { name: "Chipledhunga Chowk", lat: 28.2210, lng: 83.9875, area: "Pokhara", prov: "Gandaki" },
   { name: "Mahendrapool Bazaar", lat: 28.2250, lng: 83.9870, area: "Pokhara", prov: "Gandaki" },
   { name: "Prithvi Chowk", lat: 28.2052, lng: 83.9928, area: "Pokhara", prov: "Gandaki" },
-  { name: "Chipledhunga Chowk", lat: 28.2210, lng: 83.9875, area: "Pokhara", prov: "Gandaki" },
+  { name: "Zero Kilometer (Zero KM)", lat: 28.2178, lng: 83.9745, area: "Pokhara", prov: "Gandaki" },
   { name: "Biruta Chowk", lat: 28.1895, lng: 83.9740, area: "Pokhara", prov: "Gandaki" },
+
+  // Chitwan & Hetauda
+  { name: "Lions Chowk, Narayangarh", lat: 27.6920, lng: 84.4260, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
+  { name: "Chaubiskothi Chowk, Bharatpur", lat: 27.6830, lng: 84.4365, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
+  { name: "Hakim Chowk, Bharatpur", lat: 27.6800, lng: 84.4440, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
+  { name: "Seemachowk, Hetauda", lat: 27.4287, lng: 85.0322, area: "Hetauda", prov: "Bagmati" },
 
   // Lumbini & Butwal
   { name: "Traffic Chowk, Butwal", lat: 27.7006, lng: 83.4483, area: "Butwal", prov: "Lumbini" },
   { name: "Milanchowk, Butwal", lat: 27.6925, lng: 83.4560, area: "Butwal", prov: "Lumbini" },
+  { name: "Golpark Chowk, Butwal", lat: 27.7120, lng: 83.4610, area: "Butwal", prov: "Lumbini" },
   { name: "Buddha Chowk, Bhairahawa", lat: 27.5050, lng: 83.4530, area: "Bhairahawa", prov: "Lumbini" },
 
-  // Chitwan & Hetauda
-  { name: "Lions Chowk, Narayangarh", lat: 27.6920, lng: 84.4260, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
-  { name: "Chaulikhel / Bharatpur Height", lat: 27.6833, lng: 84.4333, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
-  { name: "Seemachowk, Hetauda", lat: 27.4287, lng: 85.0322, area: "Hetauda", prov: "Bagmati" },
-
   // Koshi & Madhesh
-  { name: "Traffic Chowk / Main Road", lat: 26.4525, lng: 87.2718, area: "Biratnagar", prov: "Koshi" },
+  { name: "Traffic Chowk, Biratnagar", lat: 26.4525, lng: 87.2718, area: "Biratnagar", prov: "Koshi" },
+  { name: "Roadcess Chowk, Biratnagar", lat: 26.4680, lng: 87.2790, area: "Biratnagar", prov: "Koshi" },
   { name: "Bhanuchowk, Dharan", lat: 26.8065, lng: 87.2846, area: "Dharan", prov: "Koshi" },
   { name: "Itahari Main Chowk", lat: 26.6637, lng: 87.2718, area: "Itahari", prov: "Koshi" },
   { name: "Janaki Temple Chowk", lat: 26.7288, lng: 85.9266, area: "Janakpur", prov: "Madhesh" },
@@ -340,7 +382,13 @@ function showErr(m){
 function highlightLandmarkInput(){
   var lm = $("landmark");
   var tag = $("landmarkTag");
-  if (tag) tag.style.display = "inline";
+  if (tag) {
+    tag.style.display = "inline";
+    tag.innerHTML = "📍 Nearest landmark auto-filled (editable)";
+    tag.style.color = "var(--green)";
+    tag.style.background = "#eef7f0";
+    tag.style.borderColor = "#c2e2cc";
+  }
   lm.classList.add("highlight-auto");
   setTimeout(function(){ lm.classList.remove("highlight-auto"); }, 2000);
 }
@@ -396,11 +444,15 @@ function initMap(){
 
   initStoreMarkers();
   applyMode();
+  setPin([STORE.lat, STORE.lng]);
 }
 
 function setPin(ll, zoom){
   if (!map) return;
   ll = L.latLng(ll.lat !== undefined ? ll.lat : ll[0], ll.lng !== undefined ? ll.lng : ll[1]);
+
+  // Reset manual edit flag on explicit map pin relocation so new location's landmark is auto-filled
+  userManuallyEdited = false;
 
   if (pin) {
     pin.setLatLng(ll);
@@ -422,14 +474,14 @@ function setPin(ll, zoom){
 function updateLandmarkAndAddress(ll){
   var lat = ll.lat, lng = ll.lng;
 
-  // 1. Instant nearest landmark calculation from local dataset
+  // 1. Instant nearest landmark calculation from curated dataset
   var match = findClosestPresetLandmark(lat, lng);
   var autoLandmark = "";
   if (match && match.landmark && match.distKm < 8.0) {
     autoLandmark = "Near " + match.landmark.name;
   }
 
-  // Auto-fill landmark input (user can change as well)
+  // Auto-fill landmark input (user can edit/change as well)
   if (autoLandmark) {
     $("landmark").value = autoLandmark;
     highlightLandmarkInput();
@@ -444,7 +496,12 @@ function updateLandmarkAndAddress(ll){
   updateLoc();
   calc();
 
-  // 2. Fetch live OpenStreetMap reverse geocoding from Nominatim
+  // Show immediate interactive popup on pin
+  if (pin) {
+    pin.bindPopup("<b>📍 Delivery Spot</b><br>" + (autoLandmark || "Selected point on street map") + "<br><span style='color:#666;font-size:11px;'>Tap map or drag pin to adjust</span>").openPopup();
+  }
+
+  // 2. Fetch live OpenStreetMap reverse geocoding from Nominatim for street/building/shop details
   rq++;
   var thisRq = rq;
   var url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat.toFixed(6) + "&lon=" + lng.toFixed(6) + "&zoom=18&addressdetails=1";
@@ -468,9 +525,14 @@ function updateLandmarkAndAddress(ll){
         landmarkFound = "Near " + suburb;
       }
 
-      if (landmarkFound) {
+      // If user hasn't started manually typing custom directions, update with detailed street landmark
+      if (landmarkFound && !userManuallyEdited) {
         $("landmark").value = landmarkFound;
         highlightLandmarkInput();
+      }
+
+      if (pin) {
+        pin.bindPopup("<b>📍 Delivery Spot</b><br>" + (landmarkFound || autoLandmark || "Selected location") + "<br><span style='color:#666;font-size:11px;'>Tap map or drag pin to adjust</span>");
       }
 
       var fullAddrTxt = (data.display_name || "").toLowerCase();
@@ -487,7 +549,7 @@ function updateLandmarkAndAddress(ll){
       calc();
     })
     .catch(function(err){
-      // Keeps the local dataset landmark if offline
+      // Keeps the local dataset landmark if offline or rate limited
     });
 }
 

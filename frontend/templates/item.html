@@ -158,7 +158,12 @@
   .contact-item{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-bottom:12px;color:#c3d3c9;}
   .contact-item .closed{color:#e78b8b;}
   .socials{display:flex;gap:10px;margin-top:18px;}
-  .socials a{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .socials a,
+  .social-icon{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:background .15s ease,transform .15s ease;}
+  .socials a:hover,
+  .social-icon:hover{background:rgba(255,255,255,.25);transform:translateY(-2px);}
+  .socials a img,
+  .social-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
 
   /* ===== TOAST ===== */
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green-dark);color:#fff;padding:12px 22px;border-radius:6px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:999;}
@@ -437,9 +442,15 @@
       </div>
       <p>Everything You Need, All in One Cart.<br>🍃 Fresh Groceries, Delivered with Care.</p>
       <div class="socials">
-        <a href="#">📷</a>
-        <a href="#">🐦</a>
-        <a href="#">📘</a>
+        <a href="#" class="social-icon" aria-label="Instagram">
+          <img src="../static/images/instagram.png" alt="Instagram">
+        </a>
+        <a href="#" class="social-icon" aria-label="Twitter">
+          <img src="../static/images/twitter.png" alt="Twitter">
+        </a>
+        <a href="#" class="social-icon" aria-label="Facebook">
+          <img src="../static/images/facebook.png" alt="Facebook">
+        </a>
       </div>
     </div>
     <div class="footer-col">

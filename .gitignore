@@ -114,7 +114,7 @@ media/
 # !**/migrations
 # !**/migrations/__init__.py
 
-CLAUDE.md
+GoCartCLAUDE.md
 js/dev/
 images/dev/
 css/dev/
