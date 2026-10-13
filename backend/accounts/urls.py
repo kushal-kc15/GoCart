@@ -18,7 +18,7 @@ urlpatterns = [
     # Password reset: Django's own views and tokens, with our templates.
     path(
         "password-reset/",
-        auth_views.PasswordResetView.as_view(
+        views.PasswordResetView.as_view(  # with sending limits
             template_name="dev/password_reset_form.html",
             email_template_name="dev/password_reset_email.txt",
             subject_template_name="dev/password_reset_subject.txt",
@@ -38,7 +38,7 @@ urlpatterns = [
     ),
     path(
         "reset/<uidb64>/<token>/",
-        auth_views.PasswordResetConfirmView.as_view(
+        views.PasswordResetConfirmView.as_view(  # also marks the email verified
             template_name="dev/password_reset_confirm.html",
             success_url=reverse_lazy("accounts:password_reset_complete"),
         ),

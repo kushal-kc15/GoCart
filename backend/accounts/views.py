@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import math
 import re
@@ -6,7 +7,9 @@ import smtplib
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -24,6 +27,12 @@ REMEMBER_ME_SECONDS = 60 * 60 * 24 * 30
 
 # What this browser session remembers while the user confirms their email.
 VERIFY_SESSION_KEYS = ("verify_user_id", "verify_token", "verify_next", "verify_remember")
+
+# Limits on password reset emails (the same as for sign-up codes, plus one per IP).
+RESET_WAIT_SECONDS = 60
+RESET_EMAILS_PER_HOUR = 5
+RESET_EMAILS_PER_IP_PER_HOUR = 20
+HOUR = 60 * 60
 
 CODE_ERRORS = {
     "wrong": "That code isn't right. Please check the email and try again.",
@@ -272,3 +281,43 @@ def edit_profile(request):
     else:
         form = ProfileForm(instance=request.user)
     return render(request, "dev/profile_edit.html", {"form": form})
+
+
+# ---- password reset (Django's views, with two additions) ----
+def _too_many_reset_emails(request, email):
+    """True if a reset email to this address, or from this IP, must not be sent now.
+    Otherwise counts this one and returns False."""
+    # The cache is per process (Django's default). With several server
+    # processes, use a shared cache such as Redis so the counts add up.
+    # Hashed so the cache key is short and holds no email address.
+    email_key = "password-reset:email:" + hashlib.sha256(email.strip().lower().encode()).hexdigest()
+    ip_key = "password-reset:ip:" + request.META.get("REMOTE_ADDR", "")
+
+    if cache.get(email_key + ":wait"):
+        return True
+    if cache.get(email_key + ":hour", 0) >= RESET_EMAILS_PER_HOUR:
+        return True
+    if cache.get(ip_key, 0) >= RESET_EMAILS_PER_IP_PER_HOUR:
+        return True
+
+    cache.set(email_key + ":wait", True, RESET_WAIT_SECONDS)
+    cache.set(email_key + ":hour", cache.get(email_key + ":hour", 0) + 1, HOUR)
+    cache.set(ip_key, cache.get(ip_key, 0) + 1, HOUR)
+    return False
+
+
+class PasswordResetView(auth_views.PasswordResetView):
+    def form_valid(self, form):
+        if _too_many_reset_emails(self.request, form.cleaned_data["email"]):
+            # Same page as when an email is sent, so the limit doesn't reveal
+            # which emails have accounts.
+            return redirect(self.get_success_url())
+        return super().form_valid(form)
+
+
+class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    def form_valid(self, form):
+        # The link was emailed to this address, so the user owns it.
+        form.user.email_verified = True
+        EmailVerification.objects.filter(user=form.user).delete()
+        return super().form_valid(form)  # saves the user with the new password

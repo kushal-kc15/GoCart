@@ -3,11 +3,13 @@ from datetime import datetime, timedelta
 import importlib
 import re
 import smtplib
+import time
 from unittest import mock
 
 from django.apps import apps as django_apps
 from django.conf import settings
 from django.core import mail
+from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.auth.tokens import PasswordResetTokenGenerator, default_token_generator
@@ -1770,10 +1772,19 @@ class PasswordResetTests(TestCase):
     NEW_PASSWORD = "Green-Market-2027"
 
     def setUp(self):
+        cache.clear()  # the sending limits are counted in the cache
         self.user = User.objects.create_user(
             username="asha", email="asha@example.com", password=STRONG_PASSWORD,
             first_name="Asha", email_verified=True,
         )
+
+    def later(self, seconds):
+        """Pretend `seconds` have passed, as far as the cache's expiry times go."""
+        fake_time = mock.Mock(time=mock.Mock(return_value=time.time() + seconds))
+        return mock.patch("django.core.cache.backends.locmem.time", fake_time)
+
+    def ask(self, email="asha@example.com", **extra):
+        return self.client.post(self.reset_url, {"email": email}, **extra)
 
     def link_path(self, message):
         """The path of the reset link in an email, e.g. /accounts/reset/MQ/abc-123/."""
@@ -1890,3 +1901,73 @@ class PasswordResetTests(TestCase):
         response = self.set_password_with(self.link_path(mail.outbox[0]), password2="Other-Market-2027")
         self.assertContains(response, "The two password fields")
         self.assertTrue(self.log_in(STRONG_PASSWORD))
+
+    # ---- sending limits ----
+    def test_one_email_per_address_per_minute(self):
+        first = self.ask()
+        second = self.ask(email="ASHA@example.com")
+        self.assertEqual(len(mail.outbox), 1)
+        # The limited request looks exactly like a sent one.
+        self.assertRedirects(second, self.done_url)
+        self.assertEqual(first.url, second.url)
+        with self.later(61):
+            self.ask()
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_at_most_five_emails_per_address_per_hour(self):
+        for _ in range(5):
+            with self.later(61):
+                self.ask()
+        self.assertEqual(len(mail.outbox), 5)
+        with self.later(61):
+            self.assertRedirects(self.ask(), self.done_url)
+        self.assertEqual(len(mail.outbox), 5)
+        with self.later(HOUR_AND_A_BIT):
+            self.ask()
+        self.assertEqual(len(mail.outbox), 6)
+
+    def test_limits_also_apply_to_unknown_emails_and_look_the_same(self):
+        known = [self.ask(follow=True), self.ask(follow=True)]
+        unknown = [self.ask("ghost@example.com", follow=True), self.ask("ghost@example.com", follow=True)]
+        self.assertEqual(len(mail.outbox), 1)
+        pages = {response.content for response in known + unknown}
+        self.assertEqual(len(pages), 1)
+
+    def test_at_most_twenty_emails_per_ip_per_hour(self):
+        for n in range(20):
+            # Django sends no reset email to an account without a usable password.
+            User.objects.create_user(
+                username=f"c{n}", email=f"c{n}@example.com", password="pass12345", email_verified=True,
+            )
+            self.ask(f"c{n}@example.com")
+        self.assertEqual(len(mail.outbox), 20)
+        self.assertRedirects(self.ask(), self.done_url)
+        self.assertEqual(len(mail.outbox), 20)
+        # Another IP address is not affected.
+        self.ask(REMOTE_ADDR="10.0.0.2")
+        self.assertEqual(len(mail.outbox), 21)
+
+    # ---- verifying the email ----
+    def test_reset_marks_an_unverified_email_as_verified(self):
+        self.user.email_verified = False
+        self.user.save()
+        EmailVerification.claim(self.user)  # a code was asked for earlier
+        self.ask()
+        self.set_password_with(self.link_path(mail.outbox[0]))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.email_verified)
+        self.assertFalse(EmailVerification.objects.exists())
+        # So logging in needs no emailed code.
+        self.assertTrue(self.log_in(self.NEW_PASSWORD))
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_a_failed_reset_does_not_verify_the_email(self):
+        self.user.email_verified = False
+        self.user.save()
+        self.ask()
+        self.set_password_with(self.link_path(mail.outbox[0]), password="12345678")
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.email_verified)
+
+
+HOUR_AND_A_BIT = 60 * 60 + 61

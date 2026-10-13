@@ -16,6 +16,8 @@ SECRET_KEY = 'django-insecure-local-development-only'
 
 DEBUG = True
 
+# TODO before deployment: remove '*' and list only the real host names. With '*'
+# Django accepts any Host header, which attackers can fake.
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver', '*']
 
 
