@@ -88,6 +88,24 @@
         .method:has(input:checked) .pm-tick::after { transform: scale(1); }
         .method:has(input:focus-visible) { outline: 2px solid var(--green); outline-offset: 2px; }
 
+        /* Bank details with copy buttons on the right */
+        .bank-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+        .bank-row > span { min-width: 0; word-break: break-word; }
+        .bank-row:last-of-type { margin-bottom: 8px; }
+        .copy-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--green); border-radius: 6px; background: #fff; color: var(--green); font-size: 12px; font-weight: 600; line-height: 1.4; cursor: pointer; }
+        .copy-btn em { font-style: normal; }
+        .copy-btn:hover { background: rgba(47,122,77,.08); }
+        .copy-btn.done { background: var(--green); color: #fff; }
+
+        /* Paste / Copy buttons inside the reference ID field (right side) */
+        .txn-wrap { position: relative; }
+        .txn-wrap input { padding-right: 140px; }
+        .txn-btns { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); display: flex; gap: 6px; }
+        .txn-btn { padding: 4px 9px; border: 1px solid var(--green); border-radius: 6px; background: #fff; color: var(--green); font-size: 12px; font-weight: 600; line-height: 1.4; cursor: pointer; }
+        .txn-btn em { font-style: normal; }
+        .txn-btn:hover { background: rgba(47,122,77,.08); }
+        .txn-btn.done { background: var(--green); color: #fff; }
+
         /* Receipt upload: square tiles, up to 5 files */
         .drop { border: 1.5px dashed var(--line); border-radius: 10px; background: #fff; padding: 8px; transition: border-color .15s, background .15s; }
         .drop.over { border-color: var(--green); background: rgba(47,122,77,.08); }
@@ -184,12 +202,12 @@
 
                     <label class="method"><input type="radio" name="pm" value="cod" checked>
                         <img class="pm-img" src="../static/images/cod.png" alt="Cash on delivery">
-                        Cash on delivery <small id="codNote"></small></label>
+                        Cash on delivery <small id="codNote">Pay when you receive</small></label>
                     <div class="detail on" id="d-cod">Keep the exact amount ready if you can. You will pay the delivery person when your order arrives.</div>
 
                     <label class="method"><input type="radio" name="pm" value="esewa">
                         <img class="pm-img" src="../static/images/esewa.png" alt="eSewa">
-                        eSewa </label>
+                        eSewa <small>Wallet</small></label>
                     <div class="detail" id="d-esewa">
                         <label for="esewaId">eSewa ID (mobile number)</label>
                         <input id="esewaId" type="tel" inputmode="numeric" placeholder="98XXXXXXXX" autocomplete="tel">
@@ -197,7 +215,7 @@
 
                     <label class="method"><input type="radio" name="pm" value="paypal">
                         <img class="pm-img" src="../static/images/paypal.png" alt="PayPal">
-                        PayPal</label>
+                        PayPal <small>International</small></label>
                     <div class="detail" id="d-paypal">
                         You will be taken to PayPal to log in and approve the payment. PayPal charges in US dollars, so the amount is converted from Rs.
                         <div class="pp-amt" id="ppAmt"></div>
@@ -205,18 +223,25 @@
 
                     <label class="method"><input type="radio" name="pm" value="bank">
                         <img class="pm-img" src="../static/images/banktransfer.png" alt="Bank Transfer">
-                        Bank transfer</label>
+                        Bank transfer <small>Send proof later</small></label>
                     <div class="detail" id="d-bank">
-                        Transfer the total to the account below and keep your receipt.<br>
-                        <b>Account name:</b> Go Cart Pvt. Ltd.<br>
-                        <b>Bank:</b> Your bank name<br>
-                        <b>Account number:</b> XXXXXXXXXXXX<br>
+                        Transfer the total to the account below and keep your receipt.
+                        <div class="bank-row"><span><b>Account name:</b> <span>Go Cart Pvt. Ltd.</span></span></div>
+                        <div class="bank-row"><span><b>Bank:</b> <span>Your bank name</span></span></div>
+                        <div class="bank-row"><span><b>Account number:</b> <span>XXXXXXXXXXXX</span></span></div>
+                        <div class="bank-row"><span><b>Amount:</b> <span id="bankAmt"></span></span></div>
                         Use your order number as the payment reference. We confirm the order once we verify your payment.
                         <div class="sep">
                             <label for="bankTxn">Transaction / reference ID</label>
-                            <input id="bankTxn" type="text" placeholder="e.g. 20261008" autocomplete="off">
+                            <div class="txn-wrap">
+                                <input id="bankTxn" type="text" placeholder="e.g. 20261008" autocomplete="off">
+                                <div class="txn-btns">
+                                    <button type="button" class="txn-btn" id="txnPaste" data-label="Paste"><em>Paste</em></button>
+                                    <button type="button" class="txn-btn" id="txnCopy" data-label="Copy"><em>Copy</em></button>
+                                </div>
+                            </div>
 
-                            <label style="margin-top:12px">Upload payment receipt images <span id="rcCount" style="font-weight:400;color:var(--muted)"></span></label>
+                            <label style="margin-top:12px">Upload payment receipt images (up to 5). <span id="rcCount" style="font-weight:400;color:var(--muted)">0/5</span></label>
                             <div class="drop" id="drop"><div class="tiles" id="tiles"></div></div>
                             <input id="bankReceipt" type="file" accept="image/*" multiple hidden>
 
@@ -460,6 +485,53 @@
         window.addEventListener("dragover", function (e) { e.preventDefault() });
         window.addEventListener("drop", function (e) { e.preventDefault() });
         renderReceipts();
+
+        // Copy buttons in the bank details
+        function copyText(t) {
+            if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+            return new Promise(function (res, rej) {
+                var ta = document.createElement("textarea");
+                ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand("copy") ? res() : rej() } catch (e) { rej() }
+                document.body.removeChild(ta);
+            });
+        }
+        if (order) {
+            $("bankAmt").textContent = rs(order.totals.total);
+            $("bankAmtCopy").setAttribute("data-copy", Math.round(order.totals.total));
+        }
+        document.querySelectorAll(".copy-btn").forEach(function (b) {
+            b.onclick = function () {
+                var label = b.querySelector("em");
+                copyText(b.getAttribute("data-copy")).then(function () {
+                    label.textContent = "Copied"; b.classList.add("done");
+                    setTimeout(function () { label.textContent = "Copy"; b.classList.remove("done") }, 1500);
+                }, function () { label.textContent = "Press Ctrl+C"; });
+            };
+        });
+
+        // Paste / Copy buttons for the transaction / reference ID
+        function flash(b, text) {
+            var em = b.querySelector("em");
+            em.textContent = text; b.classList.add("done");
+            setTimeout(function () { em.textContent = b.getAttribute("data-label"); b.classList.remove("done") }, 1500);
+        }
+        $("txnPaste").onclick = function () {
+            var b = this;
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                navigator.clipboard.readText().then(function (t) {
+                    t = (t || "").trim().slice(0, 60);
+                    if (!t) { flash(b, "Empty"); return }
+                    $("bankTxn").value = t; $("err").style.display = "none"; flash(b, "Pasted");
+                }, function () { $("bankTxn").focus(); flash(b, "Press Ctrl+V") });
+            } else { $("bankTxn").focus(); flash(b, "Press Ctrl+V") }
+        };
+        $("txnCopy").onclick = function () {
+            var b = this, v = $("bankTxn").value.trim();
+            if (!v) { flash(b, "Empty"); return }
+            copyText(v).then(function () { flash(b, "Copied") }, function () { flash(b, "Press Ctrl+C") });
+        };
 
         $("pay").onclick = place;
         $("bankSubmit").onclick = place;
