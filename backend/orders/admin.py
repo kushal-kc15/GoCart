@@ -12,7 +12,6 @@ from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter, RangeDateFilter
 from unfold.decorators import action, display
 from unfold.utils import parse_date_str
-from products.admin import SortableAdminMixin
 
 from .models import Order, OrderItem, OrderStatusChange, Payment
 
@@ -116,7 +115,7 @@ class StatusHistoryInline(TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(SortableAdminMixin,ModelAdmin,):
+class OrderAdmin(ModelAdmin):
     list_display = (
         'order_number', 'customer', 'customer_phone', 'status_badge', 'delivery_method',
         'payment_badge', 'total', 'created_at',

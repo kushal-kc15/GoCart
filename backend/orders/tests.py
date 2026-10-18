@@ -363,6 +363,19 @@ class CheckoutAddressTests(CheckoutTestBase):
         self.assertEqual((order.latitude, order.longitude), (Decimal("28.209600"), Decimal("83.959000")))
         self.assertEqual(Address.objects.count(), 1)  # nothing new saved
 
+    def test_a_saved_pin_outside_nepal_is_left_off_the_order(self):
+        # E.g. the pin was changed in the admin after the address was saved.
+        address = self._saved_address(latitude=Decimal(DELHI[0]), longitude=Decimal(DELHI[1]))
+        with self.assertLogs("orders.views", level="WARNING") as logs:
+            self._post(address_id=address.pk, address_line="", landmark="")
+        order = Order.objects.get()
+        self.assertIsNone(order.latitude)
+        self.assertIsNone(order.longitude)
+        self.assertEqual(order.map_url, "")
+        self.assertEqual(order.address, "Asha Sharma, 5 Lake Rd, Pokhara — 9800000000")
+        self.assertEqual(order.landmark, "Opposite the temple")
+        self.assertIn(f"Saved address {address.pk} has a map pin outside Nepal", logs.output[0])
+
     def test_someone_elses_address_is_refused(self):
         theirs = self._saved_address(user=User.objects.create_user(username="bob", email="bob@example.com"))
         self.assertRefused(self._post(address_id=theirs.pk), "Choose one of your saved addresses.")

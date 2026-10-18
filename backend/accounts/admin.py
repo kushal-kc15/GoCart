@@ -16,7 +16,7 @@ from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationFo
 
 from orders.models import Order
 from .models import Address, User
-from products.admin import SortableAdminMixin
+
 RECENT_ORDERS_SHOWN = 10
 
 
@@ -66,7 +66,7 @@ class StaffCreationForm(UserCreationForm):
 
 
 @admin.register(User)
-class UserAdmin(SortableAdminMixin,BaseUserAdmin, ModelAdmin, ):
+class UserAdmin(BaseUserAdmin, ModelAdmin):
     form = UserChangeForm
     add_form = StaffCreationForm
     change_password_form = AdminPasswordChangeForm

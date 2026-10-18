@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.defaultfilters import floatformat
@@ -15,8 +17,10 @@ from accounts.models import Address
 from accounts.views import _safe_next_url
 from cart.models import Cart
 from products.models import Product, ProductImage
-from .forms import CheckoutForm
+from .forms import CheckoutForm, is_in_nepal
 from .models import Order, OrderItem, OrderStatusChange, Payment
+
+logger = logging.getLogger(__name__)
 
 SHIPPING_FEE = 100
 ORDERS_PER_PAGE = 10
@@ -69,7 +73,16 @@ def _delivery_details(form, user):
     elif data["saved_address"]:
         address = data["saved_address"]
         where = ", ".join(part for part in (address.address_line, address.area, address.city) if part)
-        details.update(landmark=address.landmark, latitude=address.latitude, longitude=address.longitude)
+        details["landmark"] = address.landmark
+        # The pin was checked when it was saved, but it may have been edited since (e.g. in the admin).
+        lat, lng = address.latitude, address.longitude
+        if lat is not None and lng is not None and is_in_nepal(float(lat), float(lng)):
+            details.update(latitude=lat, longitude=lng)
+        elif lat is not None or lng is not None:
+            logger.warning(
+                "Saved address %s has a map pin outside Nepal (%s, %s); order placed without it.",
+                address.pk, lat, lng,
+            )
     else:
         where = data["address_line"]
         details.update(landmark=data["landmark"], latitude=data["lat"], longitude=data["lng"])

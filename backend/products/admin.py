@@ -12,6 +12,8 @@ class SortableAdminMixin:
     ordering_field = "weight"
     hide_ordering_field = True
     list_per_page = 200
+    # Weight is set by dragging rows in the list, so the add/edit page leaves it out.
+    exclude = ("weight",)
 
 class StockFilter(admin.SimpleListFilter):
     title = "stock status"
@@ -114,7 +116,7 @@ class ProductAdmin(SortableAdminMixin,ModelAdmin):
         self.message_user(request, f"{updated} product(s) now hidden from the site.")
 
 @admin.register(Review)
-class ReviewAdmin(SortableAdminMixin,ModelAdmin):
+class ReviewAdmin(ModelAdmin):
     list_display = ('product', 'reviewer_email', 'rating', 'is_visible', 'created_at')
     # The product filter lists only products that have reviews.
     list_filter = ('rating', 'is_visible', ('product', admin.RelatedOnlyFieldListFilter))

@@ -3,11 +3,10 @@ from django.db.models import F
 from django.conf import settings
 from django.utils import timezone
 from accounts.models import Address
-from products.models import Product,SortableModel
+from products.models import Product
 
 
-
-class Order(SortableModel):
+class Order(models.Model):
     # Pickup orders go Packed > Ready for pickup instead of Out for delivery.
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'

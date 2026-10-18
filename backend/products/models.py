@@ -72,7 +72,7 @@ def star_text(rating):
     return "★" * rating + "☆" * (5 - rating)
 
 
-class Review(SortableModel):
+class Review(models.Model):
     class Rating(models.IntegerChoices):
         ONE_STAR = 1, "1 star"
         TWO_STARS = 2, "2 stars"

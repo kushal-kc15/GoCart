@@ -7,7 +7,6 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractUser, UserManager as DjangoUserManager
 from django.db import models
 from django.utils import timezone
-from products.models import SortableModel
 
 # Rules for the emailed sign-up code.
 CODE_LIFETIME = timedelta(minutes=10)
@@ -23,7 +22,7 @@ class UserManager(DjangoUserManager):
         return super().create_superuser(*args, **extra_fields)
 
 
-class User(AbstractUser,SortableModel):
+class User(AbstractUser):
     email = models.EmailField(unique=True)
     phone=models.CharField(max_length=15, blank=True, null=True)
     role=models.CharField(max_length=50, blank=True, default='customer')

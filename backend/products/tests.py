@@ -602,6 +602,7 @@ class ProductAdminTests(AdminTestBase):
         res = self.client.post(self.url, {
             "form-TOTAL_FORMS": "1", "form-INITIAL_FORMS": "1",
             "form-0-id": apple.pk, "form-0-price": "150.00", "form-0-stock": "7",
+            "form-0-weight": "0",  # the hidden drag-and-drop position, sent for every row
             "_save": "Save",  # is_available left out: unticked
         })
         self.assertEqual(res.status_code, 302)
