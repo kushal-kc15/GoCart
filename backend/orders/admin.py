@@ -198,7 +198,20 @@ class OrderAdmin(ModelAdmin):
         if not obj.map_url:
             return landmark
         return format_html(
-            '{}<br><a href="{}" target="_blank" rel="noopener">Open in Google Maps</a>',
+            '<div style="display:flex;align-items:center;justify-content:space-between;'
+            'gap:16px;width:100%;flex-wrap:wrap;">'
+            '<span>{}</span>'
+            '<a href="{}" target="_blank" rel="noopener" '
+            'style="display:inline-flex;align-items:center;gap:8px;padding:8px 16px;'
+            'border:1px solid #0b5a31;border-radius:999px;background:#eef7f0;'
+            'color:#0b5a31;font-weight:600;font-size:13px;text-decoration:none;'
+            'white-space:nowrap;">'
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+            'stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/>'
+            '<circle cx="12" cy="9.5" r="2.5"/></svg>'
+            'Open in Google Maps</a>'
+            '</div>',
             landmark, obj.map_url,
         )
 

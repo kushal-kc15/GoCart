@@ -138,6 +138,10 @@ SHOP_INFO = {
     "name": "GoCart",
     "address": "SHOP ADDRESS (fill in config/settings.py)",
     "phone": "SHOP PHONE (fill in config/settings.py)",
+    # The shop's spot on the checkout map for pick up orders. Placeholder: central
+    # Kathmandu. Set both to None to leave the store off the map.
+    "latitude": 27.7172,
+    "longitude": 85.3240,
 }
 
 

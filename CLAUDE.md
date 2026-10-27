@@ -58,6 +58,12 @@ Django 6.0 project split between a Django backend and template/static assets tha
 - At the end of the project, files outside dev/ are deleted and dev/ stays.
 - Views render templates from dev/. Until a page is converted, its view
   will fail with TemplateDoesNotExist. That is expected during the rebuild.
+- Exception: the frontend team has left and we now own
+  frontend/templates/checkoutpage.html. The rules above don't apply to it: it is
+  the real checkout page (CheckoutView renders it), edited directly, with its own
+  static/css/checkout.css and static/js/checkout.js. Keep all three in the final
+  cleanup. dev/checkout.html and js/dev/checkout.js stay until the new page is
+  tested (css/dev/checkout.css also styles order success and order detail).
 
 ## Scope
 - Current scope is Phase 1: complete shopping journey with cash on delivery.
@@ -116,7 +122,9 @@ Admin work, "admin Phases 1-5" (not the storefront Phase 1 in Scope above):
 - Header search dropdown uses a hardcoded name list.
 - Slider: resizing the window can leave the index past the end until Prev is clicked.
 - Old accounts with mixed-case emails can't log in (login lowercases the email).
-- Fill in `SHOP_INFO` in settings (placeholders now). A tax invoice needs PAN/VAT details.
+- Fill in `SHOP_INFO` in settings (placeholders now, including the store's map
+  latitude/longitude). A tax invoice needs PAN/VAT details.
+- Only the admin sets `Address.is_default`, so checkout's "Default" label is rare.
 - Phones are saved in two formats (+977 and 10-digit) since about Oct 4: check that path still
   validates, and normalise before OTP.
 - Real product photos (all products use the placeholder).

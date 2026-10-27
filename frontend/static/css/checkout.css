@@ -1,0 +1,178 @@
+/* Checkout page (checkoutpage.html), in the frontend team's design.
+   Everything is under .checkout so the site header and footer (dev/base.html)
+   keep their own styles. Buttons are .co-btn, not .btn, which Bootstrap uses. */
+
+.checkout {
+  --bg: #f8f5ea;
+  --card: #fff;
+  --green: #0b5a31;
+  --green2: #4cc57a;
+  --ink: #111;
+  --muted: #8a8a82;
+  --line: #d9d6c9;
+  --red: #e4505a;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  line-height: normal;  /* the design's spacing; Bootstrap sets 1.5 */
+  padding-bottom: 70px;  /* the gap above the footer */
+}
+.checkout a { color: inherit; text-decoration: none; }
+.checkout [hidden] { display: none !important; }
+
+.checkout .wrap { max-width: 1180px; margin: 0 auto; padding: 44px 24px 0; }
+.checkout h1 { font-size: 52px; font-weight: 700; line-height: normal; text-align: center; margin: 0 0 12px; letter-spacing: .5px; }
+.checkout .crumb { text-align: center; font-size: 19px; color: var(--muted); margin-bottom: 40px; }
+.checkout .crumb b { color: var(--green2); font-weight: 400; }
+
+/* 1-2-3 steps */
+.checkout .steps { display: flex; justify-content: center; align-items: center; gap: 14px; margin: -18px 0 36px; font-size: 13px; color: var(--muted); }
+.checkout .steps span { display: flex; align-items: center; gap: 8px; }
+.checkout .steps i { font-style: normal; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 12px; background: #fff; }
+.checkout .steps .on { color: var(--ink); font-weight: 600; }
+.checkout .steps .on i { background: var(--green); border-color: var(--green); color: #fff; }
+.checkout .steps u { width: 36px; height: 1.5px; background: var(--line); }
+
+/* Layout and panels */
+.checkout .grid { display: grid; grid-template-columns: 1fr 360px; gap: 12px; align-items: start; }
+.checkout .panel { background: var(--card); padding: 24px; }
+.checkout .panel + .panel { margin-top: 12px; }
+.checkout .panel h2 { font-size: 17px; font-weight: 700; line-height: normal; margin: 0 0 18px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.checkout .sum h2 { text-align: center; }
+.checkout .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* Fields */
+.checkout label,
+.checkout .f-label { display: block; font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.checkout input:not([type="radio"]):not([type="checkbox"]) {
+  width: 100%; padding: 11px 12px; border: 1px solid var(--line); background: var(--bg);
+  color: var(--ink); font: inherit; font-size: 13px; border-radius: 2px;
+}
+.checkout input[readonly] { color: #555; }
+.checkout input:focus,
+.checkout button:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.checkout .f { margin-bottom: 14px; }
+.checkout .hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.checkout .hint a { color: var(--green); text-decoration: underline; }
+.checkout .acct { margin: -6px 0 16px; }
+.checkout .field-err,
+.checkout .err { color: var(--red); font-size: 12px; margin: 4px 0 0; }
+.checkout .form-errors {
+  background: #fdeced; border: 1px solid var(--red); color: var(--red);
+  padding: 10px 14px; margin-bottom: 12px; font-size: 13px; font-weight: 600;
+}
+.checkout .form-errors p { margin: 0; }
+
+/* Buttons */
+.checkout .co-btn {
+  background: var(--green); color: #fff; border: 0; padding: 11px 18px; font: inherit;
+  font-weight: 600; font-size: 13px; cursor: pointer; border-radius: 3px; white-space: nowrap;
+}
+.checkout .co-btn.ghost { background: #fff; color: var(--green); border: 1px solid var(--green); }
+.checkout .co-btn:disabled { opacity: .5; cursor: default; }
+.checkout .confirm { margin-top: 10px; }
+
+/* "Pin on map" / "Type my address" switch */
+.checkout .seg { display: flex; border: 1px solid var(--green); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+.checkout .seg button { flex: 1; padding: 11px 10px; border: 0; border-radius: 0; background: #fff; color: var(--green); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
+.checkout .seg button[aria-pressed="true"] { background: var(--green); color: #fff; }
+
+/* Map */
+.checkout .search { display: flex; gap: 8px; margin-bottom: 10px; }
+.checkout #map {
+  height: 380px; border: 1.5px solid var(--line); background: #e8e6dc; border-radius: 8px;
+  position: relative; z-index: 0;  /* stays under the site header */
+  cursor: crosshair;
+}
+.checkout .leaflet-container { font-family: inherit; font-size: 13px; }
+.checkout .loc-text { color: var(--green); font-weight: 600; margin: 10px 0 0; }
+.checkout .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, .2); font-family: inherit; }
+.checkout .leaflet-popup-content { margin: 10px 14px; line-height: 1.45; font-size: 12.5px; }
+.checkout .popup-help { display: block; color: #666; font-size: 11px; }
+
+/* Map markers (built in checkout.js) */
+.checkout .custom-map-pin { display: flex; align-items: center; justify-content: center; }
+.checkout .pin-delivery {
+  background: #1f6b3a; color: #fff; width: 34px; height: 34px; border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg); display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .35); border: 2px solid #fff; cursor: grab;
+}
+.checkout .pin-delivery span { transform: rotate(45deg); font-size: 16px; }
+.checkout .pin-store {
+  background: #c8963e; color: #fff; width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .3); border: 2px solid #fff; cursor: pointer;
+}
+.checkout .pin-store span { font-size: 15px; }
+
+/* Landmark and its "auto-filled" tag */
+.checkout .lm-field { margin-top: 14px; }
+.checkout .lm-label { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+.checkout .lm-tag {
+  font-size: 11px; color: var(--green); font-weight: 600; background: #eef7f0;
+  padding: 2px 8px; border-radius: 12px; border: 1px solid #c2e2cc;
+}
+.checkout .lm-tag.is-custom { color: #444; background: #f4f4f4; border-color: #ddd; }
+.checkout .lm-help { display: block; font-size: 11px; margin-top: 4px; }
+.checkout .highlight-auto {
+  border-color: var(--green) !important; background-color: #f7fbf8 !important;
+  box-shadow: 0 0 0 3px rgba(31, 107, 58, .25) !important; transition: all .3s ease;
+}
+.checkout .save-opt { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); cursor: pointer; margin: 0 0 4px; }
+.checkout .save-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--green); }
+
+/* Radio cards: delivery service and saved addresses (text size and colour come from label) */
+.checkout .opt {
+  display: flex; align-items: center; gap: 12px; padding: 13px 14px; margin-bottom: 10px;
+  border: 1px solid var(--line); background: var(--bg); cursor: pointer;
+}
+.checkout .opt input { width: auto; margin: 0; accent-color: var(--green); }
+.checkout .opt small { margin-left: auto; color: var(--muted); }
+.checkout .opt:has(input:checked) { border-color: var(--green); background: #eef7f0; }
+.checkout .addr-list { margin-bottom: 16px; }
+.checkout .addr-card { align-items: flex-start; }
+.checkout .addr-card input { margin-top: 2px; }
+.checkout .addr-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.checkout .addr-body small { margin-left: 0; font-size: 12px; }
+.checkout .addr-line { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
+.checkout .addr-body .pinned { color: var(--green); font-weight: 600; }
+.checkout .tag {
+  font-style: normal; font-size: 11px; font-weight: 600; color: #fff; background: var(--green);
+  padding: 1px 7px; border-radius: 10px; margin-left: 6px; white-space: nowrap;
+}
+
+/* Pick up store */
+.checkout .store { background: var(--bg); border: 1px solid var(--line); padding: 12px 14px; margin: 0 0 12px; line-height: 1.6; color: #555; font-size: 13px; }
+
+/* Order summary */
+.checkout .item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.checkout .item img { width: 46px; height: 46px; border-radius: 4px; flex: none; object-fit: cover; }
+.checkout .item span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.checkout .item small { display: block; color: var(--muted); font-size: 11px; }
+.checkout .lines { margin-top: 12px; }
+.checkout .sum .l { display: flex; justify-content: space-between; padding: 7px 0; color: #666; }
+.checkout .svc-label { color: var(--muted); margin: 16px 0 10px; }
+.checkout .total {
+  display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--line);
+  margin-top: 10px; padding-top: 18px; font-size: 24px; font-weight: 700;
+}
+.checkout .total span { color: var(--green2); }
+.checkout .pay { width: 100%; margin-top: 20px; padding: 16px; font-size: 16px; border-radius: 4px; }
+.checkout .pay-note { text-align: center; }
+
+@media (max-width: 860px) {
+  .checkout .grid { grid-template-columns: 1fr; }
+  .checkout .row2 { grid-template-columns: 1fr; }
+  .checkout h1 { font-size: 38px; }
+}
+@media (max-width: 600px) {
+  .checkout .steps u { width: 14px; }
+  .checkout .steps span b { display: none; }
+  /* Phones: the search box gets its own row, the two buttons share the next one */
+  .checkout .search { flex-wrap: wrap; }
+  .checkout .search input { flex-basis: 100%; }
+  .checkout .search .co-btn { flex: 1; }
+  .checkout input:not([type="radio"]):not([type="checkbox"]) { font-size: 16px; }  /* stops iOS zooming in */
+}

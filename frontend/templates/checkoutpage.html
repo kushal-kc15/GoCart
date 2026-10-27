@@ -1,758 +1,180 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Checkout</title>
-<style>
-:root{--bg:#f8f5ea;--card:#fff;--green:#0b5a31;--green2:#4cc57a;--ink:#111;--muted:#8a8a82;--line:#d9d6c9;--red:#e4505a}
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
-a{color:inherit;text-decoration:none}
-.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
-header{border-bottom:1px solid var(--line)}
-.top{display:flex;align-items:center;gap:16px;padding:32px 0 16px}
-.logo{width:80px;height:58px;background:#d9d9d9;display:grid;place-items:center;font-size:15px}
-.pill{flex:1;background:#fffdf7;border-radius:30px;padding:12px 22px;color:#bbb;font-size:12px}
-.user{display:flex;align-items:center;gap:10px;color:var(--muted)}
-.user i{width:36px;height:36px;border-radius:50%;background:#c9a98a;display:block}
-nav{display:flex;justify-content:center;gap:72px;padding:14px 0 22px;font-size:13px}
-h1{font-size:52px;text-align:center;margin:44px 0 12px;letter-spacing:.5px}
-.crumb{text-align:center;font-size:19px;color:var(--muted);margin-bottom:40px}
-.crumb b{color:var(--green2);font-weight:400}
-.grid{display:grid;grid-template-columns:1fr 360px;gap:12px;align-items:start}
-.panel{background:var(--card);padding:24px}
-.panel+.panel{margin-top:12px}
-.panel h2{font-size:17px;margin:0 0 18px;padding-bottom:10px;border-bottom:1px solid var(--line)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);background:var(--bg);font:inherit;font-size:13px;border-radius:2px}
-input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--green);outline-offset:1px}
-.f{margin-bottom:14px}
-.search{display:flex;gap:8px;margin-bottom:10px}
-.btn{background:var(--green);color:#fff;border:0;padding:11px 18px;font:inherit;font-weight:600;font-size:13px;cursor:pointer;border-radius:3px}
-.btn.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
-#map{height:340px;border:1px solid var(--line);background:#e8e6dc}
-.hint a{color:var(--green);text-decoration:underline}
-.hint{font-size:12px;color:var(--muted);margin:8px 0 0}
-.opt{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);margin-bottom:10px;cursor:pointer;background:var(--bg)}
-.opt input{width:auto;accent-color:var(--green)}
-.opt small{margin-left:auto;color:var(--muted)}
-.opt:has(input:checked){border-color:var(--green);background:#eef7f0}
-.item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
-.item i{width:46px;height:46px;border-radius:4px;flex:none}
-.item span{flex:1}.item small{display:block;color:var(--muted);font-size:11px}
-.sum div.l{display:flex;justify-content:space-between;padding:7px 0;color:#666}
-.sum .disc{color:var(--red)}
-.cp{display:flex;margin:14px 0}
-.cp input{border-right:0}.cp .btn{border-radius:0}
-.total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);margin-top:10px;padding-top:18px;font-size:24px;font-weight:700}
-.total span{color:var(--green2)}
-.pay{width:100%;margin-top:20px;padding:16px;font-size:16px;border-radius:4px}
-.err{color:var(--red);font-size:12px;display:none;margin-top:4px}
- 
-.steps{display:flex;justify-content:center;align-items:center;gap:14px;margin:-18px 0 36px;font-size:13px;color:var(--muted)}
-.steps span{display:flex;align-items:center;gap:8px}
-.steps i{font-style:normal;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:12px;background:#fff}
-.steps .on{color:var(--ink);font-weight:600}.steps .on i{background:var(--green);border-color:var(--green);color:#fff}
-.steps .dn i{background:var(--green2);border-color:var(--green2);color:#fff}
-.steps u{width:36px;height:1.5px;background:var(--line)}
-@media(max-width:600px){.steps u{width:14px}.steps span b{display:none}}
-body.pickup .dOnly{display:none!important}.pOnly{display:none}body.pickup .pOnly{display:block}
-body.typed .mapOnly{display:none}.typeOnly{display:none}body.typed .typeOnly{display:block}
-body.typed:not(.pickup) #mapBox{display:none}
-.seg{display:flex;border:1px solid var(--green);border-radius:3px;overflow:hidden;margin-bottom:16px}
-.seg button{flex:1;padding:11px 10px;border:0;background:#fff;color:var(--green);font:inherit;font-weight:600;font-size:13px;cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--green);color:#fff}
-.store{background:var(--bg);border:1px solid var(--line);padding:12px 14px;margin:0 0 12px;line-height:1.6;color:#555;font-size:13px}
-footer{background:var(--green);color:#fff;margin-top:70px;padding:46px 0;text-align:center;font-size:13px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}nav{gap:22px;flex-wrap:wrap}.pill{display:none}.row2{grid-template-columns:1fr}h1{font-size:38px}}
-</style>
-<link rel="stylesheet" href="../static/css/navbar.css">
-<!-- Leaflet OpenStreetMap (Street View Map) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>
-  #map { height: 380px; border: 1.5px solid var(--line); background: #e8e6dc; border-radius: 8px; position: relative; z-index: 1; cursor: crosshair; }
-  .leaflet-container { font-family: inherit; font-size: 13px; }
-  .custom-map-pin { display: flex; align-items: center; justify-content: center; }
-  #landmark.highlight-auto {
-    border-color: var(--green) !important;
-    background-color: #f7fbf8 !important;
-    box-shadow: 0 0 0 3px rgba(31, 107, 58, 0.25) !important;
-    transition: all 0.3s ease;
-  }
-  .leaflet-popup-content-wrapper {
-    border-radius: 8px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-    font-family: inherit;
-  }
-  .leaflet-popup-content {
-    margin: 10px 14px;
-    line-height: 1.45;
-    font-size: 12.5px;
-  }
-</style>
-</head>
-<body>
-<header class="site">
-  <a href="home2.html" class="logo-box" aria-label="Go to homepage">
-    <img src="../static/images/logo.png" alt="GoCart Logo" class="logo-img">
-  </a>
+{% extends "dev/base.html" %}
+{% load static %}
 
-  <form class="header-mid" id="siteSearchForm" action="product_list.html" method="GET">
-    <div class="field">
-      <input type="tel" name="phone" placeholder="Phone number" aria-label="Phone number">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path
-          d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-      </svg>
+{% block title %}Checkout – GoCart{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="{% static 'css/checkout.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+{{ page_data|json_script:"checkout-data" }}
+<script src="{% static 'js/checkout.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="checkout" id="checkout">
+<div class="wrap">
+  <h1>CHECKOUT</h1>
+  <div class="crumb"><a href="{% url 'home' %}">Home</a> / <a href="{% url 'cart:cart_detail' %}">Cart</a> / <b>Checkout</b></div>
+
+  <div class="steps" aria-label="Checkout steps">
+    <span class="on" aria-current="step"><i>1</i><b>Checkout</b></span><u></u>
+    <span><i>2</i><b>Payment</b></span><u></u>
+    <span><i>3</i><b>Confirmation</b></span>
+  </div>
+
+  <form method="post" action="{% url 'orders:checkout' %}" class="grid" id="checkout-form" data-once>
+    {% csrf_token %}
+    <div>
+      {% if form.non_field_errors %}
+      <div class="form-errors" role="alert">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Contact details: needed for delivery and pickup -->
+      <section class="panel">
+        <h2>Contact details</h2>
+        {% if needs_name %}
+        <p class="hint acct">Add your full name for the courier. We'll save it to your account.</p>
+        {% else %}
+        <p class="hint acct">Signed in as {{ account_name }}. We filled in your details, and you can edit the phone number for this order. To change your name, edit your <a href="{% url 'accounts:edit_profile' %}">profile</a>.</p>
+        {% endif %}
+        <div class="row2">
+          <div class="f">
+            {% if needs_name %}
+            <label for="{{ form.full_name.id_for_label }}">Full name</label>
+            {{ form.full_name }}
+            {% for error in form.full_name.errors %}<p class="field-err">{{ error }}</p>{% endfor %}
+            {% else %}
+            {# The order uses the account's name, so it isn't sent with the form. #}
+            <label for="account-name">Full name</label>
+            <input id="account-name" value="{{ account_name }}" readonly>
+            {% endif %}
+          </div>
+          <div class="f">
+            <label for="{{ form.phone.id_for_label }}">Phone number</label>
+            {{ form.phone }}
+            {% for error in form.phone.errors %}<p class="field-err">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <!-- Where the order goes. checkout.js shows the parts for the chosen delivery service;
+           without JavaScript everything stays visible and the typed address is enough. -->
+      <section class="panel" id="delivery-panel">
+        <h2 id="dp-title">Delivery location</h2>
+
+        <div id="pickup-info">
+          <p class="hint no-js-hint">Only for pick up orders:</p>
+          <p class="f-label">Pick up store</p>
+          <div class="store"><b>{{ store.name }}</b><br>{{ store.address }}</div>
+        </div>
+
+        <div id="delivery-info">
+          <p class="hint no-js-hint">Only needed for home delivery:</p>
+
+          {% if saved_addresses %}
+          <div class="addr-list" id="saved-list">
+            {% for address in saved_addresses %}
+            <label class="opt addr-card">
+              <input type="radio" name="address_id" value="{{ address.pk }}" data-phone="{{ address.phone|default:account_phone }}"{% if address.pk == selected_address_id %} checked{% endif %}>
+              <span class="addr-body">
+                <span class="addr-line">{{ address.address_line }}{% if address.area %}, {{ address.area }}{% endif %}{% if address.city %}, {{ address.city }}{% endif %}{% if address.is_default %} <em class="tag">Default</em>{% endif %}</span>
+                {% if address.landmark %}<small>{{ address.landmark }}</small>{% endif %}
+                {% if address.latitude is not None %}<small class="pinned">Pinned on map</small>{% endif %}
+              </span>
+            </label>
+            {% endfor %}
+            <label class="opt addr-card">
+              <input type="radio" name="address_id" value="" data-phone="{{ account_phone }}"{% if not selected_address_id %} checked{% endif %}>
+              <span class="addr-body"><span class="addr-line">Add new address</span></span>
+            </label>
+          </div>
+          {% endif %}
+          {% for error in form.address_id.errors %}<p class="field-err">{{ error }}</p>{% endfor %}
+
+          <div class="seg" id="addr-switch" role="group" aria-label="How to give your delivery address" hidden>
+            <button type="button" id="mode-map" aria-pressed="true">Pin on map</button>
+            <button type="button" id="mode-type" aria-pressed="false">Type my address</button>
+          </div>
+          <div class="search" id="map-search" hidden>
+            <input id="map-q" placeholder="Search your area or street" aria-label="Search location" autocomplete="off">
+            <button class="co-btn" id="map-go" type="button">Search</button>
+            <button class="co-btn ghost" id="map-locate" type="button">Use my location</button>
+          </div>
+        </div>
+
+        <!-- Shared: the delivery pin, or the store for pick up -->
+        <div id="map-box" hidden>
+          <div id="map" role="application" aria-label="Delivery map. Tap to drop a pin, then drag it to your exact spot."></div>
+          <p class="hint loc-text" id="loc-text" aria-live="polite"></p>
+          <p class="hint" id="map-hint">Search your area, use your location or tap the map, then drag the pin to your exact spot.</p>
+          <button type="button" class="co-btn confirm" id="map-confirm" disabled>Confirm this location</button>
+        </div>
+        {{ form.lat }}{{ form.lng }}
+        {% for error in form.lat.errors %}<p class="field-err">Map pin: {{ error }}</p>{% endfor %}
+        {% for error in form.lng.errors %}<p class="field-err">Map pin: {{ error }}</p>{% endfor %}
+
+        <div class="f" id="typed-fields">
+          <label for="{{ form.address_line.id_for_label }}">{{ form.address_line.label }}</label>
+          {{ form.address_line }}
+          {% for error in form.address_line.errors %}<p class="field-err">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="f lm-field" id="landmark-field">
+          <label for="{{ form.landmark.id_for_label }}" class="lm-label">
+            <span>House number, landmark or instructions</span>
+            <span class="lm-tag" id="landmark-tag" hidden></span>
+          </label>
+          {{ form.landmark }}
+          <small class="hint lm-help">Select or tap location on the map to auto-fill the nearest landmark, or customize it anytime.</small>
+          {% for error in form.landmark.errors %}<p class="field-err">{{ error }}</p>{% endfor %}
+        </div>
+
+        <label class="save-opt" id="save-field">{{ form.save_address }} <span>{{ form.save_address.label }}</span></label>
+
+        <div class="err" id="map-err" role="alert" hidden></div>
+      </section>
     </div>
-    <div class="field">
-      <input type="search" name="q" id="siteSearchInput" placeholder="Search ......" aria-label="Search products">
-      <button type="submit" class="field-submit" aria-label="Search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-      </button>
-    </div>
+
+    <!-- Order summary. Every price comes from the server. -->
+    <aside>
+      <section class="panel sum">
+        <h2>Order Summary</h2>
+        <div class="items">
+          {% for item in cart_items %}
+          <div class="item">
+            {% with first_image=item.product.images.all|first %}
+            <img src="{% if first_image %}{{ first_image.image.url }}{% else %}{% static 'images/dev/fruits.jpg' %}{% endif %}" alt="">
+            {% endwith %}
+            <span>{{ item.product.name }}<small>{% if item.product.unit %}{{ item.product.unit }} {% endif %}× {{ item.quantity }}</small></span>
+            <b class="s-price">Rs. {{ item.line_total|floatformat:"-2" }}</b>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="lines">
+          <div class="l"><span>Sub-total</span><span>Rs. {{ subtotal|floatformat:"-2" }}</span></div>
+          <div class="l"><span>Shipping charge</span><span id="summary-shipping">{% if shipping %}Rs. {{ shipping|floatformat:"-2" }}{% else %}Free{% endif %}</span></div>
+        </div>
+
+        <div class="svc-label">Choose delivery service</div>
+        {% for error in form.delivery_method.errors %}<p class="field-err">{{ error }}</p>{% endfor %}
+        <label class="opt"><input type="radio" name="delivery_method" value="delivery"{% if method == "delivery" %} checked{% endif %}> Home delivery <small>{{ totals.delivery.shipping }}</small></label>
+        <label class="opt"><input type="radio" name="delivery_method" value="pickup"{% if method == "pickup" %} checked{% endif %}> Pick up at store <small>{{ totals.pickup.shipping }}</small></label>
+
+        <div class="total">Total <span id="summary-total">Rs. {{ grand_total|floatformat:"-2" }}</span></div>
+        <button type="submit" class="co-btn pay">Place Order</button>
+        <p class="hint pay-note">Pay in cash on delivery, or at the store when you pick up.</p>
+      </section>
+    </aside>
   </form>
-
-  <div class="header-right">
-    <a href="#" class="icon-btn" id="wishlistLink" aria-label="View wishlist">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="#E24C4C" stroke="#E24C4C">
-        <path
-          d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z" />
-      </svg>
-    </a>
-    <a href="cart.html" class="icon-btn" id="cartLink" aria-label="View cart">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="9" cy="21" r="1" />
-        <circle cx="20" cy="21" r="1" />
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-      </svg>
-    </a>
-    <a href="profiledashboard.html" class="user-chip" id="accountLink">
-      <div class="avatar">
-        <svg viewBox="0 0 34 34">
-          <rect width="34" height="34" fill="#C9A98A" />
-          <circle cx="17" cy="13" r="6" fill="#8A6A4B" />
-          <ellipse cx="17" cy="30" rx="11" ry="9" fill="#8A6A4B" />
-        </svg>
-      </div>
-      <span id="uname">@Ross95</span>
-    </a>
-  </div>
-</header>
-
-<nav class="main">
-  <a href="home2.html">HOME</a>
-  <a href="product_list.html">CATEGORIES</a>
-  <a href="#">ABOUT US</a>
-  <a href="#">CONTACT US</a>
-</nav>
- 
-<main class="wrap">
-<h1>CHECKOUT</h1>
-<div class="crumb">Home / <a href="#">Cart</a> / <b>Checkout</b></div>
- 
-<div class="steps"><span class="on"><i>1</i><b>Checkout</b></span><u></u><span class=""><i>2</i><b>Payment</b></span><u></u><span class=""><i>3</i><b>Confirmation</b></span></div>
-<div class="grid">
-<div>
-  <section class="panel">
-    <h2>Contact details</h2>
-    <p class="hint" id="acct" style="margin:-6px 0 16px"></p>
-    <div class="row2">
-      <div class="f"><label for="name">Full name</label><input id="name" autocomplete="name"></div>
-      <div class="f"><label for="phone">Phone number</label><input id="phone" type="tel" autocomplete="tel"></div>
-    </div>
-    <div class="f"><label for="email">Email (optional)</label><input id="email" type="email" autocomplete="email"></div>
-  </section>
- 
-  <section class="panel" id="deliveryPanel">
-    <h2 id="dpTitle">Delivery location</h2>
-    <div class="pOnly">
-      <div class="f"><label for="store">Pick up store</label><select id="store"><option value="">Select a store</option></select></div>
-      <div class="store" id="storeInfo">Choose the store you'll collect your order from.</div>
-    </div>
-    <div class="seg dOnly" role="group" aria-label="How to give your delivery address">
-      <button type="button" id="mMap" aria-pressed="true">Pin on map</button>
-      <button type="button" id="mType" aria-pressed="false">Type my address</button>
-    </div>
-    <div class="search mapOnly dOnly">
-      <input id="q" placeholder="Search your area or street" aria-label="Search location">
-      <button class="btn" id="go" type="button">Search</button>
-      <button class="btn ghost" id="loc" type="button">Use my location</button>
-    </div>
-    <div id="mapBox">
-      <div id="map" role="application" aria-label="Delivery map"></div>
-      <p class="hint" id="locText" style="color:var(--green);font-weight:600;margin:10px 0 0"></p>
-      <p class="hint mapOnly dOnly">Search your area, use your location or tap the map, then drag the pin to your exact spot.</p>
-    </div>
-    <div class="typeOnly dOnly">
-      <div class="row2">
-        <div class="f"><label for="prov">Province</label><select id="prov"><option value="">Select province</option></select></div>
-        <div class="f"><label for="area">District / city</label><select id="area" disabled><option value="">Select province first</option></select></div>
-      </div>
-      <div class="f"><label for="addr">Street, tole or house number</label><input id="addr" autocomplete="street-address" placeholder="e.g. Lakeside Road, Ward 6"></div>
-    </div>
-    <div class="f dOnly" style="margin-top:14px">
-      <label for="landmark" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-        <span>House number, landmark or instructions</span>
-        <span id="landmarkTag" style="font-size:11px;color:var(--green);font-weight:600;display:none;background:#eef7f0;padding:2px 8px;border-radius:12px;border:1px solid #c2e2cc;">📍 Nearest landmark auto-filled (editable)</span>
-      </label>
-      <input id="landmark" placeholder="Near the blue gate, call on arrival">
-      <small class="hint" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;">Select or tap location on the map to auto-fill the nearest landmark, or customize it anytime.</small>
-    </div>
-    <div class="err" id="mapErr">Please set your delivery location on the map.</div>
-  </section>
- 
 </div>
- 
-<aside>
-  <section class="panel sum">
-    <h2 style="text-align:center">Order Summary</h2>
-    <div id="items"></div>
-    <div style="margin-top:12px">
-      <div class="l"><span>Sub-total</span><span id="sub"></span></div>
-      <div class="l disc"><span>Discount</span><span id="dis">-Rs. 0</span></div>
-      <div class="l"><span>VAT / TAX</span><span>Rs. 0</span></div>
-      <div class="l"><span>Shipping charge</span><span id="ship"></span></div>
-    </div>
-    <div class="cp"><input id="coupon" placeholder="Enter coupon" aria-label="Coupon code"><button class="btn" id="apply" type="button">Apply</button></div>
-    <div class="hint" id="cpMsg" style="margin:-8px 0 12px"></div>
- 
-    <div style="color:var(--muted);margin:16px 0 10px">Choose delivery service</div>
-    <label class="opt"><input type="radio" name="svc" value="home" checked> Home delivery <small>Varies by area</small></label>
-    <label class="opt"><input type="radio" name="svc" value="pick"> Pick up at store <small>Free</small></label>
- 
-    <div class="total">Total <span id="tot"></span></div>
-    <button class="btn pay" id="place" type="button">Continue to payment</button>
-  </section>
-</aside>
 </div>
-</main>
- 
-<footer style="background:var(--green,#1F6B3A);color:#fff;margin-top:70px;padding:36px 0;text-align:center;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:12px;">
-  <div class="logo-box" style="background:#fff;">
-    <img src="../static/images/logo.png" alt="GoCart Logo" class="logo-img">
-  </div>
-  <p style="margin:0;">Everything You Need, All in One Cart.<br>Fresh Groceries, Delivered with Care.</p>
-</footer>
- 
-<script>
-// ---- Config: replace with your store location and real cart data ----
-var STORE={lat:27.7172,lng:85.3240};    // map starting point
-var ITEMS=[
- {n:"Sprite",w:"1 liter",q:1,p:1200,c:"#7fb96a"},
- {n:"Tomato saus",w:"1 liter",q:1,p:1200,c:"#c4472f"},
- {n:"Cup Noodles",w:"1 liter",q:1,p:1200,c:"#d9a441"},
- {n:"Green Tea",w:"1 liter",q:1,p:1200,c:"#8a5a3c"}
-];
-var COUPONS={SAVE15:0.15};
-// ---------------------------------------------------------------------
-var $=function(i){return document.getElementById(i)},rs=function(n){return "Rs. "+Math.round(n).toLocaleString()};
-var rate=0,T={};
-var how="map";                                    // "map" = pin on map, "type" = typed address
-var geo={province:"",area:"",address:""},rq=0;    // what we know about the pin's location
-var userManuallyEdited = false;
-
-$("items").innerHTML=ITEMS.map(function(i){return '<div class="item"><i style="background:'+i.c+'"></i><span>'+i.n+'<small>'+i.w+' × '+i.q+'</small></span><b>'+rs(i.p*i.q)+'</b></div>'}).join("");
-
-function calc(){
-  var sub=ITEMS.reduce(function(s,i){return s+i.p*i.q},0),home=document.querySelector('[name=svc]:checked').value==="home";
-  var dis=sub*rate,ship=home?(fee()||0):0;T={sub:sub,dis:dis,ship:ship,total:sub-dis+ship};
-  $("sub").textContent=rs(sub);$("dis").textContent="-"+rs(dis);$("ship").textContent=home&&fee()==null?(how==="map"?"Drop a pin":"Select area"):rs(ship);$("tot").textContent=rs(sub-dis+ship);
-}
-document.querySelectorAll('[name=svc]').forEach(function(r){r.onchange=function(){calc();applyMode()}});
-$("apply").onclick=function(){
-  var c=COUPONS[$("coupon").value.trim().toUpperCase()];
-  rate=c||0;$("cpMsg").textContent=c?(c*100)+"% discount applied.":"That coupon code isn't valid.";calc();
-};
-
-// Listen to customer edits on landmark field so custom directions are preserved
-$("landmark").addEventListener("input", function(){
-  userManuallyEdited = true;
-  var tag = $("landmarkTag");
-  if (tag) {
-    tag.style.display = "inline";
-    tag.innerHTML = "✏️ Custom landmark / instructions";
-    tag.style.color = "#444";
-    tag.style.background = "#f4f4f4";
-    tag.style.borderColor = "#ddd";
-  }
-});
-
-// ---- Leaflet OpenStreetMap (Street View Map) ----
-var STORE = { lat: 27.7040, lng: 85.3131 }; // New Road, Kathmandu default center
-var map = null, pin = null, storeMarkers = [];
-
-// Curated landmarks across Nepal for instant distance matching & fallback
-var NEPAL_LANDMARKS = [
-  // Kathmandu Center & Downtown
-  { name: "New Road Gate / Peepal Bot", lat: 27.7038, lng: 85.3125, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Basantapur Durbar Square", lat: 27.7040, lng: 85.3073, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Ratna Park / Tundikhel", lat: 27.7056, lng: 85.3160, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Sundhara / Dharahara", lat: 27.7003, lng: 85.3120, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Thamel Chowk", lat: 27.7154, lng: 85.3123, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Asan Bazaar Chowk", lat: 27.7073, lng: 85.3113, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Indra Chowk", lat: 27.7057, lng: 85.3093, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Durbarmarg / Narayanhiti Palace", lat: 27.7127, lng: 85.3175, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Putalisadak Chowk", lat: 27.7034, lng: 85.3223, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Kamalpokhari Pond", lat: 27.7088, lng: 85.3241, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Maitighar Mandala", lat: 27.6938, lng: 85.3218, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Tripureshwor Chowk", lat: 27.6946, lng: 85.3148, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Kalimati Vegetable Market", lat: 27.6980, lng: 85.2974, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Balkhu Chowk", lat: 27.6840, lng: 85.2952, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Kalanki Chowk", lat: 27.6939, lng: 85.2817, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Swayambhunath Stupa (Monkey Temple)", lat: 27.7149, lng: 85.2903, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Balaju Bypass Chowk", lat: 27.7317, lng: 85.3019, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Gongabu New Bus Park", lat: 27.7360, lng: 85.3106, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Maharajgunj Chakrapath", lat: 27.7369, lng: 85.3312, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Bhatbhateni Supermarket, Naxal", lat: 27.7158, lng: 85.3275, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Chabahil Chowk / Stupa", lat: 27.7172, lng: 85.3482, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Boudhanath Stupa", lat: 27.7215, lng: 85.3620, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Jorpati Chowk", lat: 27.7238, lng: 85.3789, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Sinamangal / Airport Gate", lat: 27.6966, lng: 85.3591, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Tinkune Chowk", lat: 27.6865, lng: 85.3479, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Koteshwor Chowk", lat: 27.6756, lng: 85.3458, area: "Kathmandu", prov: "Bagmati" },
-  { name: "New Baneshwor Chowk", lat: 27.6917, lng: 85.3374, area: "Kathmandu", prov: "Bagmati" },
-  { name: "Old Baneshwor Chowk", lat: 27.7011, lng: 85.3397, area: "Kathmandu", prov: "Bagmati" },
-
-  // Lalitpur (Patan)
-  { name: "Kupondole Bridge", lat: 27.6885, lng: 85.3175, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Pulchowk Engineering Campus", lat: 27.6783, lng: 85.3175, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Jawalakhel Zoo Roundabout", lat: 27.6713, lng: 85.3134, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Kumaripati Shopping Street", lat: 27.6689, lng: 85.3195, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Lagankhel Bus Park", lat: 27.6664, lng: 85.3238, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Patan Durbar Square", lat: 27.6727, lng: 85.3253, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Satdobato Chowk", lat: 27.6534, lng: 85.3256, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Gwarko Chowk", lat: 27.6667, lng: 85.3346, area: "Lalitpur", prov: "Bagmati" },
-  { name: "Balkumari Ring Road", lat: 27.6715, lng: 85.3415, area: "Lalitpur", prov: "Bagmati" },
-
-  // Bhaktapur
-  { name: "Radhe Radhe Chowk", lat: 27.6765, lng: 85.3855, area: "Bhaktapur", prov: "Bagmati" },
-  { name: "Sallaghari Chowk", lat: 27.6712, lng: 85.4093, area: "Bhaktapur", prov: "Bagmati" },
-  { name: "Bhaktapur Durbar Square", lat: 27.6722, lng: 85.4280, area: "Bhaktapur", prov: "Bagmati" },
-  { name: "Suryabinayak Chowk", lat: 27.6626, lng: 85.4302, area: "Bhaktapur", prov: "Bagmati" },
-
-  // Pokhara & Gandaki
-  { name: "Lakeside Barahi Chowk", lat: 28.2096, lng: 83.9590, area: "Pokhara", prov: "Gandaki" },
-  { name: "Hallanchowk, Lakeside", lat: 28.2163, lng: 83.9576, area: "Pokhara", prov: "Gandaki" },
-  { name: "Damside Chowk", lat: 28.1965, lng: 83.9680, area: "Pokhara", prov: "Gandaki" },
-  { name: "Chipledhunga Chowk", lat: 28.2210, lng: 83.9875, area: "Pokhara", prov: "Gandaki" },
-  { name: "Mahendrapool Bazaar", lat: 28.2250, lng: 83.9870, area: "Pokhara", prov: "Gandaki" },
-  { name: "Prithvi Chowk", lat: 28.2052, lng: 83.9928, area: "Pokhara", prov: "Gandaki" },
-  { name: "Zero Kilometer (Zero KM)", lat: 28.2178, lng: 83.9745, area: "Pokhara", prov: "Gandaki" },
-  { name: "Biruta Chowk", lat: 28.1895, lng: 83.9740, area: "Pokhara", prov: "Gandaki" },
-
-  // Chitwan & Hetauda
-  { name: "Lions Chowk, Narayangarh", lat: 27.6920, lng: 84.4260, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
-  { name: "Chaubiskothi Chowk, Bharatpur", lat: 27.6830, lng: 84.4365, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
-  { name: "Hakim Chowk, Bharatpur", lat: 27.6800, lng: 84.4440, area: "Bharatpur (Chitwan)", prov: "Bagmati" },
-  { name: "Seemachowk, Hetauda", lat: 27.4287, lng: 85.0322, area: "Hetauda", prov: "Bagmati" },
-
-  // Lumbini & Butwal
-  { name: "Traffic Chowk, Butwal", lat: 27.7006, lng: 83.4483, area: "Butwal", prov: "Lumbini" },
-  { name: "Milanchowk, Butwal", lat: 27.6925, lng: 83.4560, area: "Butwal", prov: "Lumbini" },
-  { name: "Golpark Chowk, Butwal", lat: 27.7120, lng: 83.4610, area: "Butwal", prov: "Lumbini" },
-  { name: "Buddha Chowk, Bhairahawa", lat: 27.5050, lng: 83.4530, area: "Bhairahawa", prov: "Lumbini" },
-
-  // Koshi & Madhesh
-  { name: "Traffic Chowk, Biratnagar", lat: 26.4525, lng: 87.2718, area: "Biratnagar", prov: "Koshi" },
-  { name: "Roadcess Chowk, Biratnagar", lat: 26.4680, lng: 87.2790, area: "Biratnagar", prov: "Koshi" },
-  { name: "Bhanuchowk, Dharan", lat: 26.8065, lng: 87.2846, area: "Dharan", prov: "Koshi" },
-  { name: "Itahari Main Chowk", lat: 26.6637, lng: 87.2718, area: "Itahari", prov: "Koshi" },
-  { name: "Janaki Temple Chowk", lat: 26.7288, lng: 85.9266, area: "Janakpur", prov: "Madhesh" },
-  { name: "Ghantaghar, Birgunj", lat: 27.0104, lng: 84.8770, area: "Birgunj", prov: "Madhesh" }
-];
-
-function pinPos(){
-  if (!pin) return null;
-  var ll = pin.getLatLng();
-  return { lat: ll.lat, lng: ll.lng };
-}
-
-function showErr(m){
-  $("mapErr").textContent = m;
-  $("mapErr").style.display = "block";
-}
-
-function highlightLandmarkInput(){
-  var lm = $("landmark");
-  var tag = $("landmarkTag");
-  if (tag) {
-    tag.style.display = "inline";
-    tag.innerHTML = "📍 Nearest landmark auto-filled (editable)";
-    tag.style.color = "var(--green)";
-    tag.style.background = "#eef7f0";
-    tag.style.borderColor = "#c2e2cc";
-  }
-  lm.classList.add("highlight-auto");
-  setTimeout(function(){ lm.classList.remove("highlight-auto"); }, 2000);
-}
-
-function findClosestPresetLandmark(lat, lng){
-  var minD = Infinity, best = null;
-  NEPAL_LANDMARKS.forEach(function(lm){
-    var d = Math.hypot(lat - lm.lat, (lng - lm.lng) * Math.cos(lat * Math.PI / 180));
-    if (d < minD){ minD = d; best = lm; }
-  });
-  return { landmark: best, distKm: minD * 111 };
-}
-
-// Custom map markers
-var deliveryPinIcon = L.divIcon({
-  className: "custom-map-pin",
-  html: '<div style="background:#1F6B3A;color:#fff;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.35);border:2px solid #fff;cursor:grab;"><span style="transform:rotate(45deg);font-size:16px;">📍</span></div>',
-  iconSize: [34, 34],
-  iconAnchor: [17, 34],
-  popupAnchor: [0, -32]
-});
-
-var storePinIcon = L.divIcon({
-  className: "custom-map-pin",
-  html: '<div style="background:#C8963E;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid #fff;cursor:pointer;"><span style="font-size:15px;">🏪</span></div>',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16]
-});
-
-function initMap(){
-  if (typeof L === "undefined") {
-    showErr("Street map library is loading, please check internet connection.");
-    return;
-  }
-
-  map = L.map("map", {
-    center: [STORE.lat, STORE.lng],
-    zoom: 15,
-    zoomControl: true
-  });
-
-  // OpenStreetMap Street View Tile Layer
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(map);
-
-  map.on("click", function(e){
-    if (document.body.classList.contains("pickup")) return;
-    setPin(e.latlng);
-  });
-
-  initStoreMarkers();
-  applyMode();
-  setPin([STORE.lat, STORE.lng]);
-}
-
-function setPin(ll, zoom){
-  if (!map) return;
-  ll = L.latLng(ll.lat !== undefined ? ll.lat : ll[0], ll.lng !== undefined ? ll.lng : ll[1]);
-
-  // Reset manual edit flag on explicit map pin relocation so new location's landmark is auto-filled
-  userManuallyEdited = false;
-
-  if (pin) {
-    pin.setLatLng(ll);
-  } else {
-    pin = L.marker(ll, { icon: deliveryPinIcon, draggable: true }).addTo(map);
-    pin.on("dragend", function(ev){
-      var pos = ev.target.getLatLng();
-      setPin(pos, false);
-    });
-  }
-
-  if (zoom) map.setView(ll, zoom);
-  else if (!map.getBounds().contains(ll)) map.panTo(ll);
-
-  $("mapErr").style.display = "none";
-  updateLandmarkAndAddress(ll);
-}
-
-function updateLandmarkAndAddress(ll){
-  var lat = ll.lat, lng = ll.lng;
-
-  // 1. Instant nearest landmark calculation from curated dataset
-  var match = findClosestPresetLandmark(lat, lng);
-  var autoLandmark = "";
-  if (match && match.landmark && match.distKm < 8.0) {
-    autoLandmark = "Near " + match.landmark.name;
-  }
-
-  // Auto-fill landmark input (user can edit/change as well)
-  if (autoLandmark) {
-    $("landmark").value = autoLandmark;
-    highlightLandmarkInput();
-  }
-
-  var n = nearest({ lat: lat, lng: lng });
-  geo = {
-    province: (match && match.landmark && match.distKm < 15.0) ? match.landmark.prov : (n ? n[0] : ""),
-    area: (match && match.landmark && match.distKm < 10.0) ? match.landmark.area : (n ? n[1] : ""),
-    address: autoLandmark || ""
-  };
-  updateLoc();
-  calc();
-
-  // Show immediate interactive popup on pin
-  if (pin) {
-    pin.bindPopup("<b>📍 Delivery Spot</b><br>" + (autoLandmark || "Selected point on street map") + "<br><span style='color:#666;font-size:11px;'>Tap map or drag pin to adjust</span>").openPopup();
-  }
-
-  // 2. Fetch live OpenStreetMap reverse geocoding from Nominatim for street/building/shop details
-  rq++;
-  var thisRq = rq;
-  var url = "https://nominatim.openstreetmap.org/reverse?format=json&lat=" + lat.toFixed(6) + "&lon=" + lng.toFixed(6) + "&zoom=18&addressdetails=1";
-  fetch(url, { headers: { 'Accept': 'application/json' } })
-    .then(function(res){ return res.json(); })
-    .then(function(data){
-      if (thisRq !== rq || !data) return;
-      var a = data.address || {};
-      var poi = a.amenity || a.shop || a.building || a.tourism || a.leisure || a.office || a.historic;
-      var road = a.road || a.pedestrian || a.footway || a.street;
-      var suburb = a.neighbourhood || a.suburb || a.quarter || a.hamlet;
-
-      var landmarkFound = "";
-      if (poi) {
-        landmarkFound = "Near " + poi + (road ? ", " + road : (suburb ? ", " + suburb : ""));
-      } else if (road && suburb) {
-        landmarkFound = road + ", " + suburb;
-      } else if (road) {
-        landmarkFound = "Near " + road;
-      } else if (suburb) {
-        landmarkFound = "Near " + suburb;
-      }
-
-      // If user hasn't started manually typing custom directions, update with detailed street landmark
-      if (landmarkFound && !userManuallyEdited) {
-        $("landmark").value = landmarkFound;
-        highlightLandmarkInput();
-      }
-
-      if (pin) {
-        pin.bindPopup("<b>📍 Delivery Spot</b><br>" + (landmarkFound || autoLandmark || "Selected location") + "<br><span style='color:#666;font-size:11px;'>Tap map or drag pin to adjust</span>");
-      }
-
-      var fullAddrTxt = (data.display_name || "").toLowerCase();
-      Object.keys(PROV).forEach(function(p){
-        if (!geo.province && fullAddrTxt.indexOf(p.toLowerCase()) > -1) geo.province = p;
-      });
-      if (geo.province) {
-        PROV[geo.province].a.forEach(function(x){
-          if (!geo.area && fullAddrTxt.indexOf(x[0].split(" (")[0].toLowerCase()) > -1) geo.area = x[0];
-        });
-      }
-      geo.address = landmarkFound || data.display_name || autoLandmark;
-      updateLoc();
-      calc();
-    })
-    .catch(function(err){
-      // Keeps the local dataset landmark if offline or rate limited
-    });
-}
-
-function nearest(ll){
-  var best=null,d=Infinity,k=Math.cos(ll.lat*Math.PI/180);
-  Object.keys(PROV).forEach(function(p){PROV[p].a.forEach(function(x){
-    var dd=Math.pow(x[1]-ll.lat,2)+Math.pow((x[2]-ll.lng)*k,2);
-    if(dd<d){d=dd;best=[p,x[0]]}
-  })});
-  return best;
-}
-
-// Street address search via Nominatim
-function search(){
-  var q=$("q").value.trim();
-  if(!q) return;
-  showErr("Searching street map...");
-  fetch("https://nominatim.openstreetmap.org/search?format=json&q=" + encodeURIComponent(q) + "&countrycodes=np&limit=5", {
-    headers: { 'Accept': 'application/json' }
-  })
-  .then(function(res){ return res.json(); })
-  .then(function(data){
-    $("mapErr").style.display="none";
-    if(data && data.length > 0){
-      var item = data[0];
-      var ll = L.latLng(+item.lat, +item.lon);
-      setPin(ll, 16);
-    } else {
-      showErr("We couldn't find that place on the street map. Try a nearby landmark or chowk.");
-    }
-  })
-  .catch(function(){
-    showErr("Search error. Please tap on the street map or drag the pin.");
-  });
-}
-$("go").onclick=search;
-$("q").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();search()}});
-
-$("loc").onclick=function(){
-  if(!navigator.geolocation){
-    showErr("Your browser can't share its location. Tap on the street map instead.");
-    return;
-  }
-  showErr("Detecting location...");
-  navigator.geolocation.getCurrentPosition(function(p){
-    $("mapErr").style.display="none";
-    var ll = L.latLng(p.coords.latitude, p.coords.longitude);
-    setPin(ll, 17);
-  },function(){
-    showErr("Location access was blocked. Tap on the street map or search instead.");
-  }, { timeout: 10000, enableHighAccuracy: true });
-};
-
-// ---- Place order ----
-$("place").onclick=function(){
-  var home=document.querySelector('[name=svc]:checked').value==="home",ok=true;
-  ["name","phone"].forEach(function(i){var e=$(i);if(!e.value.trim()){e.style.borderColor="var(--red)";ok=false}else e.style.borderColor=""});
-  if(home){
-    var em=how==="map"
-      ?(!pin?"Drop a pin on the map, or switch to Type my address.":"")
-      :(!$("prov").value?"Select your province.":!$("area").value?"Select your district or city.":!$("addr").value.trim()?"Enter your street, tole or house number.":"");
-    if(em){showErr(em);ok=false}
-  }
-  if(!home&&!$("store").value){showErr("Select the store you'll pick up from.");ok=false}
-  if(!ok)return;
-  var st=STORES[$("store").value]||null,pp=pinPos();
-  var order={
-    customer:{name:$("name").value,phone:$("phone").value,email:$("email").value,userId:USER?USER.id:null},
-    service:home?"home":"pickup",
-    delivery:!home?null:how==="map"
-      ?{method:"map",address:geo.address,province:geo.province,area:geo.area,street:"",landmark:$("landmark").value,lat:pp?pp.lat:null,lng:pp?pp.lng:null}
-      :{method:"typed",address:fullAddr(),province:$("prov").value,area:areaName(),street:$("addr").value,landmark:$("landmark").value,lat:null,lng:null},
-    pickup:home?null:{name:st.name,address:st.address,hours:st.hours,lat:st.lat,lng:st.lng},items:ITEMS,totals:T,coupon:rate?"SAVE15":""
-  };
-  try{sessionStorage.setItem("gc_order",JSON.stringify(order))}catch(e){}
-  location.href="payment.html";
-};
-
-// ---- Logged-in user: fills name and contact details ----
-function getUser(){try{return JSON.parse(localStorage.getItem("gc_user"))}catch(e){return null}}
-var USER=getUser();
-(function(){
-  var a=$("acct");
-  if(USER){
-    $("name").value=USER.name||"";$("phone").value=USER.phone||"";$("email").value=USER.email||"";
-    $("uname").textContent="@"+(USER.username||USER.name);
-    a.textContent="Signed in as "+(USER.name||USER.username)+". We filled in your details, and you can edit them for this order.";
-  }else{
-    a.innerHTML='Have an account? <a href="login.html">Log in</a> to fill these in automatically.';
-  }
-})();
-
-// ---- Provinces, areas and delivery charge ----
-var PROV={
- "Koshi":{fee:150,c:[26.9,87.3],a:[["Biratnagar",26.4525,87.2718],["Dharan",26.8065,87.2846],["Itahari",26.6637,87.2718],["Damak",26.66,87.7],["Birtamod",26.644,87.997]]},
- "Madhesh":{fee:150,c:[26.85,85.9],a:[["Janakpur",26.7288,85.9266],["Birgunj",27.0104,84.877],["Kalaiya",27.027,85.004],["Rajbiraj",26.54,86.75]]},
- "Bagmati":{fee:100,c:[27.7,85.3],a:[["Kathmandu",27.7172,85.324],["Lalitpur",27.6644,85.3188],["Bhaktapur",27.671,85.4298],["Hetauda",27.4287,85.0322],["Bharatpur (Chitwan)",27.6833,84.4333]]},
- "Gandaki":{fee:150,c:[28.2,84.2],a:[["Pokhara",28.2096,83.9856],["Baglung",28.27,83.59],["Gorkha",28.0,84.63],["Damauli",27.98,84.27]]},
- "Lumbini":{fee:150,c:[27.9,82.8],a:[["Butwal",27.7006,83.4483],["Bhairahawa",27.5,83.45],["Nepalgunj",28.05,81.6167],["Tulsipur",28.13,82.3]]},
- "Karnali":{fee:250,c:[29.0,82.0],a:[["Birendranagar (Surkhet)",28.6,81.6167],["Jumla",29.2747,82.1838],["Dailekh",28.84,81.71]]},
- "Sudurpashchim":{fee:250,c:[29.0,80.8],a:[["Dhangadhi",28.6833,80.6],["Mahendranagar",28.964,80.176],["Tikapur",28.53,81.13]]}
-};
-var OTHER="Other area in this province";
-function updateLoc(){
-  if(document.body.classList.contains("pickup"))return;
-  var t=$("locText"),ll=pinPos();
-  if(!ll){t.textContent="";return}
-  var where=[geo.address||geo.area,geo.province?geo.province+" Province":""].filter(Boolean).join(", ");
-  t.textContent="Delivery location: "+where+" ("+ll.lat.toFixed(5)+", "+ll.lng.toFixed(5)+")";
-}
-function fee(){var p=how==="map"?(pin?geo.province:""):$("prov").value;return p?PROV[p].fee:null}
-function areaName(){var v=$("area").value;return v==="__other"?"":v}
-function fullAddr(){var p=$("prov").value;return [$("addr").value.trim(),areaName(),p?p+" Province":""].filter(Boolean).join(", ")}
-function fillAreas(p,sel){
-  var a=$("area");a.innerHTML="";
-  if(!p){a.disabled=true;a.innerHTML='<option value="">Select province first</option>';return}
-  a.disabled=false;a.add(new Option("Select district / city",""));
-  PROV[p].a.forEach(function(x){a.add(new Option(x[0],x[0]))});
-  a.add(new Option(OTHER,"__other"));
-  if(sel)a.value=sel;
-}
-Object.keys(PROV).forEach(function(p){$("prov").add(new Option(p,p))});
-$("prov").onchange=function(){fillAreas(this.value);$("mapErr").style.display="none";calc()};
-$("area").onchange=function(){$("mapErr").style.display="none"};
-
-// ---- Switch between "Pin on map" and "Type my address" ----
-function setHow(h){
-  how=h;
-  document.body.classList.toggle("typed",h==="type");
-  $("mMap").setAttribute("aria-pressed",h==="map");
-  $("mType").setAttribute("aria-pressed",h==="type");
-  $("mapErr").style.display="none";
-  if(h==="map"&&map&&pin)map.panTo(pin.getLatLng());
-  calc();
-}
-$("mMap").onclick=function(){setHow("map")};
-$("mType").onclick=function(){setHow("type")};
-
-// ---- Pick up stores ----
-var STORES=[
- {name:"Go Cart New Road",address:"New Road, Kathmandu",hours:"9:00 am to 8:00 pm",lat:27.704,lng:85.3131},
- {name:"Go Cart Lakeside",address:"Lakeside Road, Pokhara",hours:"9:00 am to 8:00 pm",lat:28.2096,lng:83.959},
- {name:"Go Cart Butwal",address:"Traffic Chowk, Butwal",hours:"9:00 am to 8:00 pm",lat:27.7006,lng:83.4483},
- {name:"Go Cart Biratnagar",address:"Main Road, Biratnagar",hours:"9:00 am to 8:00 pm",lat:26.4525,lng:87.2718}
-];
-STORES.forEach(function(x,i){$("store").add(new Option(x.name+" ("+x.address+")",i))});
-
-function initStoreMarkers(){
-  storeMarkers = [];
-  STORES.forEach(function(x, i){
-    var m = L.marker([x.lat, x.lng], { icon: storePinIcon });
-    m.bindPopup("<b>" + x.name + "</b><br>" + x.address + "<br>Open " + x.hours);
-    m.on("click", function(){
-      $("store").value = i;
-      showStore();
-    });
-    storeMarkers.push(m);
-  });
-}
-
-function showStore(){
-  var v=$("store").value,t=$("locText");
-  storeMarkers.forEach(function(m){ m.closePopup(); });
-  if(v===""){
-    t.textContent="";
-    $("storeInfo").textContent="Choose the store you'll collect your order from.";
-    return;
-  }
-  var x=STORES[v], ll=[x.lat, x.lng];
-  if(map){
-    map.setView(ll, 16);
-    if(storeMarkers[v]) storeMarkers[v].openPopup();
-  }
-  $("storeInfo").innerHTML="<b>"+x.name+"</b><br>"+x.address+"<br>Open "+x.hours;
-  t.textContent="Pick up location: "+x.name+" ("+x.lat.toFixed(5)+", "+x.lng.toFixed(5)+")";
-  $("mapErr").style.display="none";
-}
-$("store").onchange=showStore;
-
-function applyMode(){
-  var home=document.querySelector('[name=svc]:checked').value==="home";
-  document.body.classList.toggle("pickup",!home);
-  $("dpTitle").textContent=home?"Delivery location":"Pick up location";
-  $("mapErr").style.display="none";
-  if(home){
-    storeMarkers.forEach(function(m){ if(map && map.hasLayer(m)) map.removeLayer(m); });
-    if(pin && map && !map.hasLayer(pin)) pin.addTo(map);
-    if(pin && map) map.panTo(pin.getLatLng());
-    updateLoc();
-  }else{
-    if(pin && map && map.hasLayer(pin)) map.removeLayer(pin);
-    storeMarkers.forEach(function(m){ if(map && !map.hasLayer(m)) m.addTo(map); });
-    showStore();
-  }
-}
-
-// Start map and calculate order
-calc();
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initMap);
-} else {
-  initMap();
-}
-</script>
-</body>
-</html>
+{% endblock %}

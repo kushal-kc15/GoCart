@@ -13,6 +13,7 @@ from django.contrib import admin
 from django.contrib.auth.models import Permission
 from django.contrib.messages import get_messages
 from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.staticfiles import finders
 from django.core.cache import cache
 from django.db import connection
 from django.db.models import ProtectedError
@@ -64,10 +65,10 @@ class CheckoutTestBase(TestCase):
         cart, _ = Cart.objects.get_or_create(user=self.user)
         return CartItem.objects.create(cart=cart, product=product or self.product, quantity=quantity)
 
-    def _post(self, **overrides):
+    def _post(self, follow=False, **overrides):
         data = {**CHECKOUT_DATA, **overrides}
         data = {key: value for key, value in data.items() if value is not None}  # None leaves a field out
-        return self.client.post(self.url, data)
+        return self.client.post(self.url, data, follow=follow)
 
     def _saved_address(self, user=None, **fields):
         values = {
@@ -241,7 +242,7 @@ class CheckoutTests(CheckoutTestBase):
         self.client.force_login(self.user)
         self._fill_cart(quantity=2)
         res = self.client.get(self.url)
-        self.assertContains(res, '<span class="s-price">Rs. 200</span>')  # 2 x Rs. 100
+        self.assertContains(res, '<b class="s-price">Rs. 200</b>')  # 2 x Rs. 100
 
     def test_order_success_shows_line_total(self):
         self.client.force_login(self.user)
@@ -271,7 +272,10 @@ class CheckoutPageTests(CheckoutTestBase):
             "delivery": {"shipping": "Rs. 100", "total": "Rs. 300"},
             "pickup": {"shipping": "Free", "total": "Rs. 200"},
         })
-        self.assertEqual(data["store"]["name"], settings.SHOP_INFO["name"])
+        self.assertEqual(data["store"], {
+            "name": settings.SHOP_INFO["name"], "address": settings.SHOP_INFO["address"],
+            "lat": settings.SHOP_INFO["latitude"], "lng": settings.SHOP_INFO["longitude"],
+        })
         self.assertEqual(data["urls"], {
             "reverse": reverse("geocode_reverse"), "search": reverse("geocode_search"),
         })
@@ -287,9 +291,11 @@ class CheckoutPageTests(CheckoutTestBase):
         html = res.content.decode()
         self.assertLess(html.index("2 New Rd"), html.index("1 Old Rd"))
         self.assertNotContains(res, "9 Their Rd")
-        self.assertInHTML(f'<input type="radio" name="address_id" value="{newer.pk}" checked>', html)
-        self.assertInHTML(f'<input type="radio" name="address_id" value="{theirs.pk}">', html, count=0)
-        self.assertContains(res, "Pinned on the map", count=1)
+        self.assertInHTML(
+            f'<input type="radio" name="address_id" value="{newer.pk}" data-phone="9800000000" checked>', html
+        )
+        self.assertNotIn(f'name="address_id" value="{theirs.pk}"', html)
+        self.assertContains(res, "Pinned on map", count=1)
         # Only pinned addresses go to the map, as starting points.
         self.assertEqual(self._page_data(res)["addresses"], [
             {"id": newer.pk, "lat": "28.209600", "lng": "83.959000"},
@@ -300,9 +306,10 @@ class CheckoutPageTests(CheckoutTestBase):
         self.assertNotContains(res, 'name="address_id"')
         for field in ("phone", "address_line", "landmark", "save_address"):
             self.assertContains(res, f'name="{field}"')
-        # The map only appears once checkout.js runs.
-        self.assertContains(res, '<div class="map-box" id="map-box" hidden>')
-        self.assertContains(res, "Only needed for home delivery.")
+        # The switch and the map only appear once checkout.js runs.
+        self.assertContains(res, '<div id="map-box" hidden>')
+        self.assertContains(res, 'id="addr-switch" role="group" aria-label="How to give your delivery address" hidden>')
+        self.assertContains(res, "Only needed for home delivery:")
 
     def test_no_pin_on_page_load(self):
         html = self.client.get(self.url).content.decode()
@@ -313,8 +320,8 @@ class CheckoutPageTests(CheckoutTestBase):
         self.user.phone = "9811111111"
         self.user.save()
         res = self.client.get(self.url)
-        # The name is the account's, shown as text; there is no name field to fill in.
-        self.assertContains(res, '<p class="contact-name">Asha Sharma</p>', html=True)
+        # The name is the account's, shown read-only and not sent; there is no name field to fill in.
+        self.assertContains(res, '<input id="account-name" value="Asha Sharma" readonly>', html=True)
         self.assertNotContains(res, 'name="full_name"')
         self.assertContains(res, 'value="9811111111"')
 
@@ -323,7 +330,61 @@ class CheckoutPageTests(CheckoutTestBase):
         self.assertContains(res, 'src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"')
         self.assertContains(res, 'integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="')
         self.assertContains(res, 'integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="')
-        self.assertContains(res, "js/dev/checkout.js")
+        self.assertContains(res, "/static/js/checkout.js")
+        self.assertContains(res, "/static/css/checkout.css")
+        self.assertNotContains(res, "js/dev/checkout.js")
+
+    def test_the_page_is_the_new_checkout_template(self):
+        res = self.client.get(self.url)
+        self.assertTemplateUsed(res, "checkoutpage.html")
+        self.assertContains(res, 'name="csrfmiddlewaretoken"')
+        self.assertContains(res, '<button type="submit" class="co-btn pay">Place Order</button>', html=True)
+        self.assertContains(res, '<span class="on" aria-current="step"><i>1</i><b>Checkout</b></span>', html=True)
+        # The design's demo parts are gone.
+        for text in ("coupon", 'name="email"', "Continue to payment", "payment.html", "Province"):
+            with self.subTest(text=text):
+                self.assertNotContains(res, text)
+
+    def test_checkout_js_only_shows_server_data(self):
+        with open(finders.find("js/checkout.js"), encoding="utf-8") as js_file:
+            js = js_file.read()
+        self.assertIn("data.urls.reverse", js)  # lookups go through /api/geocode/
+        for text in ("nominatim.openstreetmap.org", ".innerHTML", "localStorage", "sessionStorage", "payment.html"):
+            with self.subTest(text=text):
+                self.assertNotIn(text, js)
+
+    def test_a_saved_address_fills_in_its_phone(self):
+        self.user.phone = "9811111111"
+        self.user.save()
+        address = self._saved_address(phone="9822222222")
+        no_phone = self._saved_address(address_line="3 Side Rd", phone="")
+        Address.objects.filter(pk=address.pk).update(created_at=timezone.now() + timedelta(minutes=1))
+        res = self.client.get(self.url)
+        html = res.content.decode()
+        # The newest address starts selected, with its phone in the field.
+        self.assertEqual(res.context["form"]["phone"].value(), "9822222222")
+        self.assertIn(f'value="{address.pk}" data-phone="9822222222"', html)
+        # Without a phone of its own, an address (and "Add new address") uses the account's.
+        self.assertIn(f'value="{no_phone.pk}" data-phone="9811111111"', html)
+        self.assertIn('value="" data-phone="9811111111"', html)
+
+    def test_the_default_address_comes_first_and_says_so(self):
+        default = self._saved_address(address_line="1 Home Rd", is_default=True)
+        newer = self._saved_address(address_line="2 Office Rd", latitude=None, longitude=None, landmark="")
+        Address.objects.filter(pk=default.pk).update(created_at=timezone.now() - timedelta(days=3))
+        res = self.client.get(self.url)
+        html = res.content.decode()
+        self.assertLess(html.index("1 Home Rd"), html.index("2 Office Rd"))
+        self.assertIn(f'value="{default.pk}" data-phone="9800000000" checked', html)
+        self.assertContains(res, '<em class="tag">Default</em>', count=1)
+        # The landmark and the pin label are the second and third lines of the card.
+        self.assertInHTML(
+            '<span class="addr-body"><span class="addr-line">1 Home Rd, Pokhara <em class="tag">Default</em></span>'
+            '<small>Opposite the temple</small><small class="pinned">Pinned on map</small></span>',
+            html,
+        )
+        self.assertInHTML('<span class="addr-body"><span class="addr-line">2 Office Rd, Pokhara</span></span>', html)
+        self.assertNotIn(f'value="{newer.pk}" data-phone="9800000000" checked', html)
 
     def test_a_confirmed_pin_survives_a_form_error(self):
         res = self._post(phone="", lat=KATHMANDU[0], lng=KATHMANDU[1])
@@ -334,7 +395,7 @@ class CheckoutPageTests(CheckoutTestBase):
     def test_pickup_chosen_before_an_error_stays_chosen(self):
         res = self._post(delivery_method="pickup", phone="")
         self.assertInHTML('<input type="radio" name="delivery_method" value="pickup" checked>', res.content.decode())
-        self.assertContains(res, '<span class="t-value" id="summary-total">Rs. 200</span>')
+        self.assertContains(res, '<span id="summary-total">Rs. 200</span>')
 
 
 class CheckoutAddressTests(CheckoutTestBase):
@@ -437,14 +498,61 @@ class CheckoutAddressTests(CheckoutTestBase):
         self.assertEqual(order.landmark, "Near the blue gate")
         self.assertEqual(order.latitude, Decimal(KATHMANDU[0]))
 
-    def test_an_account_without_a_name_uses_its_email(self):
+    # ---- the same address is not saved twice ----
+    def test_the_same_address_is_reused_not_copied(self):
+        self._post(lat=KATHMANDU[0], lng=KATHMANDU[1])
+        first = Order.objects.get().shipping_address
+        self._fill_cart(quantity=1)
+        # Same text, phone, landmark and pin; only the case differs.
+        self._post(address_line="12 MARKET RD, thamel, kathmandu", landmark="near the Blue Gate",
+                   lat=KATHMANDU[0], lng=KATHMANDU[1])
+        self.assertEqual(Address.objects.count(), 1)
+        second = Order.objects.order_by("-id").first()
+        self.assertEqual(second.shipping_address, first)
+        self.assertEqual(second.address, "Asha Sharma, 12 MARKET RD, thamel, kathmandu — 9800000000")
+
+    def test_a_different_pin_phone_or_owner_saves_a_new_address(self):
+        bob = User.objects.create_user(username="bob", email="bob@example.com")
+        self._saved_address(user=bob, address_line=CHECKOUT_DATA["address_line"],
+                            landmark=CHECKOUT_DATA["landmark"], latitude=None, longitude=None)
+        self._post()  # same as Bob's, but Bob's address isn't Asha's
+        for change in ({"lat": KATHMANDU[0], "lng": KATHMANDU[1]}, {"phone": "9812345678"}):
+            with self.subTest(change=change):
+                self._fill_cart(quantity=1)
+                self._post(**change)
+        self.assertEqual(self.user.addresses.count(), 3)
+
+    # ---- the name on the order ----
+    def test_an_account_without_a_name_is_asked_for_one(self):
         self.user.first_name = self.user.last_name = ""
         self.user.save()
-        self.assertContains(self.client.get(self.url), '<p class="contact-name">asha@example.com</p>', html=True)
-        self._post()
+        res = self.client.get(self.url)
+        self.assertInHTML(
+            '<input type="text" name="full_name" maxlength="150" autocomplete="name" '
+            'placeholder="e.g. Asha Sharma" required id="id_full_name">',
+            res.content.decode(),
+        )
+        self.assertNotContains(res, "asha@example.com")  # never shown as the name
+        self.assertRefused(self._post(), "This field is required.")
+
+    def test_the_name_given_at_checkout_is_saved_to_the_account(self):
+        self.user.first_name = self.user.last_name = ""
+        self.user.save()
+        res = self._post(full_name="  Asha  Kumari Sharma ", follow=True)
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.first_name, self.user.last_name), ("Asha", "Kumari Sharma"))
         order = Order.objects.get()
-        self.assertTrue(order.address.startswith("asha@example.com, 12 Market Rd"))
-        self.assertEqual(order.shipping_address.recipient_name, "asha@example.com")
+        self.assertTrue(order.address.startswith("Asha Kumari Sharma, 12 Market Rd"))
+        self.assertEqual(order.shipping_address.recipient_name, "Asha Kumari Sharma")
+        self.assertContains(res, '<span class="account-name">Hi, Asha</span>', html=True)  # the header greeting
+        self._fill_cart(quantity=1)
+        self.assertNotContains(self.client.get(self.url), 'name="full_name"')  # not asked again
+
+    def test_an_account_with_a_name_keeps_it(self):
+        self._post(full_name="Someone Else")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.get_full_name(), "Asha Sharma")
+        self.assertTrue(Order.objects.get().address.startswith("Asha Sharma, "))
 
     def test_pickup_ignores_the_address_fields(self):
         theirs = self._saved_address(user=User.objects.create_user(username="bob", email="bob@example.com"))
@@ -479,6 +587,7 @@ class LineTotalAndFormTests(TestCase):
 
     def test_checkout_form_has_autofill_and_keyboard_hints(self):
         form = CheckoutForm(user=None)
+        self.assertIn('autocomplete="name"', str(form["full_name"]))
         self.assertIn('autocomplete="tel"', str(form["phone"]))
         self.assertIn('inputmode="tel"', str(form["phone"]))
         self.assertIn('autocomplete="street-address"', str(form["address_line"]))
@@ -1884,38 +1993,55 @@ class DashboardTests(TestCase):
         self.assertEqual(self._card(res, "Delivered, cash not collected")["amount"], 500)
 
     # ---- orders today / this week (Nepal time) ----
+    # These pin the clock (timezone.now), so they give the same answer whatever day they run.
+    def _nepal_time(self, *args):
+        return timezone.make_aware(datetime(*args))  # the current time zone is Asia/Kathmandu
+
     def test_orders_today_and_this_week_use_nepal_midnight(self):
-        nepal_offset = timedelta(hours=5, minutes=45)
-        self.assertEqual(self.today_start.utcoffset(), nepal_offset)
-        self.assertEqual((self.today_start.hour, self.today_start.minute), (0, 0))
+        wednesday = self._nepal_time(2026, 10, 14, 15, 0)
+        with patch("django.utils.timezone.now", return_value=wednesday):
+            today_start, week_start = day_and_week_start()
+            self.assertEqual(today_start.utcoffset(), timedelta(hours=5, minutes=45))
+            self.assertEqual(today_start, self._nepal_time(2026, 10, 14))
+            self.assertEqual(week_start, self._nepal_time(2026, 10, 11))  # the Sunday before
 
-        minute = timedelta(minutes=1)
-        at_midnight = self._order(total=1, created_at=self.today_start)
-        before_midnight = self._order(total=10, created_at=self.today_start - minute)
-        at_week_start = self._order(total=100, created_at=self.week_start)
-        before_week_start = self._order(total=1000, created_at=self.week_start - minute)
-        cancelled = self._order(Order.Status.CANCELLED, total=10000, created_at=self.today_start)
+            minute = timedelta(minutes=1)
+            at_midnight = self._order(total=1, created_at=today_start)
+            self._order(total=10, created_at=today_start - minute)  # yesterday: this week, not today
+            self._order(total=100, created_at=week_start)
+            self._order(total=1000, created_at=week_start - minute)  # last week
+            cancelled = self._order(Order.Status.CANCELLED, total=10000, created_at=today_start)
 
-        this_week = [at_midnight, at_week_start]
-        if self.today_start - minute >= self.week_start:
-            this_week.append(before_midnight)  # yesterday is in this week unless today is Sunday
+            res = self.client.get(self.url)
+            today_card = self._card(res, "Orders today")
+            week_card = self._card(res, "Orders this week")
+            self.assertEqual((today_card["count"], today_card["amount"]), (1, 1))
+            self.assertEqual((week_card["count"], week_card["amount"]), (3, 111))
 
-        res = self.client.get(self.url)
-        today_card = self._card(res, "Orders today")
-        week_card = self._card(res, "Orders this week")
-        self.assertEqual((today_card["count"], today_card["amount"]), (1, 1))
-        self.assertEqual(
-            (week_card["count"], week_card["amount"]),
-            (len(this_week), sum(order.total for order in this_week)),
-        )
-        self.assertNotIn(before_week_start, this_week)
+            # The links open the order list for the same days; its totals line agrees.
+            listing = self.client.get(today_card["url"])
+            self.assertEqual(
+                {o.pk for o in listing.context["cl"].result_list}, {at_midnight.pk, cancelled.pk}
+            )
+            self.assertContains(listing, "1 order · Rs. 1")  # cancelled not counted
 
-        # The links open the order list for the same days; its totals line agrees.
-        listing = self.client.get(today_card["url"])
-        self.assertEqual(
-            {o.pk for o in listing.context["cl"].result_list}, {at_midnight.pk, cancelled.pk}
-        )
-        self.assertContains(listing, "1 order · Rs. 1")  # cancelled not counted
+    def test_on_a_sunday_today_and_this_week_start_at_the_same_midnight(self):
+        sunday = self._nepal_time(2026, 10, 18, 9, 0)
+        with patch("django.utils.timezone.now", return_value=sunday):
+            today_start, week_start = day_and_week_start()
+            self.assertEqual(today_start, self._nepal_time(2026, 10, 18))
+            self.assertEqual(week_start, today_start)
+
+            at_midnight = self._order(total=1, created_at=today_start)
+            self._order(total=10, created_at=today_start - timedelta(minutes=1))  # Saturday: last week
+            cancelled = self._order(Order.Status.CANCELLED, total=10000, created_at=today_start)
+
+            res = self.client.get(self.url)
+            today_card = self._card(res, "Orders today")
+            week_card = self._card(res, "Orders this week")
+            self.assertEqual((today_card["count"], today_card["amount"]), (1, 1))
+            self.assertEqual((week_card["count"], week_card["amount"]), (1, 1))
+            self.assertEqual(self._listed(week_card["url"]), {at_midnight.pk, cancelled.pk})
 
     def test_week_starts_on_sunday(self):
         nepal = timezone.get_current_timezone()

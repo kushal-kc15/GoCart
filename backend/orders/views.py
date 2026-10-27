@@ -57,8 +57,9 @@ def _rupees(amount):
 
 
 def _account_name(user):
-    # The name orders use for now: the account's full name, else its email.
-    return user.get_full_name() or user.email
+    # The name orders use: the account's full name. Never the email; checkout asks
+    # an account without a name for one (CheckoutForm.full_name).
+    return user.get_full_name()
 
 
 def _delivery_details(form, user):
@@ -87,11 +88,19 @@ def _delivery_details(form, user):
         where = data["address_line"]
         details.update(landmark=data["landmark"], latitude=data["lat"], longitude=data["lng"])
         if data["save_address"]:
-            address = Address.objects.create(
-                user=user, recipient_name=name, phone=data["phone"],
-                address_line=data["address_line"], landmark=data["landmark"],
-                latitude=data["lat"], longitude=data["lng"],
-            )
+            # Reuse the same address saved before instead of making a copy.
+            # latitude=None matches an address without a pin. Older addresses with a
+            # city or area read differently, so they don't count as the same.
+            address = user.addresses.filter(
+                address_line__iexact=data["address_line"], area="", city="", phone=data["phone"],
+                landmark__iexact=data["landmark"], latitude=data["lat"], longitude=data["lng"],
+            ).first()
+            if address is None:
+                address = Address.objects.create(
+                    user=user, recipient_name=name, phone=data["phone"],
+                    address_line=data["address_line"], landmark=data["landmark"],
+                    latitude=data["lat"], longitude=data["lng"],
+                )
 
     # Same "Name, address — phone" text as before, cut to fit the column.
     details["address"] = f"{name}, {where} — {data['phone']}"[:255]
@@ -101,7 +110,8 @@ def _delivery_details(form, user):
 class CheckoutView(LoginRequiredMixin, View):
     def _cart_items(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        return cart.items.select_related("product").all()
+        # Images for the summary's thumbnails, in one query.
+        return cart.items.select_related("product").prefetch_related("product__images")
 
     def _render(self, request, form, cart_items):
         method = form["delivery_method"].value()
@@ -125,7 +135,11 @@ class CheckoutView(LoginRequiredMixin, View):
         except (TypeError, ValueError):
             selected_address_id = None  # "Add new address"
 
-        store = {"name": settings.SHOP_INFO["name"], "address": settings.SHOP_INFO["address"]}
+        shop = settings.SHOP_INFO
+        store = {
+            "name": shop["name"], "address": shop["address"],
+            "lat": shop.get("latitude"), "lng": shop.get("longitude"),
+        }
         page_data = {
             "totals": totals,
             "store": store,
@@ -135,10 +149,13 @@ class CheckoutView(LoginRequiredMixin, View):
             ],
             "urls": {"reverse": reverse("geocode_reverse"), "search": reverse("geocode_search")},
         }
-        return render(request, "dev/checkout.html", {
+        return render(request, "checkoutpage.html", {
             "form": form,
             "method": method,
             "account_name": _account_name(request.user),
+            "needs_name": "full_name" in form.fields,
+            # "Add new address" and saved addresses without a phone fill in this one.
+            "account_phone": request.user.phone or "",
             "cart_items": cart_items,
             "subtotal": subtotal,
             "shipping": shipping,
@@ -156,9 +173,10 @@ class CheckoutView(LoginRequiredMixin, View):
             messages.info(request, "Your cart is empty. Add some items before checkout.")
             return redirect("cart:cart_detail")
 
+        # The default (else newest) address starts selected, with its phone.
         newest = request.user.addresses.order_by("-is_default", "-created_at").first()
         form = CheckoutForm(user=request.user, initial={
-            "phone": request.user.phone or "",
+            "phone": (newest.phone if newest else "") or request.user.phone or "",
             "address_id": newest.pk if newest else None,
         })
         return self._render(request, form, cart_items)
@@ -188,6 +206,15 @@ class CheckoutView(LoginRequiredMixin, View):
                 )
                 transaction.set_rollback(True)
                 return redirect("orders:checkout")
+
+        # An account without a name gives one here. It is kept for next time
+        # (and the header's "Hi, ..."): the first word is the first name.
+        full_name = form.cleaned_data.get("full_name")
+        if full_name:
+            names = full_name.split(maxsplit=1)
+            request.user.first_name = names[0]
+            request.user.last_name = names[1] if len(names) > 1 else ""
+            request.user.save(update_fields=["first_name", "last_name"])
 
         method = form.cleaned_data["delivery_method"]
         subtotal, shipping, grand_total = _checkout_totals(cart_items, method)

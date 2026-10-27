@@ -20,7 +20,12 @@ class CheckoutForm(forms.Form):
     delivery_method = forms.ChoiceField(
         choices=Order.DeliveryMethod.choices, initial=Order.DeliveryMethod.DELIVERY,
     )
-    # The name on the order is the account's name (see orders/views.py).
+    # The name on the order is the account's name. Only an account without one gets
+    # this field (see __init__); the view saves it to the account.
+    full_name = forms.CharField(
+        max_length=150, label="Full name",
+        widget=forms.TextInput(attrs={"autocomplete": "name", "placeholder": "e.g. Asha Sharma"}),
+    )
     # Longer than the 10 stored digits, so "+977 981 234 5678" reaches clean_phone.
     phone = forms.CharField(
         max_length=20,
@@ -48,6 +53,8 @@ class CheckoutForm(forms.Form):
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
+        if user is not None and user.get_full_name():
+            del self.fields["full_name"]
 
     def clean_phone(self):
         # Same Nepali mobile check as the profile; stores just the 10 digits.
