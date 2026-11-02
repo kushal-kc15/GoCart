@@ -1,5 +1,5 @@
 const KEY = "grocery_products"; // same key as the product list page
-const MAX = 5;                  // max images per product
+const MAX = 8;                  // max images per product
 const CATS = ["Fruits", "Vegetables", "Dairy", "Bakery", "Meat & Fish", "Beverages", "Snacks", "Staples"];
 const UNITS = ["kg", "g", "L", "pc", "pack"];
 const $ = (id) => document.getElementById(id);
@@ -37,38 +37,68 @@ function updatePreview() {
 
 /* ---------- image gallery ---------- */
 function renderGallery() {
-    const has = images.length > 0;
-
-    $("pvImg").src = has ? images[sel] : "";
-    $("pvImg").classList.toggle("d-none", !has);
-    $("pvPlaceholder").classList.toggle("d-none", has);
-    $("pvImageBox").classList.toggle("has-image", has);
-    $("imgRow").classList.toggle("d-none", !has);
-
-    // Update image count only if the element exists
-    if ($("imgCount")) {
-        $("imgCount").textContent = `${images.length}/${MAX} images`;
-    }
-
-    $("thumbs").innerHTML = images.map((src, i) =>
-        `<button type="button" class="gc-thumb ${i === sel ? "active" : ""}" data-i="${i}">
-            <img src="${src}" alt="">
-        </button>`
-    ).join("") +
-    (images.length < MAX
-        ? '<button type="button" class="gc-thumb add" id="thumbAdd"><i class="bi bi-plus-lg"></i></button>'
-        : "");
+  const has = images.length > 0;
+  $("pvImg").src = has ? images[sel] : "";
+  $("pvImg").classList.toggle("d-none", !has);
+  $("pvPlaceholder").classList.toggle("d-none", has);
+  $("pvImageBox").classList.toggle("has-image", has);
+  $("imgRow").classList.toggle("d-none", !has);
+  if ($("imgCount")) $("imgCount").textContent = `${images.length}/${MAX} images`;
+  $("thumbs").innerHTML = images.map((src, i) =>
+    `<button type="button" class="gc-thumb ${i === sel ? "active" : ""}" data-i="${i}" draggable="true"><img src="${src}" alt="" draggable="false">${i === 0 ? '<span class="gc-main">Main</span>' : ""}</button>`).join("") +
+    (images.length < MAX ? '<button type="button" class="gc-thumb add" id="thumbAdd"><i class="bi bi-plus-lg"></i></button>' : "");
 }
 
-function pickFile(file) {
-  if (!file) return;
-  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return toast("Only JPG, PNG or WEBP allowed");
-  if (file.size > 5 * 1024 * 1024) return toast("Max image size is 5MB");
-  if (images.length >= MAX) return toast(`Maximum ${MAX} images per product`);
-  const fr = new FileReader();
-  fr.onload = () => typeof Cropper === "undefined" ? addWithoutCrop(fr.result) : openCrop(fr.result, -1);
-  fr.onerror = () => toast("Could not read this file");
-  fr.readAsDataURL(file);
+function readFile(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+function resize(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = img.width * s; c.height = img.height * s;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = rej;
+    img.src = src;
+  });
+}
+
+// one or many files from the picker or from drag and drop
+function pickFiles(list) {
+  const files = [...list];
+  if (!files.length) return;
+  let ok = files.filter((f) => /^image\/(jpeg|png|webp)$/.test(f.type) && f.size <= 5 * 1024 * 1024);
+  if (ok.length < files.length) toast(`${files.length - ok.length} file(s) skipped - JPG, PNG or WEBP up to 5MB only`);
+  const room = MAX - images.length;
+  if (!ok.length) return;
+  if (room <= 0) return toast(`Maximum ${MAX} images per product`);
+  if (ok.length > room) { ok = ok.slice(0, room); toast(`Only ${room} more image(s) allowed`); }
+
+  if (ok.length === 1 && typeof Cropper !== "undefined") {
+    readFile(ok[0]).then((src) => openCrop(src, -1)).catch(() => toast("Could not read this file"));
+  } else {
+    addMany(ok); // several files (or no Cropper): add directly, crop later with the Crop button
+  }
+}
+async function addMany(files) {
+  const outs = await Promise.all(files.map((f) => readFile(f).then(resize).catch(() => null)));
+  const good = outs.filter(Boolean);
+  if (!good.length) return toast("These images could not be opened");
+  good.forEach((o) => { images.push(o); origs.push(o); });
+  sel = images.length - good.length;
+  renderGallery();
+  toast(good.length > 1 ? `${good.length} images added - use Crop to adjust any of them` : "Image added");
 }
 function openCrop(src, idx) {
   if (typeof Cropper === "undefined") return toast("Cropper.js did not load - check your internet connection");
@@ -76,22 +106,14 @@ function openCrop(src, idx) {
   $("cropImg").src = src;
   cropModal.show();
 }
-// fallback if Cropper.js fails to load: resize and use as-is
-function addWithoutCrop(src) {
-  const img = new Image();
-  img.onload = () => {
-    const s = Math.min(1, 600 / Math.max(img.width, img.height));
-    const c = document.createElement("canvas");
-    c.width = img.width * s; c.height = img.height * s;
-    const ctx = c.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.drawImage(img, 0, 0, c.width, c.height);
-    const out = c.toDataURL("image/jpeg", 0.85);
-    images.push(out); origs.push(out); sel = images.length - 1; renderGallery();
-    toast("Image added (cropping unavailable - Cropper.js did not load)");
-  };
-  img.onerror = () => toast("This image could not be opened");
-  img.src = src;
+
+// drag and drop reordering: the first image is the main image
+function moveImage(from, to) {
+  if (from === to || from < 0 || to < 0) return;
+  const [img] = images.splice(from, 1), [org] = origs.splice(from, 1);
+  images.splice(to, 0, img); origs.splice(to, 0, org);
+  sel = to;
+  renderGallery();
 }
 function rotateSelected() {
   const img = new Image();
@@ -125,64 +147,65 @@ document.addEventListener("DOMContentLoaded", () => {
     $(id).addEventListener("input", updatePreview));
   $("status").addEventListener("change", updatePreview);
 
-// Upload image through Product Preview
-const previewFile = $("previewFile");
-const previewBox = $("pvImageBox");
+  // upload: works whether the hidden input is id="previewFile" or id="file"
+  const fileInput = $("previewFile") || $("file");
+  fileInput.multiple = true;                      // allow selecting several images
+  const openPicker = () => fileInput.click();
+  fileInput.addEventListener("change", (e) => { pickFiles(e.target.files); e.target.value = ""; });
 
-// Click to select image
-previewBox.addEventListener("click", () => {
-    previewFile.click();
-});
+  // optional upload box inside the form (only if it exists in your HTML)
+  const drop = $("drop");
+  if (drop) {
+    drop.addEventListener("click", openPicker);
+    ["dragover", "dragenter"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener("drop", (e) => pickFiles(e.dataTransfer.files));
+  }
 
-// Select image from computer
-previewFile.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-
-    if (file) {
-        pickFile(file);
-    }
-
-    previewFile.value = "";
-});
-
-// Drag image over preview
-previewBox.addEventListener("dragover", (e) => {
+  // big preview: click to upload (when empty), drop files, or drop a dragged thumbnail to make it main
+  let dragFrom = -1;
+  const box = $("pvImageBox");
+  box.addEventListener("click", () => { if (!images.length) openPicker(); });
+  box.addEventListener("dragover", (e) => { e.preventDefault(); box.classList.add("drag-over"); });
+  ["dragleave", "dragend"].forEach((ev) => box.addEventListener(ev, () => box.classList.remove("drag-over")));
+  box.addEventListener("drop", (e) => {
     e.preventDefault();
-    previewBox.classList.add("drag-over");
-});
+    box.classList.remove("drag-over");
+    if (dragFrom >= 0) { moveImage(dragFrom, 0); dragFrom = -1; }
+    else if (e.dataTransfer.files.length) pickFiles(e.dataTransfer.files);
+  });
 
-// Remove drag highlight
-["dragleave", "dragend"].forEach((event) => {
-    previewBox.addEventListener(event, () => {
-        previewBox.classList.remove("drag-over");
-    });
-});
-
-// Drop image into preview
-previewBox.addEventListener("drop", (e) => {
-    e.preventDefault();
-    previewBox.classList.remove("drag-over");
-
-    const file = e.dataTransfer.files[0];
-
-    if (file) {
-        pickFile(file);
-    }
-});
-
-// Thumbnail selection and adding another image
-$("thumbs").addEventListener("click", (e) => {
+  // thumbnails: select, add more (+), drag to reorder
+  const thumbs = $("thumbs");
+  thumbs.addEventListener("click", (e) => {
     const t = e.target.closest(".gc-thumb");
-
     if (!t) return;
-
-    if (t.id === "thumbAdd") {
-        return previewFile.click();
-    }
-
+    if (t.id === "thumbAdd") return openPicker();
     sel = parseInt(t.dataset.i, 10);
     renderGallery();
-});
+  });
+  thumbs.addEventListener("dragstart", (e) => {
+    const t = e.target.closest(".gc-thumb[data-i]");
+    if (!t) return;
+    dragFrom = parseInt(t.dataset.i, 10);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(dragFrom));
+    t.classList.add("dragging");
+  });
+  thumbs.addEventListener("dragover", (e) => {
+    if (dragFrom < 0) return;
+    e.preventDefault();
+    thumbs.querySelectorAll(".dropping").forEach((x) => x.classList.remove("dropping"));
+    const t = e.target.closest(".gc-thumb[data-i]");
+    if (t) t.classList.add("dropping");
+  });
+  thumbs.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const t = e.target.closest(".gc-thumb[data-i]");
+    if (t && dragFrom >= 0) moveImage(dragFrom, parseInt(t.dataset.i, 10));
+    dragFrom = -1;
+  });
+  thumbs.addEventListener("dragend", () => { dragFrom = -1; renderGallery(); });
 
   // preview toolbar (acts on the selected image)
   $("imgCrop").addEventListener("click", () => openCrop(origs[sel] || images[sel], sel));
@@ -221,7 +244,7 @@ $("thumbs").addEventListener("click", (e) => {
   $("resetBtn").addEventListener("click", () => {
     $("addForm").reset();
     $("addForm").classList.remove("was-validated");
-    $("previewFile").value = "";
+    fileInput.value = "";
     images = []; origs = []; sel = 0;
     renderGallery(); updatePreview();
   });

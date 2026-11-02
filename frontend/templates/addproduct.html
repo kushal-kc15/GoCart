@@ -114,16 +114,16 @@
                 type="file"
                 id="previewFile"
                 accept="image/jpeg,image/png,image/webp"
+                multiple 
                 hidden
             >
             <div class="d-flex justify-content-between align-items-center mt-2 d-none" id="imgRow">
-              <div class="d-flex gap-2 flex-wrap" id="thumbs"></div>
+              <div class="d-flex gap-2 flex-wrap" id="thumbs" title="Image Thumbnails"></div>
               <div class="d-flex gap-1">
                 <button type="button" class="gc-icon-btn" id="imgCrop" title="Crop"><i class="bi bi-crop"></i></button>
                 <button type="button" class="gc-icon-btn" id="imgRotate" title="Rotate"><i class="bi bi-arrow-clockwise"></i></button>
                 <button type="button" class="gc-icon-btn del" id="imgRemove" title="Delete"><i class="bi bi-trash"></i></button>
-              </div>
-              
+              </div>             
             </div>
           </div>
         </div>

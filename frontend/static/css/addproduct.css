@@ -113,3 +113,11 @@ body { background: #f4f7f5; }
     border: 2px dashed #198754;
     background: #eaf7ef;
 }
+/* multi-image: drag to reorder */
+.gc-thumb { position: relative; cursor: grab; }
+.gc-thumb:active { cursor: grabbing; }
+.gc-thumb.dragging { opacity: .35; }
+.gc-thumb.dropping { border-color: #1e7e57; transform: scale(1.12); box-shadow: 0 0 0 3px rgba(30,126,87,.2); }
+.gc-thumb img { pointer-events: none; }
+.gc-main { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(30,126,87,.9); color: #fff;
+  font-size: .55rem; font-weight: 700; line-height: 1.5; text-align: center; }
