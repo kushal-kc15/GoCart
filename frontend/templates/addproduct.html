@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GoCart | Add Product</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" rel="stylesheet">
+  <link href="../static/css/addproduct.css" rel="stylesheet">
+</head>
+<body class="gc-page">
+    <nav class="navbar navbar-dark bg-success mb-4">
+    <div class="container">
+      <span class="navbar-brand fw-bold"><i class="bi bi-basket2-fill me-2"></i>GoCart </span>
+      <a href="index.html" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-left"></i> Back to products</a>
+    </div>
+  </nav>
+
+  <main class="container py-3 pb-5">
+    <div class="d-flex align-items-center gap-3 mb-4">
+      <div class="gc-plus"><i class="bi bi-plus-lg"></i></div>
+      <div>
+        <h4 class="mb-0 fw-bold">Add New Product</h4>
+        <small class="text-muted">Fill in the details below to add a new product to your store.</small>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <!-- LEFT: FORM -->
+      <div class="col-lg-8">
+        <form id="addForm" class="gc-card" novalidate>
+          <div class="gc-card-head"><i class="bi bi-info-circle"></i> Basic Information</div>
+          <div class="gc-card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="name">Product Name <span class="text-danger">*</span></label>
+                <input id="name" class="form-control" required minlength="2" placeholder="e.g. Fresh Spinach">
+                <div class="invalid-feedback" id="nameErr">Enter a product name (min 2 characters).</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="discount">Discount (%)</label>
+                <div class="input-group has-validation">
+                  <input id="discount" type="number" min="0" max="99" step="1" class="form-control" placeholder="e.g. 10">
+                  <span class="input-group-text">%</span>
+                  <div class="invalid-feedback">Enter 0 to 99.</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="category">Category <span class="text-danger">*</span></label>
+                <select id="category" class="form-select" required></select>
+                <div class="invalid-feedback">Select a category.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="unit">Unit <span class="text-danger">*</span></label>
+                <select id="unit" class="form-select"></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="price">Price (Rs.) <span class="text-danger">*</span></label>
+                <input id="price" type="number" min="1" step="0.01" class="form-control" required placeholder="e.g. 120">
+                <div class="invalid-feedback">Enter a valid price.</div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="stock">Stock Quantity <span class="text-danger">*</span></label>
+                <input id="stock" type="number" min="0" step="1" class="form-control" required placeholder="e.g. 50">
+                <div class="invalid-feedback">Enter stock quantity (0 or more).</div>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="description">Product Description <span class="text-danger">*</span></label>
+                <textarea id="description" rows="4" class="form-control" required maxlength="300" placeholder="Enter product description..."></textarea>
+                <div class="invalid-feedback">Enter a description.</div>
+                <div class="gc-counter" id="descCount">0/300</div>
+              </div>
+
+              
+
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-3" style="background:#f6faf8">
+                  <div>
+                    <div class="gc-section-title"><i class="bi bi-toggle-on big-icon"></i> Product Status</div>
+                    <div class="gc-hint">Choose whether this product is in stock or out of stock.</div>
+                  </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="small fw-semibold" id="statusLbl">In Stock</span>
+                    <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" id="status" checked style="width:2.6em;height:1.3em"></div>
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" class="btn-gc-reset" id="resetBtn"><i class="bi bi-arrow-repeat"></i> Reset</button>
+              <button type="submit" class="btn-gc-save"><i class="bi bi-floppy"></i> Save Product</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- RIGHT: PREVIEW -->
+      <div class="col-lg-4">
+        <div class="gc-card mb-3">
+          <div class="gc-card-head"><i class="bi bi-eye"></i> Product Preview <span class="gc-badge-preview">Preview</span></div>
+          <div class="gc-card-body">
+            <div class="gc-img" id="pvImageBox" title="Click to upload image">
+                <img id="pvImg" class="d-none" alt="Product Preview">
+
+                <div id="pvPlaceholder" class="text-center">
+                    <i class="bi bi-camera d-block mb-1"></i>
+                    Click to upload product image
+                </div>
+            </div>
+
+            <input
+                type="file"
+                id="previewFile"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+            >
+            <div class="d-flex justify-content-between align-items-center mt-2 d-none" id="imgRow">
+              <div class="d-flex gap-2 flex-wrap" id="thumbs"></div>
+              <div class="d-flex gap-1">
+                <button type="button" class="gc-icon-btn" id="imgCrop" title="Crop"><i class="bi bi-crop"></i></button>
+                <button type="button" class="gc-icon-btn" id="imgRotate" title="Rotate"><i class="bi bi-arrow-clockwise"></i></button>
+                <button type="button" class="gc-icon-btn del" id="imgRemove" title="Delete"><i class="bi bi-trash"></i></button>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+
+        <div class="gc-card mb-3">
+          <div class="gc-card-head"><i class="bi bi-list-ul"></i> Quick Info</div>
+          <div class="gc-card-body py-2">
+            <div class="q-row"><span>Product Name</span><span id="qName">-</span></div>
+            <div class="q-row"><span>Category</span><span id="qCat">-</span></div>
+            <div class="q-row"><span>Price</span><span id="qPrice">-</span></div>
+            <div class="q-row"><span>Stock Quantity</span><span id="qStock">-</span></div>
+            <div class="q-row"><span>Status</span><span id="qStatus" class="status-badge on">In Stock </span></div>
+          </div>
+        </div>
+
+        <div class="gc-promo">
+          <i class="bi bi-basket2-fill"></i>
+          <div><div class="fw-bold small">Fresh Products, Happy Customers!</div>
+          <div class="gc-hint">Add quality products to keep your customers coming back.</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- CROP MODAL -->
+  <div class="modal fade" id="cropModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Crop Image</h5></div>
+        <div class="modal-body">
+          <div class="crop-stage"><img id="cropImg" alt=""></div>
+          <div class="d-flex flex-wrap gap-2 justify-content-between mt-3">
+            <div class="btn-group btn-group-sm" id="ratioGroup">
+              <button type="button" class="btn btn-outline-success active" data-ratio="1.6">16:10</button>
+              <button type="button" class="btn btn-outline-success" data-ratio="1">1:1</button>
+              <button type="button" class="btn btn-outline-success" data-ratio="1.3333333">4:3</button>
+              <button type="button" class="btn btn-outline-success" data-ratio="NaN">Free</button>
+            </div>
+            <div class="btn-group btn-group-sm">
+              <button type="button" class="btn btn-outline-secondary" id="rotL" title="Rotate left"><i class="bi bi-arrow-counterclockwise"></i></button>
+              <button type="button" class="btn btn-outline-secondary" id="rotR" title="Rotate right"><i class="bi bi-arrow-clockwise"></i></button>
+              <button type="button" class="btn btn-outline-secondary" id="zoomOut" title="Zoom out"><i class="bi bi-zoom-out"></i></button>
+              <button type="button" class="btn btn-outline-secondary" id="zoomIn" title="Zoom in"><i class="bi bi-zoom-in"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light border" id="cropCancel">Cancel</button>
+          <button type="button" class="btn btn-success" id="cropApply">Apply Crop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS POPUP -->
+  <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content text-center p-4">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
+        <h5 class="mt-2">Product Saved!</h5>
+        <img id="sImg" class="mx-auto my-2 d-none" style="width:80px;height:80px;object-fit:cover;border-radius:10px" alt="">
+        <div class="fw-semibold" id="sName"></div>
+        <div class="text-muted small" id="sInfo"></div>
+        <div class="d-grid gap-2 mt-3">
+          <button type="button" class="btn btn-success" id="sView">View Products</button>
+          <button type="button" class="btn btn-light border" id="sAnother">Add Another</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toast" class="toast text-bg-dark"><div class="toast-body" id="toastMsg"></div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script> 
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+  <script src="../static/js/addproduct.js"></script>
+</body>
+</html>
