@@ -100,7 +100,8 @@ class CheckoutTests(CheckoutTestBase):
         self.assertEqual(order.shipping_address, address)
         self.assertEqual(address.address_line, "12 Market Rd, Thamel, Kathmandu")
         self.assertEqual(address.landmark, "Near the blue gate")
-        self.assertEqual(order.address, "Asha Sharma, 12 Market Rd, Thamel, Kathmandu — 9800000000")
+        # The address text is only where it goes; the name and phone have their own places.
+        self.assertEqual(order.address, "12 Market Rd, Thamel, Kathmandu")
         self.assertEqual(order.phone, "9800000000")
         self.assertEqual(address.recipient_name, "Asha Sharma")  # the account's name
         self.assertEqual(order.landmark, "Near the blue gate")
@@ -119,6 +120,27 @@ class CheckoutTests(CheckoutTestBase):
         self.assertEqual(payment.amount, 300)
         # Cart emptied
         self.assertEqual(CartItem.objects.filter(cart__user=self.user).count(), 0)
+
+    def test_admin_page_and_packing_slip_show_the_name_and_phone_beside_the_address(self):
+        self.client.force_login(self.user)
+        self._fill_cart(quantity=1)
+        self._post()
+        order = Order.objects.get()
+        self.assertEqual(order.address, "12 Market Rd, Thamel, Kathmandu")
+
+        boss = User.objects.create_superuser(username="boss", email="boss@example.com", password="pass12345")
+        self.client.force_login(boss)
+        page = self.client.get(reverse("admin:orders_order_change", args=[order.pk]))
+        slip = self.client.get(reverse("admin:orders_order_packing_slip", args=[order.pk]))
+        # The name comes from the account and the phone from the order's own field.
+        for res in (page, slip):
+            with self.subTest(page=res.request["PATH_INFO"]):
+                self.assertContains(res, "Asha Sharma")
+                self.assertContains(res, "9800000000")
+                self.assertContains(res, "12 Market Rd, Thamel, Kathmandu")
+        self.assertContains(slip, "<p>Asha Sharma</p>", html=True)
+        self.assertContains(slip, "<p>Phone: 9800000000</p>", html=True)
+        self.assertContains(slip, "<p>Deliver to: 12 Market Rd, Thamel, Kathmandu</p>", html=True)
 
     def test_checkout_records_order_placed_in_history(self):
         self.client.force_login(self.user)
@@ -175,7 +197,7 @@ class CheckoutTests(CheckoutTestBase):
         order = Order.objects.get(user=self.user)
         self.assertEqual(order.phone, "9812345678")
         self.assertEqual(order.shipping_address.phone, "9812345678")
-        self.assertTrue(order.address.endswith("9812345678"))
+        self.assertNotIn("981", order.address)  # the phone isn't in the address text
 
     # ---- stock shortfall rolls back ----
     def test_stock_shortfall_creates_no_order(self):
@@ -280,41 +302,33 @@ class CheckoutPageTests(CheckoutTestBase):
             "reverse": reverse("geocode_reverse"), "search": reverse("geocode_search"),
         })
 
-    def test_saved_addresses_are_listed_newest_first_and_preselected(self):
-        older = self._saved_address(address_line="1 Old Rd", latitude=None, longitude=None)
-        newer = self._saved_address(address_line="2 New Rd")
-        Address.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(days=3))
-        theirs = self._saved_address(
-            user=User.objects.create_user(username="bob", email="bob@example.com"), address_line="9 Their Rd",
-        )
-        res = self.client.get(self.url)
-        html = res.content.decode()
-        self.assertLess(html.index("2 New Rd"), html.index("1 Old Rd"))
-        self.assertNotContains(res, "9 Their Rd")
-        self.assertInHTML(
-            f'<input type="radio" name="address_id" value="{newer.pk}" data-phone="9800000000" checked>', html
-        )
-        self.assertNotIn(f'name="address_id" value="{theirs.pk}"', html)
-        self.assertContains(res, "Pinned on map", count=1)
-        # Only pinned addresses go to the map, as starting points.
-        self.assertEqual(self._page_data(res)["addresses"], [
-            {"id": newer.pk, "lat": "28.209600", "lng": "83.959000"},
-        ])
-
-    def test_without_saved_addresses_the_typed_fields_work_without_javascript(self):
+    def test_saved_addresses_are_not_rendered_on_checkout(self):
+        self._saved_address(address_line="1 Old Rd")
         res = self.client.get(self.url)
         self.assertNotContains(res, 'name="address_id"')
-        for field in ("phone", "address_line", "landmark", "save_address"):
+        self.assertNotContains(res, "1 Old Rd")
+        self.assertNotIn("saved_addresses", res.context)
+
+    def test_both_street_and_landmark_fields_are_rendered_visible(self):
+        res = self.client.get(self.url)
+        self.assertNotContains(res, 'name="address_id"')
+        for field in ("phone", "address_line", "landmark"):
             self.assertContains(res, f'name="{field}"')
-        # The switch and the map only appear once checkout.js runs.
-        self.assertContains(res, '<div id="map-box" hidden>')
-        self.assertContains(res, 'id="addr-switch" role="group" aria-label="How to give your delivery address" hidden>')
+        self.assertContains(res, '<div class="f" id="street-field">')
+        self.assertContains(res, '<label for="id_address_line" id="street-label">Street, tole or house no. (optional)</label>')
+        self.assertContains(
+            res, '<small class="hint lm-help" id="street-hint">'
+                 'Add a landmark or house number so the rider can find you.</small>', html=True,
+        )
+        self.assertContains(res, '<div class="f lm-field" id="landmark-field">')
         self.assertContains(res, "Only needed for home delivery:")
 
     def test_no_pin_on_page_load(self):
         html = self.client.get(self.url).content.decode()
         self.assertInHTML('<input type="hidden" name="lat" id="id_lat">', html)
         self.assertInHTML('<input type="hidden" name="lng" id="id_lng">', html)
+        self.assertInHTML('<input type="hidden" name="city" id="id_city">', html)
+        self.assertInHTML('<input type="hidden" name="area" id="id_area">', html)
 
     def test_contact_details_come_from_the_account(self):
         self.user.phone = "9811111111"
@@ -349,42 +363,26 @@ class CheckoutPageTests(CheckoutTestBase):
         with open(finders.find("js/checkout.js"), encoding="utf-8") as js_file:
             js = js_file.read()
         self.assertIn("data.urls.reverse", js)  # lookups go through /api/geocode/
-        for text in ("nominatim.openstreetmap.org", ".innerHTML", "localStorage", "sessionStorage", "payment.html"):
+        self.assertIn("suggest(addressInput, found.street)", js)  # road and area only
+        self.assertIn("cityInput.value = (found.city", js)  # the hidden city, from the lookup
+        self.assertIn("areaInput.value = (found.area", js)  # and the hidden area
+        self.assertIn("suggest(landmarkInput, found.landmark)", js)  # the nearby place
+        for text in ("nominatim.openstreetmap.org", ".innerHTML", "localStorage", "sessionStorage", "payment.html",
+                     "Pinned location"):
             with self.subTest(text=text):
                 self.assertNotIn(text, js)
 
-    def test_a_saved_address_fills_in_its_phone(self):
+    def test_phone_comes_from_the_account_by_default(self):
         self.user.phone = "9811111111"
         self.user.save()
-        address = self._saved_address(phone="9822222222")
-        no_phone = self._saved_address(address_line="3 Side Rd", phone="")
-        Address.objects.filter(pk=address.pk).update(created_at=timezone.now() + timedelta(minutes=1))
         res = self.client.get(self.url)
-        html = res.content.decode()
-        # The newest address starts selected, with its phone in the field.
-        self.assertEqual(res.context["form"]["phone"].value(), "9822222222")
-        self.assertIn(f'value="{address.pk}" data-phone="9822222222"', html)
-        # Without a phone of its own, an address (and "Add new address") uses the account's.
-        self.assertIn(f'value="{no_phone.pk}" data-phone="9811111111"', html)
-        self.assertIn('value="" data-phone="9811111111"', html)
+        self.assertEqual(res.context["form"]["phone"].value(), "9811111111")
+        self.assertContains(res, 'value="9811111111"')
 
-    def test_the_default_address_comes_first_and_says_so(self):
-        default = self._saved_address(address_line="1 Home Rd", is_default=True)
-        newer = self._saved_address(address_line="2 Office Rd", latitude=None, longitude=None, landmark="")
-        Address.objects.filter(pk=default.pk).update(created_at=timezone.now() - timedelta(days=3))
+    def test_map_and_search_are_immediately_available(self):
         res = self.client.get(self.url)
-        html = res.content.decode()
-        self.assertLess(html.index("1 Home Rd"), html.index("2 Office Rd"))
-        self.assertIn(f'value="{default.pk}" data-phone="9800000000" checked', html)
-        self.assertContains(res, '<em class="tag">Default</em>', count=1)
-        # The landmark and the pin label are the second and third lines of the card.
-        self.assertInHTML(
-            '<span class="addr-body"><span class="addr-line">1 Home Rd, Pokhara <em class="tag">Default</em></span>'
-            '<small>Opposite the temple</small><small class="pinned">Pinned on map</small></span>',
-            html,
-        )
-        self.assertInHTML('<span class="addr-body"><span class="addr-line">2 Office Rd, Pokhara</span></span>', html)
-        self.assertNotIn(f'value="{newer.pk}" data-phone="9800000000" checked', html)
+        self.assertContains(res, '<div id="map-box">')
+        self.assertContains(res, '<div class="search" id="map-search">')
 
     def test_a_confirmed_pin_survives_a_form_error(self):
         res = self._post(phone="", lat=KATHMANDU[0], lng=KATHMANDU[1])
@@ -419,7 +417,7 @@ class CheckoutAddressTests(CheckoutTestBase):
         self._post(address_id=address.pk, address_line="", landmark="")
         order = Order.objects.get()
         self.assertEqual(order.shipping_address, address)
-        self.assertEqual(order.address, "Asha Sharma, 5 Lake Rd, Pokhara — 9800000000")
+        self.assertEqual(order.address, "5 Lake Rd, Pokhara")  # street, area and city
         self.assertEqual(order.landmark, "Opposite the temple")
         self.assertEqual((order.latitude, order.longitude), (Decimal("28.209600"), Decimal("83.959000")))
         self.assertEqual(Address.objects.count(), 1)  # nothing new saved
@@ -433,7 +431,7 @@ class CheckoutAddressTests(CheckoutTestBase):
         self.assertIsNone(order.latitude)
         self.assertIsNone(order.longitude)
         self.assertEqual(order.map_url, "")
-        self.assertEqual(order.address, "Asha Sharma, 5 Lake Rd, Pokhara — 9800000000")
+        self.assertEqual(order.address, "5 Lake Rd, Pokhara")  # street, area and city
         self.assertEqual(order.landmark, "Opposite the temple")
         self.assertIn(f"Saved address {address.pk} has a map pin outside Nepal", logs.output[0])
 
@@ -486,7 +484,125 @@ class CheckoutAddressTests(CheckoutTestBase):
                 self.assertRefused(self._post(lat=lat, lng=KATHMANDU[1]), "Map pin:")
 
     def test_a_new_address_needs_a_street(self):
-        self.assertRefused(self._post(address_line="  "), "Enter your street, tole or house number.")
+        # "Type my address" (no pin): the street is required, even with a landmark.
+        for street, landmark in (("  ", "Near the blue gate"), ("", "Near the blue gate"), ("", "")):
+            with self.subTest(street=street, landmark=landmark):
+                self.assertRefused(
+                    self._post(address_line=street, landmark=landmark), "Enter your street, tole or house number."
+                )
+
+    # ---- the street and landmark in "Pin on map" mode (a confirmed pin is sent) ----
+    def test_map_mode_needs_a_street_or_landmark_and_keeps_the_pin(self):
+        message = "Add your street or a landmark so the rider can find you"
+        res = self._post(address_line="", landmark="", city="Pokhara", area="Pokhara", lat=KATHMANDU[0], lng=KATHMANDU[1])
+        self.assertRefused(res, message)
+        self.assertEqual(res.context["form"].errors["address_line"], [message])
+        # The pin and what the map found come back, so checkout.js puts the pin back on the map.
+        html = res.content.decode()
+        self.assertInHTML(f'<input type="hidden" name="lat" value="{KATHMANDU[0]}" id="id_lat">', html)
+        self.assertInHTML(f'<input type="hidden" name="lng" value="{KATHMANDU[1]}" id="id_lng">', html)
+        self.assertInHTML('<input type="hidden" name="area" value="Pokhara" id="id_area">', html)
+        self.assertFalse(Address.objects.exists())
+
+    def test_map_mode_with_only_a_landmark_uses_the_area(self):
+        # Pinned between roads: the lookup found only the town, and the customer gave a landmark.
+        self._post(address_line="", landmark="Near Bindabasini Temple", city="Pokhara", area="Pokhara",
+                   lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertEqual(order.address, "Pokhara")
+        self.assertEqual(order.landmark, "Near Bindabasini Temple")
+        self.assertEqual((order.latitude, order.longitude), (Decimal(KATHMANDU[0]), Decimal(KATHMANDU[1])))
+        # The area already names the city, so the saved card reads "Pokhara", not "Pokhara, Pokhara".
+        address = order.shipping_address
+        self.assertEqual((address.address_line, address.city), ("Pokhara", ""))
+
+    def test_map_mode_with_only_a_landmark_and_an_area(self):
+        self._post(address_line="", landmark="Near the school", city="Pokhara", area="Chipledhunga, Pokhara",
+                   lat=KATHMANDU[0], lng=KATHMANDU[1])
+        self.assertEqual(Order.objects.get().address, "Chipledhunga, Pokhara")
+
+    def test_map_mode_with_only_a_landmark_and_no_lookup_uses_the_landmark(self):
+        # The lookup failed, so there is no area: the landmark describes the place, never "Pinned location".
+        self._post(address_line="", landmark="Near the blue gate", city="", area="", lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertEqual(order.address, "Near the blue gate")
+        self.assertEqual(order.shipping_address.address_line, "Near the blue gate")
+
+    def test_map_mode_with_only_a_street_works(self):
+        self._post(address_line="Near Chipledhunga Road", landmark="", city="Pokhara", area="Pokhara",
+                   lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertEqual(order.address, "Near Chipledhunga Road, Pokhara")
+        self.assertEqual(order.landmark, "")
+        self.assertEqual(order.shipping_address.city, "Pokhara")
+
+    def test_map_mode_saves_the_street_and_city(self):
+        self._post(address_line="Chipledhunga Road, Chipledhunga", city="Pokhara", lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertEqual(order.address, "Chipledhunga Road, Chipledhunga, Pokhara")
+        address = order.shipping_address
+        self.assertEqual((address.address_line, address.city), ("Chipledhunga Road, Chipledhunga", "Pokhara"))
+        # Next time the saved address card reads the same.
+        self._fill_cart(quantity=1)
+        self.assertContains(self.client.get(self.url), "Chipledhunga Road, Chipledhunga, Pokhara")
+
+    def test_map_mode_without_a_city_saves_the_street(self):
+        self._post(address_line="Chipledhunga Road, Chipledhunga", city="", lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertEqual(order.address, "Chipledhunga Road, Chipledhunga")
+        self.assertEqual(order.shipping_address.city, "")
+        self.assertEqual(order.shipping_address.address_line, "Chipledhunga Road, Chipledhunga")
+        self.assertEqual((order.latitude, order.longitude), (Decimal(KATHMANDU[0]), Decimal(KATHMANDU[1])))
+        self.assertEqual(order.landmark, "Near the blue gate")
+
+    def test_typed_mode_ignores_a_city_and_area(self):
+        # No pin: they can't have come from the map, so the typed address stands alone.
+        self._post(city="Pokhara", area="Chipledhunga, Pokhara")
+        order = Order.objects.get()
+        self.assertEqual(order.address, "12 Market Rd, Thamel, Kathmandu")
+        self.assertEqual(order.shipping_address.address_line, "12 Market Rd, Thamel, Kathmandu")
+        self.assertEqual(order.shipping_address.city, "")
+
+    def test_the_city_is_at_most_100_characters(self):
+        res = self._post(city="x" * 101, lat=KATHMANDU[0], lng=KATHMANDU[1])
+        self.assertRefused(res, "City from the map:")
+        self.assertIn("city", res.context["form"].errors)
+
+    def test_the_area_is_at_most_150_characters(self):
+        res = self._post(area="x" * 151, lat=KATHMANDU[0], lng=KATHMANDU[1])
+        self.assertRefused(res, "Area from the map:")
+        self.assertIn("area", res.context["form"].errors)
+
+    def test_the_city_counts_when_reusing_a_saved_address(self):
+        pin = {"lat": KATHMANDU[0], "lng": KATHMANDU[1]}
+        self._post(city="Pokhara", **pin)
+        self._fill_cart(quantity=1)
+        self._post(city="pokhara", **pin)  # same, ignoring case
+        self.assertEqual(self.user.addresses.count(), 1)
+        self._fill_cart(quantity=1)
+        self._post(city="Kathmandu", **pin)
+        self.assertEqual(self.user.addresses.count(), 2)
+
+    def test_the_customers_name_or_pinned_location_is_not_a_street(self):
+        map_message = "Add your street or a landmark so the rider can find you"
+        typed_message = "Enter your street, tole or house number."
+        cases = [
+            ("Pinned location (27.717200, 85.324000)", KATHMANDU, map_message),
+            ("asha sharma", KATHMANDU, map_message),
+            ("Asha Sharma", ("", ""), typed_message),
+        ]
+        for street, (lat, lng), message in cases:
+            with self.subTest(street=street, lat=lat):
+                self.assertRefused(self._post(address_line=street, landmark="", lat=lat, lng=lng), message)
+        # Also the name a nameless account gives at checkout.
+        self.user.first_name = self.user.last_name = ""
+        self.user.save()
+        self.assertRefused(self._post(full_name="Ram Thapa", address_line="Ram Thapa"), typed_message)
+        # On the map a landmark is enough, but the name is still not the order's address.
+        self._post(full_name="Ram Thapa", address_line="Ram Thapa", area="Pokhara", lat=KATHMANDU[0], lng=KATHMANDU[1])
+        order = Order.objects.get()
+        self.assertEqual(order.address, "Pokhara")
+        self.assertEqual(order.shipping_address.address_line, "Pokhara")
 
     def test_without_save_address_nothing_is_saved_but_the_order_keeps_everything(self):
         self._post(save_address=None, lat=KATHMANDU[0], lng=KATHMANDU[1])
@@ -494,7 +610,7 @@ class CheckoutAddressTests(CheckoutTestBase):
         self.assertFalse(Address.objects.exists())
         self.assertIsNone(order.shipping_address)
         self.assertEqual(order.phone, "9800000000")
-        self.assertTrue(order.address.startswith("Asha Sharma, 12 Market Rd"))
+        self.assertEqual(order.address, "12 Market Rd, Thamel, Kathmandu")
         self.assertEqual(order.landmark, "Near the blue gate")
         self.assertEqual(order.latitude, Decimal(KATHMANDU[0]))
 
@@ -509,7 +625,7 @@ class CheckoutAddressTests(CheckoutTestBase):
         self.assertEqual(Address.objects.count(), 1)
         second = Order.objects.order_by("-id").first()
         self.assertEqual(second.shipping_address, first)
-        self.assertEqual(second.address, "Asha Sharma, 12 MARKET RD, thamel, kathmandu — 9800000000")
+        self.assertEqual(second.address, "12 MARKET RD, thamel, kathmandu")
 
     def test_a_different_pin_phone_or_owner_saves_a_new_address(self):
         bob = User.objects.create_user(username="bob", email="bob@example.com")
@@ -542,7 +658,7 @@ class CheckoutAddressTests(CheckoutTestBase):
         self.user.refresh_from_db()
         self.assertEqual((self.user.first_name, self.user.last_name), ("Asha", "Kumari Sharma"))
         order = Order.objects.get()
-        self.assertTrue(order.address.startswith("Asha Kumari Sharma, 12 Market Rd"))
+        self.assertEqual(order.address, "12 Market Rd, Thamel, Kathmandu")
         self.assertEqual(order.shipping_address.recipient_name, "Asha Kumari Sharma")
         self.assertContains(res, '<span class="account-name">Hi, Asha</span>', html=True)  # the header greeting
         self._fill_cart(quantity=1)
@@ -552,13 +668,13 @@ class CheckoutAddressTests(CheckoutTestBase):
         self._post(full_name="Someone Else")
         self.user.refresh_from_db()
         self.assertEqual(self.user.get_full_name(), "Asha Sharma")
-        self.assertTrue(Order.objects.get().address.startswith("Asha Sharma, "))
+        self.assertEqual(Order.objects.get().shipping_address.recipient_name, "Asha Sharma")
 
     def test_pickup_ignores_the_address_fields(self):
         theirs = self._saved_address(user=User.objects.create_user(username="bob", email="bob@example.com"))
         self._post(delivery_method="pickup", address_id=theirs.pk, address_line="", lat=DELHI[0], lng=DELHI[1])
         order = Order.objects.get()
-        self.assertEqual(order.address, f"Asha Sharma, Pick up at {settings.SHOP_INFO['name']} — 9800000000")
+        self.assertEqual(order.address, f"Pick up at {settings.SHOP_INFO['name']}")
         self.assertIsNone(order.shipping_address)
         self.assertIsNone(order.latitude)
         self.assertEqual(order.landmark, "")
@@ -630,6 +746,13 @@ class GeocodeTests(TestCase):
     def reverse_at(self, lat=KATHMANDU[0], lng=KATHMANDU[1]):
         return self.client.get(self.reverse_url, {"lat": lat, "lng": lng})
 
+    def a_second_passes(self, seconds):
+        """Stands in for time.sleep in geocode.py: the once-a-second lock runs out."""
+        cache.delete("geocode:last-request")
+
+    def zooms_asked(self, urlopen):
+        return [re.search(r"zoom=(\d+)", call[0][0].full_url).group(1) for call in urlopen.call_args_list]
+
     def test_login_required(self, urlopen):
         res = Client().get(self.reverse_url, {"lat": KATHMANDU[0], "lng": KATHMANDU[1]})
         self.assertEqual(res.status_code, 302)
@@ -644,12 +767,108 @@ class GeocodeTests(TestCase):
         urlopen.return_value = nominatim_answer(REVERSE_ANSWER)
         res = self.reverse_at()
         self.assertEqual(res.json(), {
-            "landmark": "Near Kathmandu Mall", "address": "Sundhara Road, Sundhara, Kathmandu",
+            "landmark": "Near Kathmandu Mall", "street": "Sundhara Road, Sundhara", "city": "Kathmandu",
+            "area": "Sundhara, Kathmandu", "address": "Sundhara Road, Sundhara, Kathmandu",
         })
         request = urlopen.call_args[0][0]
         self.assertTrue(request.full_url.startswith("https://nominatim.openstreetmap.org/reverse?"))
         self.assertIn("lat=27.71720&lon=85.32400", request.full_url)
         self.assertEqual(request.get_header("User-agent"), settings.NOMINATIM_USER_AGENT)
+        self.assertEqual(self.zooms_asked(urlopen), ["18"])  # a road at the point: one request
+
+    def test_reverse_street_falls_back_to_a_path_then_the_area(self, urlopen):
+        cases = [
+            ({"road": "Lakeside Road", "footway": "Walkway", "suburb": "Baidam"}, "Lakeside Road, Baidam"),
+            ({"pedestrian": "Lakeside Walkway", "suburb": "Baidam"}, "Lakeside Walkway, Baidam"),
+            ({"footway": "Temple Steps", "city": "Pokhara"}, "Temple Steps"),
+            ({"neighbourhood": "Chipledhunga", "city": "Pokhara"}, "Chipledhunga"),
+            ({"quarter": "Baidam", "city": "Pokhara"}, "Baidam"),
+        ]
+        for parts, street in cases:
+            with self.subTest(parts=parts):
+                cache.clear()  # a fresh answer, and no once-a-second wait
+                urlopen.reset_mock()
+                urlopen.return_value = nominatim_answer({"address": parts})
+                self.assertEqual(self.reverse_at().json()["street"], street)
+                self.assertEqual(urlopen.call_count, 1)  # no wider look needed
+
+    def test_reverse_without_a_road_gives_the_nearest_one(self, urlopen):
+        # Pinned between roads: zoom 18 finds only the city, zoom 17 nothing more, zoom 16 a road.
+        answers = [{"address": {"city": "Pokhara"}}, {"address": {"city": "Pokhara"}},
+                   {"address": {"road": "Chipledhunga Road", "city": "Pokhara"}}]
+        urlopen.side_effect = [nominatim_answer(answer) for answer in answers]
+        with mock.patch("orders.geocode.time.sleep", side_effect=self.a_second_passes) as sleep:
+            found = self.reverse_at().json()
+        self.assertEqual(found, {
+            "landmark": "Near Chipledhunga Road", "street": "Near Chipledhunga Road", "city": "Pokhara", "area": "Pokhara",
+            "address": "Pokhara",
+        })
+        self.assertEqual(self.zooms_asked(urlopen), ["18", "17", "16"])
+        self.assertEqual(sleep.call_count, 2)  # one wait before each extra request
+        # Cached with the road, so the same spot doesn't ask three times again.
+        with self.later(5):
+            self.assertEqual(self.reverse_at().json()["street"], "Near Chipledhunga Road")
+        self.assertEqual(urlopen.call_count, 3)
+
+    def test_reverse_with_no_road_nearby_gives_only_the_area(self, urlopen):
+        urlopen.side_effect = lambda *args, **kwargs: nominatim_answer({"address": {"city": "Pokhara"}})
+        with mock.patch("orders.geocode.time.sleep", side_effect=self.a_second_passes):
+            found = self.reverse_at().json()
+        # The street stays for the customer; the area becomes the address if they give only a landmark.
+        self.assertEqual(found, {"landmark": "", "street": "", "city": "Pokhara", "area": "Pokhara", "address": "Pokhara"})
+        self.assertEqual(self.zooms_asked(urlopen), ["18", "17", "16"])
+
+    def test_the_nearest_road_lookup_keeps_to_one_request_a_second(self, urlopen):
+        urlopen.return_value = nominatim_answer({"address": {"city": "Pokhara"}})
+        # Other lookups keep the lock (no time passes), so the wider look gives up after 3 tries.
+        with mock.patch("orders.geocode.time.sleep") as sleep:
+            found = self.reverse_at().json()
+        self.assertEqual(found["street"], "")
+        self.assertEqual(urlopen.call_count, 1)
+        self.assertEqual(sleep.call_count, 3)
+
+    def test_reverse_landmark_is_a_nearby_shop_amenity_or_building(self, urlopen):
+        cases = [
+            ({"name": "Bhatbhateni", "address": {"shop": "Bhatbhateni", "road": "Lakeside Road"}}, "Near Bhatbhateni"),
+            ({"name": "Bindabasini Temple", "address": {"amenity": "Bindabasini Temple", "road": "Bazaar Road"}},
+             "Near Bindabasini Temple"),
+            ({"address": {"building": "City Centre", "road": "Prithvi Chowk Road"}}, "Near City Centre"),
+            # Another named place the pin is on, e.g. a hotel.
+            ({"name": "Hotel Barahi", "address": {"tourism": "Hotel Barahi", "road": "Lakeside Road"}},
+             "Near Hotel Barahi"),
+            # Only the road or the town: falls back to Near <road>.
+            ({"name": "Lakeside Road", "address": {"road": "Lakeside Road"}}, "Near Lakeside Road"),
+            ({"name": "Pokhara", "address": {"road": "Lakeside Road", "city": "Pokhara"}}, "Near Lakeside Road"),
+        ]
+        for answer, landmark in cases:
+            with self.subTest(answer=answer):
+                cache.clear()
+                urlopen.return_value = nominatim_answer(answer)
+                self.assertEqual(self.reverse_at().json()["landmark"], landmark)
+
+    def test_reverse_city_is_a_city_town_or_municipality_not_a_village(self, urlopen):
+        cases = [
+            ({"town": "Damauli"}, "Damauli"),
+            ({"municipality": "Bhimdatta"}, "Bhimdatta"),
+            ({"village": "Ghandruk"}, ""),
+        ]
+        for parts, city in cases:
+            with self.subTest(parts=parts):
+                cache.clear()  # a fresh answer, and no once-a-second wait
+                urlopen.return_value = nominatim_answer({"address": {"road": "Main Road", **parts}})
+                self.assertEqual(self.reverse_at().json()["city"], city)
+
+    def test_reverse_area_is_the_area_and_town_without_the_road(self, urlopen):
+        cases = [
+            ({"road": "Lakeside Road", "suburb": "Baidam", "city": "Pokhara"}, "Baidam, Pokhara"),
+            ({"road": "Main Road", "village": "Ghandruk"}, "Ghandruk"),  # a village is fine here
+            ({"road": "Main Road"}, ""),
+        ]
+        for parts, area in cases:
+            with self.subTest(parts=parts):
+                cache.clear()
+                urlopen.return_value = nominatim_answer({"address": parts})
+                self.assertEqual(self.reverse_at().json()["area"], area)
 
     def test_reverse_answers_are_cached(self, urlopen):
         urlopen.return_value = nominatim_answer(REVERSE_ANSWER)
@@ -1692,9 +1911,9 @@ class OrderLocationAdminTests(AdminTestData, TestCase):
         self._pin()
         res = self.client.get(self._change_url())
         self.assertContains(res, "Near the blue gate")
-        self.assertContains(
-            res, f'<a href="{self.MAP_URL}" target="_blank" rel="noopener">Open in Google Maps</a>', html=True
-        )
+        # The link is styled as a button, so only check its target and text.
+        self.assertContains(res, f'href="{self.MAP_URL}" target="_blank" rel="noopener"')
+        self.assertContains(res, "Open in Google Maps")
 
     def test_order_without_a_pin_has_no_map_link(self):
         res = self.client.get(self._change_url())
@@ -2144,3 +2363,36 @@ class DashboardTests(TestCase):
         with CaptureQueriesContext(connection) as big:
             self.client.get(self.url)
         self.assertEqual(len(big), len(small))
+
+
+class CurrencyFormatTests(TestCase):
+    def test_nepali_comma_formatting(self):
+        from config.currency import format_nepali
+        from decimal import Decimal
+
+        self.assertEqual(format_nepali(0), "0")
+        self.assertEqual(format_nepali(500), "500")
+        self.assertEqual(format_nepali(6000), "6,000")
+        self.assertEqual(format_nepali(10000), "10,000")
+        self.assertEqual(format_nepali(600000), "6,00,000")
+        self.assertEqual(format_nepali(1234567), "12,34,567")
+        self.assertEqual(format_nepali(10000000), "1,00,00,000")
+        self.assertEqual(format_nepali(Decimal("2960.00"), 2), "2,960.00")
+        self.assertEqual(format_nepali(Decimal("3060.00"), 2), "3,060.00")
+        self.assertEqual(format_nepali(Decimal("2960.00"), "-2"), "2,960")
+        self.assertEqual(format_nepali(Decimal("2960.50"), "-2"), "2,960.50")
+
+    def test_currency_template_tags(self):
+        from django.template import Context, Template
+
+        tpl1 = Template("{{ 6000|nepali_comma }}")
+        self.assertEqual(tpl1.render(Context({})), "6,000")
+
+        tpl2 = Template("{{ 600000|nepali_comma }}")
+        self.assertEqual(tpl2.render(Context({})), "6,00,000")
+
+        tpl3 = Template("{{ 600000|rupees }}")
+        self.assertEqual(tpl3.render(Context({})), "Rs. 6,00,000")
+
+        tpl4 = Template("{{ '2960.00'|nepali_comma }}")
+        self.assertEqual(tpl4.render(Context({})), "2,960.00")

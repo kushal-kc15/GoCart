@@ -48,7 +48,7 @@
                 {% for item in order.items.all %}
                 <div class="summary-item">
                     <span class="s-name">{{ item.product_name }} <small>× {{ item.quantity }}</small></span>
-                    <span class="s-price">Rs. {{ item.line_total|floatformat:"-2" }}</span>
+                    <span class="s-price">Rs. {{ item.line_total|floatformat:"-2"|nepali_comma }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -56,9 +56,9 @@
 
         <div class="checkout-panel success-panel">
             <h2>Summary</h2>
-            <div class="kv"><span class="k">Sub-total</span><span>Rs. {{ order.subtotal|floatformat:"-2" }}</span></div>
-            <div class="kv"><span class="k">Shipping charge</span><span>{% if order.shipping_fee %}Rs. {{ order.shipping_fee|floatformat:"-2" }}{% else %}Free{% endif %}</span></div>
-            <div class="kv"><span class="k">Total</span><span><strong>Rs. {{ order.total|floatformat:"-2" }}</strong></span></div>
+            <div class="kv"><span class="k">Sub-total</span><span>Rs. {{ order.subtotal|floatformat:"-2"|nepali_comma }}</span></div>
+            <div class="kv"><span class="k">Shipping charge</span><span>{% if order.shipping_fee %}Rs. {{ order.shipping_fee|floatformat:"-2"|nepali_comma }}{% else %}Free{% endif %}</span></div>
+            <div class="kv"><span class="k">Total</span><span><strong>Rs. {{ order.total|floatformat:"-2"|nepali_comma }}</strong></span></div>
             <div class="kv"><span class="k">Delivery method</span><span>{{ order.get_delivery_method_display }}</span></div>
             {# Older orders may have no Payment row; every order so far is cash on delivery. #}
             <div class="kv"><span class="k">Payment method</span><span>{{ order.payment.get_method_display|default:"Cash on Delivery" }}</span></div>

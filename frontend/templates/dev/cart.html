@@ -68,7 +68,7 @@
                     <div class="price-row">
                         <div>
                             <span class="price-label">Price</span>
-                            <div class="price-now">Rs. {{ item.product.price|floatformat:"-2" }}</div>
+                            <div class="price-now">Rs. {{ item.product.price|floatformat:"-2"|nepali_comma }}</div>
                         </div>
 
                         <div class="qty-control">
@@ -114,10 +114,10 @@
         <!-- Order summary -->
         <aside class="summary">
             <h2>Order Summary</h2>
-            <div class="sum-row"><span class="label">Sub-total</span><span class="value" data-cart-subtotal>Rs. {{ subtotal|floatformat:"-2" }}</span></div>
+            <div class="sum-row"><span class="label">Sub-total</span><span class="value" data-cart-subtotal>Rs. {{ subtotal|floatformat:"-2"|nepali_comma }}</span></div>
             <div class="sum-row discount"><span class="label">Discount</span><span class="value">Rs. 0</span></div>
             <div class="sum-row"><span class="label">VAT / TAX</span><span class="value">Rs. 0</span></div>
-            <div class="sum-row"><span class="label">Shipping charge</span><span class="value" data-cart-shipping>{% if shipping %}Rs. {{ shipping }}{% else %}Free{% endif %}</span></div>
+            <div class="sum-row"><span class="label">Shipping charge</span><span class="value" data-cart-shipping>{% if shipping %}Rs. {{ shipping|floatformat:"-2"|nepali_comma }}{% else %}Free{% endif %}</span></div>
 
             <!-- Coupon (display only; no coupon backend yet) -->
             <div class="coupon-label">Have discount code or coupon ?</div>
@@ -135,7 +135,7 @@
 
             <div class="total-row">
                 <span class="t-label">Total</span>
-                <span class="t-value" data-cart-total>Rs. {{ grand_total|floatformat:"-2" }}</span>
+                <span class="t-value" data-cart-total>Rs. {{ grand_total|floatformat:"-2"|nepali_comma }}</span>
             </div>
 
             <a href="{% url 'orders:checkout' %}" class="pay-btn" data-cart-filled{% if not cart_items %} hidden{% endif %}>Proceed to Checkout</a>

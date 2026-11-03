@@ -33,8 +33,6 @@ class CheckoutForm(forms.Form):
             "placeholder": "98XXXXXXXX", "autocomplete": "tel", "inputmode": "tel",
         }),
     )
-    # A saved address of this user, or empty for a new address.
-    address_id = forms.IntegerField(required=False)
     address_line = forms.CharField(
         max_length=150, required=False, label="Street, tole, house number and city",
         widget=forms.TextInput(attrs={
@@ -48,7 +46,11 @@ class CheckoutForm(forms.Form):
     # Filled in only by "Confirm this location" on the map.
     lat = forms.FloatField(required=False, widget=forms.HiddenInput)
     lng = forms.FloatField(required=False, widget=forms.HiddenInput)
-    save_address = forms.BooleanField(required=False, initial=True, label="Save this address for next time")
+    # Filled in by checkout.js from the map lookup; only used with a confirmed pin (see clean).
+    city = forms.CharField(max_length=100, required=False, widget=forms.HiddenInput)
+    # The area and town the map lookup found, e.g. "Pokhara". The order's address when a
+    # confirmed pin comes with only a landmark.
+    area = forms.CharField(max_length=150, required=False, widget=forms.HiddenInput)
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,29 +58,38 @@ class CheckoutForm(forms.Form):
         if user is not None and user.get_full_name():
             del self.fields["full_name"]
 
+    def _is_a_street(self, street, full_name):
+        """False for an empty street, the customer's own name, or the "Pinned location (...)"
+        text an older checkout page filled in when the map found no street."""
+        street = street.strip().lower()
+        names = [full_name]
+        if self.user is not None:
+            names.append(self.user.get_full_name())
+        if street in [name.strip().lower() for name in names if name]:
+            return False
+        return bool(street) and not street.startswith("pinned location")
+
     def clean_phone(self):
         # Same Nepali mobile check as the profile; stores just the 10 digits.
         return normalize_nepali_phone(self.cleaned_data["phone"])
 
     def clean(self):
         cleaned = super().clean()
-        cleaned["saved_address"] = None
         if cleaned.get("delivery_method") != Order.DeliveryMethod.DELIVERY:
             return cleaned  # pickup: the address fields are ignored
 
-        address_id = cleaned.get("address_id")
-        if address_id:
-            # Only this user's own addresses.
-            address = self.user.addresses.filter(pk=address_id).first()
-            if address is None:
-                self.add_error("address_id", "Choose one of your saved addresses.")
-            cleaned["saved_address"] = address
-            return cleaned
-
-        if not cleaned.get("address_line"):
-            self.add_error("address_line", "Enter your street, tole or house number.")
-
         lat, lng = cleaned.get("lat"), cleaned.get("lng")
+        street = cleaned.get("address_line")  # None if it already has an error (too long)
+        if street is not None and not self._is_a_street(street, cleaned.get("full_name", "")):
+            cleaned["address_line"] = ""  # never the name or "Pinned location (...)"
+            if lat is None:
+                self.add_error("address_line", "Enter your street, tole or house number.")
+            elif not cleaned.get("landmark"):
+                # "Pin on map" sends a confirmed pin. The pin says where; a street or a landmark
+                # helps the rider find the door. The pin stays on the page.
+                self.add_error("address_line", "Add your street or a landmark so the rider can find you")
+                self.add_error("landmark", "Add your house number, landmark or delivery instructions so the rider can find you.")
+
         if (lat is None) != (lng is None):
             self.add_error(None, "The map location was incomplete. Please confirm it again.")
         elif lat is not None:
@@ -88,4 +99,9 @@ class CheckoutForm(forms.Form):
                 # 6 decimal places (about 10 cm), the size of the database fields.
                 cleaned["lat"] = Decimal(f"{lat:.6f}")
                 cleaned["lng"] = Decimal(f"{lng:.6f}")
+
+        # The city and area come from the map lookup, so they only count with a confirmed pin.
+        if lat is None:
+            cleaned["city"] = ""
+            cleaned["area"] = ""
         return cleaned

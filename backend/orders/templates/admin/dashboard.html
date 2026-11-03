@@ -51,7 +51,7 @@ the context processors (and their queries) again for every card.
                                     </td>
                                     <td class="py-2 pr-3">{{ row.order.user.get_full_name|default:row.order.user.email }}</td>
                                     <td class="py-2 pr-3">{% include "unfold/helpers/label.html" with type=row.colour text=row.order.status_label %}</td>
-                                    <td class="py-2 pr-3 text-right">Rs. {{ row.order.total }}</td>
+                                    <td class="py-2 pr-3 text-right">Rs. {{ row.order.total|nepali_comma }}</td>
                                     <td class="py-2 text-subtle">{{ row.order.created_at|date:"j M, g:i A" }}</td>
                                 </tr>
                             {% endfor %}

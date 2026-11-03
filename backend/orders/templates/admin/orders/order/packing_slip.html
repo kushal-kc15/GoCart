@@ -81,22 +81,22 @@
                     {# The name and price saved when the order was placed. #}
                     <td>{{ item.product_name|default:item.product.name }}</td>
                     <td class="num">{{ item.quantity }}</td>
-                    <td class="num">Rs. {{ item.price }}</td>
-                    <td class="num">Rs. {{ item.line_total }}</td>
+                    <td class="num">Rs. {{ item.price|nepali_comma }}</td>
+                    <td class="num">Rs. {{ item.line_total|nepali_comma }}</td>
                 </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <table class="totals">
-        <tr><td class="num">Subtotal</td><td class="num">Rs. {{ order.subtotal }}</td></tr>
-        <tr><td class="num">Shipping</td><td class="num">Rs. {{ order.shipping_fee }}</td></tr>
-        <tr class="grand"><td class="num">Total</td><td class="num">Rs. {{ order.total }}</td></tr>
+        <tr><td class="num">Subtotal</td><td class="num">Rs. {{ order.subtotal|nepali_comma }}</td></tr>
+        <tr><td class="num">Shipping</td><td class="num">Rs. {{ order.shipping_fee|nepali_comma }}</td></tr>
+        <tr class="grand"><td class="num">Total</td><td class="num">Rs. {{ order.total|nepali_comma }}</td></tr>
     </table>
 
     <div class="payment">
         {% if payment.method == "cod" and payment.status == "pending" %}
-            Cash on Delivery: collect Rs. {{ order.total }}
+            Cash on Delivery: collect Rs. {{ order.total|nepali_comma }}
         {% elif payment.method == "cod" and payment.status == "paid" %}
             Cash on Delivery: paid{% if payment.collected_by %}, collected by {{ payment.collector_name }}{% endif %}{% if payment.paid_at %} on {{ payment.paid_at|date:"j M Y, g:i A" }}{% endif %}
         {% elif payment %}

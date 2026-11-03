@@ -1,6 +1,6 @@
-// Checkout page (checkoutpage.html): delivery or pick up, saved addresses, and the
-// "Pin on map" / "Type my address" switch with its map.
-// Prices come from the server in "checkout-data"; this file only swaps which one shows.
+// Checkout page (checkoutpage.html): delivery or pick up with an interactive
+// Leaflet map. Prices come from the server in "checkout-data"; this file only
+// swaps which one shows.
 // Address lookups go to our /api/geocode/ views, never straight to Nominatim.
 // Text from the map, the store or the server is always set with textContent, never innerHTML.
 (function () {
@@ -17,15 +17,16 @@
 
   var latInput = $("id_lat");
   var lngInput = $("id_lng");
+  var cityInput = $("id_city"); // hidden; from the map lookup
+  var areaInput = $("id_area"); // hidden; the area and town from the map lookup, e.g. "Pokhara"
   var addressInput = $("id_address_line");
   var landmarkInput = $("id_landmark");
   var phoneInput = $("id_phone");
   var landmarkTag = $("landmark-tag");
   var locText = $("loc-text");
   var mapError = $("map-err");
-  var confirmButton = $("map-confirm");
 
-  var KATHMANDU = [27.7172, 85.324];
+  var POKHARA = [28.2096, 83.9856];
   var store = data.store;
   var storeOnMap = store.lat !== null && store.lng !== null;
   var mapWorks = typeof L !== "undefined"; // false if Leaflet didn't load (offline)
@@ -34,17 +35,6 @@
   var storeMarker = null;
   var lookupTimer = null;
   var lookupCount = 0;
-
-  // "map" = pin on map, "type" = typed address. Back after a form error with a typed
-  // address (or an error on it), start on "type". Without a working map, always "type".
-  var how = "map";
-  if (
-    !mapWorks ||
-    $("typed-fields").querySelector(".field-err") ||
-    (addressInput.value.trim() && !latInput.value)
-  ) {
-    how = "type";
-  }
 
   // Hints that only matter without JavaScript ("Only needed for home delivery:")
   document.querySelectorAll(".no-js-hint").forEach(function (hint) {
@@ -56,32 +46,23 @@
     return checked ? checked.value : "delivery";
   }
 
-  function isNewAddress() {
-    var checked = form.querySelector('input[name="address_id"]:checked');
-    return !checked || checked.value === ""; // no saved addresses: always new
-  }
-
-  // ---- Show the parts for the chosen delivery service and address ----
+  // ---- Show the parts for the chosen delivery service ----
   function update() {
     var pickup = method() === "pickup";
-    var newAddress = !pickup && isNewAddress();
-    var onMap = newAddress && how === "map";
+    var delivery = !pickup;
+    var hasPin = pin !== null && !!latInput.value;
 
     $("dp-title").textContent = pickup
       ? "Pick up location"
       : "Delivery location";
     show("pickup-info", pickup);
-    show("delivery-info", !pickup);
-    show("addr-switch", newAddress && mapWorks);
-    show("map-search", onMap);
-    show("map-hint", onMap);
-    show("map-confirm", onMap);
-    show("typed-fields", newAddress && how === "type");
-    show("landmark-field", newAddress);
-    show("save-field", newAddress);
-    show("map-box", mapWorks && (onMap || (pickup && storeOnMap)));
-    $("mode-map").setAttribute("aria-pressed", String(how === "map"));
-    $("mode-type").setAttribute("aria-pressed", String(how === "type"));
+    show("delivery-info", delivery);
+    show("map-search", delivery && mapWorks);
+    show("map-hint", delivery && mapWorks && !hasPin);
+    show("street-field", delivery);
+    show("street-hint", delivery);
+    show("landmark-field", delivery);
+    show("map-box", mapWorks && (delivery || (pickup && storeOnMap)));
 
     // The server's totals for this delivery service
     $("summary-shipping").textContent = data.totals[method()].shipping;
@@ -96,21 +77,6 @@
     .forEach(function (radio) {
       radio.addEventListener("change", update);
     });
-  form.querySelectorAll('input[name="address_id"]').forEach(function (radio) {
-    radio.addEventListener("change", function () {
-      // A saved address brings its own phone, "Add new address" the account's. Still editable.
-      if (radio.dataset.phone) phoneInput.value = radio.dataset.phone;
-      update();
-    });
-  });
-  $("mode-map").addEventListener("click", function () {
-    how = "map";
-    update();
-  });
-  $("mode-type").addEventListener("click", function () {
-    how = "type";
-    update();
-  });
 
   function showError(text) {
     mapError.textContent = text;
@@ -159,14 +125,12 @@
 
   function startMap() {
     if (map) return;
-    // Start at the default (else newest) pinned saved address, else the store,
-    // else central Kathmandu. There is no pin until the customer drops one.
-    var start = KATHMANDU;
-    if (data.addresses.length) {
-      start = [Number(data.addresses[0].lat), Number(data.addresses[0].lng)];
-    } else if (storeOnMap) {
-      start = [store.lat, store.lng];
-    }
+    // Start at Pokhara coordinates (or server default). No pin until the customer drops one.
+    var start =
+      data.center && data.center.lat && data.center.lng
+        ? [Number(data.center.lat), Number(data.center.lng)]
+        : POKHARA;
+
     map = L.map("map").setView(start, 15);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -175,8 +139,7 @@
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
     map.on("click", function (event) {
-      if (method() === "delivery" && isNewAddress() && how === "map")
-        placePin(event.latlng);
+      if (method() === "delivery") placePin(event.latlng);
     });
 
     if (storeOnMap) {
@@ -192,6 +155,9 @@
     startMap();
     // A map drawn while hidden has the wrong size until told to measure again.
     map.invalidateSize();
+    setTimeout(function () {
+      if (map) map.invalidateSize();
+    }, 250);
     if (pickup) {
       if (pin) pin.remove();
       storeMarker.addTo(map);
@@ -205,6 +171,7 @@
         ", " +
         Number(store.lng).toFixed(5) +
         ")";
+      show("map-hint", false);
     } else {
       if (storeMarker) storeMarker.remove();
       if (pin) {
@@ -215,23 +182,20 @@
     }
   }
 
-  // The green line under the map: what to do next, or the confirmed location.
+  // The green line under the map: confirmed location summary.
   function showPinStatus() {
-    if (method() === "pickup") return; // the line shows the store then
-    if (!pin) {
+    if (method() === "pickup") return;
+    if (!pin || !latInput.value) {
       locText.textContent = "";
-    } else if (!latInput.value) {
-      locText.textContent =
-        "Drag the pin to your exact spot, then press Confirm this location.";
+      show("map-hint", true);
     } else {
-      locText.textContent =
-        "Delivery location: " +
-        (addressInput.value.trim() || "Pinned location") +
-        " (" +
-        Number(latInput.value).toFixed(5) +
-        ", " +
-        Number(lngInput.value).toFixed(5) +
-        ")";
+      var street = addressInput ? addressInput.value.trim() : "";
+      var where = street
+        ? [street, cityInput.value].filter(Boolean).join(", ")
+        : areaInput.value || (cityInput.value ? cityInput.value : "");
+      var text = "Location pinned" + (where ? ": " + where : "");
+      locText.textContent = text;
+      show("map-hint", false);
     }
   }
 
@@ -257,42 +221,37 @@
   }
 
   function pinMoved() {
-    // A moved pin is not used until it is confirmed again.
-    latInput.value = "";
-    lngInput.value = "";
-    confirmButton.disabled = false;
-    hideError();
-    showPinStatus();
-    pin.setPopupContent(pinPopup("Selected point on street map"));
-    // Ask for the address once the pin has stayed still for a second.
-    // The count makes answers for an older spot be ignored.
-    lookupCount += 1;
-    clearTimeout(lookupTimer);
-    lookupTimer = setTimeout(lookUpAddress, 1000);
-  }
-
-  function confirmLocation() {
-    if (!pin) return;
+    // Auto-confirm coordinates immediately on pin placement/movement
     var spot = pin.getLatLng();
     latInput.value = spot.lat.toFixed(6);
     lngInput.value = spot.lng.toFixed(6);
-    confirmButton.disabled = true;
     hideError();
     showPinStatus();
+    pin.setPopupContent(pinPopup("Selected point on street map"));
+
+    // Reverse geocode to populate city, area, street and nearest landmark
+    lookupCount += 1;
+    clearTimeout(lookupTimer);
+    lookupTimer = setTimeout(lookUpAddress, 500);
   }
-  confirmButton.addEventListener("click", confirmLocation);
 
   // ---- Suggestions from the map for the address and landmark ----
   // Fill a field from the map only if it is empty or was filled by the map before.
   function suggest(input, text) {
-    if (!text) return false;
+    if (!input) return false;
     if (input.value.trim() && !input.dataset.fromMap) return false; // the customer's own words win
+    text = text || "";
     input.value = input.maxLength > 0 ? text.slice(0, input.maxLength) : text;
-    input.dataset.fromMap = "true";
-    return true;
+    if (text) {
+      input.dataset.fromMap = "true";
+    } else {
+      delete input.dataset.fromMap;
+    }
+    return text !== "";
   }
 
   function showLandmarkTag(fromMap) {
+    if (!landmarkTag) return;
     landmarkTag.hidden = false;
     landmarkTag.classList.toggle("is-custom", !fromMap);
     landmarkTag.textContent = fromMap
@@ -306,13 +265,19 @@
     }
   }
 
-  addressInput.addEventListener("input", function () {
-    delete addressInput.dataset.fromMap;
-  });
-  landmarkInput.addEventListener("input", function () {
-    delete landmarkInput.dataset.fromMap;
-    showLandmarkTag(false);
-  });
+  if (addressInput) {
+    addressInput.addEventListener("input", function () {
+      delete addressInput.dataset.fromMap;
+      showPinStatus();
+    });
+  }
+  if (landmarkInput) {
+    landmarkInput.addEventListener("input", function () {
+      delete landmarkInput.dataset.fromMap;
+      showLandmarkTag(false);
+      showPinStatus();
+    });
+  }
 
   function lookUpAddress() {
     var thisLookup = lookupCount;
@@ -328,9 +293,23 @@
         return response.ok ? response.json() : null;
       })
       .then(function (found) {
-        if (!found || thisLookup !== lookupCount) return; // failed, or the pin has moved since
-        suggest(addressInput, found.address);
-        if (suggest(landmarkInput, found.landmark)) showLandmarkTag(true);
+        if (!found || thisLookup !== lookupCount) return;
+
+        // Auto-confirm coordinates
+        latInput.value = spot.lat.toFixed(6);
+        lngInput.value = spot.lng.toFixed(6);
+
+        // Silently populate street in the background for order address construction
+        suggest(addressInput, found.street);
+        cityInput.value = (found.city || "").slice(0, 100);
+        areaInput.value = (found.area || "").slice(0, 150);
+
+        if (suggest(landmarkInput, found.landmark)) {
+          showLandmarkTag(true);
+        } else if (!landmarkInput.value && landmarkTag) {
+          landmarkTag.hidden = true;
+        }
+
         pin.setPopupContent(
           pinPopup(
             found.landmark || found.address || "Selected point on street map",
@@ -339,7 +318,7 @@
         showPinStatus();
       })
       .catch(function () {
-        /* no suggestion: the customer can type it */
+        /* keep existing location info */
       });
   }
 
@@ -352,7 +331,20 @@
     }
     hideError();
     locText.textContent = "Searching…";
-    fetch(data.urls.search + "?q=" + encodeURIComponent(text), {
+
+    var searchUrl = data.urls.search + "?q=" + encodeURIComponent(text);
+    if (map) {
+      var bounds = map.getBounds();
+      var vb = [
+        bounds.getWest().toFixed(4),
+        bounds.getNorth().toFixed(4),
+        bounds.getEast().toFixed(4),
+        bounds.getSouth().toFixed(4),
+      ].join(",");
+      searchUrl += "&viewbox=" + encodeURIComponent(vb);
+    }
+
+    fetch(searchUrl, {
       headers: { Accept: "application/json" },
     })
       .then(function (response) {
@@ -420,31 +412,16 @@
   form.addEventListener(
     "submit",
     function (event) {
-      if (method() !== "delivery" || !isNewAddress()) return;
-
-      if (how === "type") {
-        // A typed address goes without a map pin.
-        latInput.value = "";
-        lngInput.value = "";
-        return;
-      }
+      if (method() !== "delivery") return;
 
       var problem = "";
-      if (!pin) {
-        problem = "Drop a pin on the map, or switch to Type my address.";
-      } else if (!latInput.value) {
-        problem = "Press Confirm this location before placing your order.";
+      if (!pin || !latInput.value) {
+        problem = "Drop a pin on the map to set your delivery location.";
       }
       if (problem) {
         event.preventDefault();
         showError(problem);
-        (pin ? confirmButton : $("map-q")).focus();
-        return;
-      }
-      // The map found no street for this pin: the pin and landmark still guide the courier.
-      if (!addressInput.value.trim()) {
-        addressInput.value =
-          "Pinned location (" + latInput.value + ", " + lngInput.value + ")";
+        $("map-q").focus();
       }
     },
     true,
@@ -457,11 +434,13 @@
     latInput.value &&
     lngInput.value &&
     map &&
-    method() === "delivery" &&
-    isNewAddress() &&
-    how === "map"
+    method() === "delivery"
   ) {
+    var postedCity = cityInput.value;
+    var postedArea = areaInput.value;
     placePin(L.latLng(Number(latInput.value), Number(lngInput.value)), 16);
-    confirmLocation();
+    cityInput.value = postedCity;
+    areaInput.value = postedArea;
+    showPinStatus();
   }
 })();

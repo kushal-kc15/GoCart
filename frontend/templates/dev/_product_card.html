@@ -22,7 +22,7 @@
         <p class="stock in">In Stock</p>
         <div class="price-row">
             <span>{{ product.unit|default:"" }}</span>
-            <strong>Rs. {{ product.price|floatformat:"-2" }}</strong>
+            <strong>Rs. {{ product.price|floatformat:"-2"|nepali_comma }}</strong>
         </div>
         <div class="actions">
             {# data-ajax: common.js adds to the cart in place (no reload). Not on the cart page (anchor="recs"): #}

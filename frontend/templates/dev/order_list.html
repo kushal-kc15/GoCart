@@ -54,7 +54,7 @@
                         </div>
                         <div class="ol-summary">
                             <span class="ol-items">{{ count }} item{{ count|pluralize }}</span>
-                            <strong class="ol-total">Rs. {{ order.total|floatformat:"-2" }}</strong>
+                            <strong class="ol-total">Rs. {{ order.total|floatformat:"-2"|nepali_comma }}</strong>
                         </div>
                     </div>
 

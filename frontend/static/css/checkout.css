@@ -72,7 +72,6 @@
 }
 .checkout .co-btn.ghost { background: #fff; color: var(--green); border: 1px solid var(--green); }
 .checkout .co-btn:disabled { opacity: .5; cursor: default; }
-.checkout .confirm { margin-top: 10px; }
 
 /* "Pin on map" / "Type my address" switch */
 .checkout .seg { display: flex; border: 1px solid var(--green); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
@@ -120,10 +119,8 @@
   border-color: var(--green) !important; background-color: #f7fbf8 !important;
   box-shadow: 0 0 0 3px rgba(31, 107, 58, .25) !important; transition: all .3s ease;
 }
-.checkout .save-opt { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); cursor: pointer; margin: 0 0 4px; }
-.checkout .save-opt input { width: 16px; height: 16px; margin: 0; accent-color: var(--green); }
 
-/* Radio cards: delivery service and saved addresses (text size and colour come from label) */
+/* Radio cards: delivery service (text size and colour come from label) */
 .checkout .opt {
   display: flex; align-items: center; gap: 12px; padding: 13px 14px; margin-bottom: 10px;
   border: 1px solid var(--line); background: var(--bg); cursor: pointer;
@@ -131,17 +128,6 @@
 .checkout .opt input { width: auto; margin: 0; accent-color: var(--green); }
 .checkout .opt small { margin-left: auto; color: var(--muted); }
 .checkout .opt:has(input:checked) { border-color: var(--green); background: #eef7f0; }
-.checkout .addr-list { margin-bottom: 16px; }
-.checkout .addr-card { align-items: flex-start; }
-.checkout .addr-card input { margin-top: 2px; }
-.checkout .addr-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.checkout .addr-body small { margin-left: 0; font-size: 12px; }
-.checkout .addr-line { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
-.checkout .addr-body .pinned { color: var(--green); font-weight: 600; }
-.checkout .tag {
-  font-style: normal; font-size: 11px; font-weight: 600; color: #fff; background: var(--green);
-  padding: 1px 7px; border-radius: 10px; margin-left: 6px; white-space: nowrap;
-}
 
 /* Pick up store */
 .checkout .store { background: var(--bg); border: 1px solid var(--line); padding: 12px 14px; margin: 0 0 12px; line-height: 1.6; color: #555; font-size: 13px; }

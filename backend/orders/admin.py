@@ -1,3 +1,4 @@
+from config.currency import format_nepali
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
@@ -8,6 +9,7 @@ from django.urls import path
 from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.html import format_html
+from django.utils.timesince import timesince
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 from unfold.contrib.filters.admin import ChoicesDropdownFilter, RangeDateFilter
 from unfold.decorators import action, display
@@ -74,7 +76,7 @@ class OrderItemInline(TabularInline):
     model = OrderItem
     extra = 0
     can_delete = False
-    fields = ('item_name', 'quantity', 'price', 'line_total')
+    fields = ('item_name', 'quantity', 'formatted_price', 'formatted_line_total')
     readonly_fields = fields
 
     def has_add_permission(self, request, obj=None):
@@ -85,13 +87,25 @@ class OrderItemInline(TabularInline):
         # Older rows may have no saved name.
         return obj.product_name or obj.product.name
 
+    @admin.display(description="Price")
+    def formatted_price(self, obj):
+        return format_nepali(obj.price, 2)
+
+    @admin.display(description="Total")
+    def formatted_line_total(self, obj):
+        return format_nepali(obj.line_total, 2)
+
 
 class PaymentInline(StackedInline):
     model = Payment
     extra = 0
     can_delete = False
-    fields = ('method', 'status', 'amount', 'paid_at', 'cash_collected_by')
+    fields = ('method', 'status', 'formatted_amount', 'paid_at', 'cash_collected_by')
     readonly_fields = fields
+
+    @admin.display(description="Amount")
+    def formatted_amount(self, obj):
+        return format_nepali(obj.amount, 2)
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -118,7 +132,7 @@ class StatusHistoryInline(TabularInline):
 class OrderAdmin(ModelAdmin):
     list_display = (
         'order_number', 'customer', 'customer_phone', 'status_badge', 'delivery_method',
-        'payment_badge', 'total', 'created_at',
+        'payment_badge', 'formatted_total', 'created_at',
     )
     list_display_links = ('order_number',)
     list_filter = (
@@ -141,13 +155,26 @@ class OrderAdmin(ModelAdmin):
     fieldsets = (
         ("Customer", {"fields": ('customer', 'customer_email', 'customer_phone')}),
         ("Delivery", {"fields": ('delivery_method', 'address', 'delivery_location')}),
-        ("Order", {"fields": ('order_number', 'current_status', 'created_at', 'updated_at')}),
-        ("Totals", {"fields": ('subtotal', 'shipping_fee', 'total')}),
+        ("Order", {"fields": ('order_number', 'current_status', 'created_at_display', 'updated_at_display')}),
+        ("Totals", {"fields": ('formatted_subtotal', 'formatted_shipping_fee', 'formatted_total')}),
     )
     readonly_fields = (
         'customer', 'customer_email', 'customer_phone', 'order_number', 'current_status',
-        'delivery_location',
+        'delivery_location', 'formatted_subtotal', 'formatted_shipping_fee', 'formatted_total',
+        'created_at_display', 'updated_at_display',
     )
+
+    @admin.display(description="Subtotal")
+    def formatted_subtotal(self, obj):
+        return format_nepali(obj.subtotal, 2)
+
+    @admin.display(description="Shipping fee")
+    def formatted_shipping_fee(self, obj):
+        return format_nepali(obj.shipping_fee, 2)
+
+    @admin.display(description="Total", ordering="total")
+    def formatted_total(self, obj):
+        return format_nepali(obj.total, 2)
     inlines = [OrderItemInline, PaymentInline, StatusHistoryInline]
 
     # Cancel and Delivered are done one order at a time, from the order page.
@@ -224,6 +251,24 @@ class OrderAdmin(ModelAdmin):
     @admin.display(description="Status")
     def current_status(self, obj):
         return obj.status_label
+
+    def _fmt_with_ago(self, dt):
+        if dt is None:
+            return "-"
+        local = timezone.localtime(dt)
+        formatted = date_format(local, "j M Y, g:i A")
+        ago = timesince(dt)
+        # timesince returns e.g. "3 hours, 12 minutes" — keep only the first part.
+        ago = ago.split(",")[0]
+        return format_html("{} <span style='color:#6b7280;font-size:0.875em;'>({} ago)</span>", formatted, ago)
+
+    @admin.display(description="Created at")
+    def created_at_display(self, obj):
+        return self._fmt_with_ago(obj.created_at)
+
+    @admin.display(description="Updated at")
+    def updated_at_display(self, obj):
+        return self._fmt_with_ago(obj.updated_at)
 
     @display(description="Payment", label=PAYMENT_COLOURS)
     def payment_badge(self, obj):

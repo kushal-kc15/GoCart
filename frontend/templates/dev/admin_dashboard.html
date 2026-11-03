@@ -135,7 +135,7 @@
                 <div class="stat-card">
                     <div class="stat-card__icon">💰</div>
                     <div>
-                        <div class="stat-card__num">Rs. {{ revenue }}</div>
+                        <div class="stat-card__num">Rs. {{ revenue|nepali_comma }}</div>
                         <div class="stat-card__lbl">Revenue</div>
                     </div>
                 </div>
@@ -161,7 +161,7 @@
                                 <td>#{{ order.pk }}</td>
                                 <td>{{ order.user.email }}</td>
                                 <td><span class="badge badge--{{ order.status }}">{{ order.get_status_display }}</span></td>
-                                <td>Rs. {{ order.total }}</td>
+                                <td>Rs. {{ order.total|nepali_comma }}</td>
                                 <td>{{ order.created_at|date:"d M Y" }}</td>
                             </tr>
                             {% endfor %}
@@ -222,7 +222,7 @@
                             <tr>
                                 <td>{{ product.name }}</td>
                                 <td>{{ product.category.name }}</td>
-                                <td>Rs. {{ product.price }}</td>
+                                <td>Rs. {{ product.price|nepali_comma }}</td>
                                 <td>{{ product.stock }}</td>
                                 <td>{% if product.is_available %}Yes{% else %}No{% endif %}</td>
                             </tr>
@@ -258,7 +258,7 @@
                                 <td>#{{ order.pk }}</td>
                                 <td>{{ order.user.email }}</td>
                                 <td><span class="badge badge--{{ order.status }}">{{ order.get_status_display }}</span></td>
-                                <td>Rs. {{ order.total }}</td>
+                                <td>Rs. {{ order.total|nepali_comma }}</td>
                                 <td>{{ order.address }}</td>
                                 <td>{{ order.created_at|date:"d M Y, H:i" }}</td>
                             </tr>
@@ -325,7 +325,7 @@
                                 <td>{{ product.name }}</td>
                                 <td>{{ product.category.name }}</td>
                                 <td><span class="badge badge--low">{{ product.stock }}</span></td>
-                                <td>Rs. {{ product.price }}</td>
+                                <td>Rs. {{ product.price|nepali_comma }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

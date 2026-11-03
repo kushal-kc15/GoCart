@@ -1,3 +1,4 @@
+from config.currency import format_nepali
 import logging
 
 from django.conf import settings
@@ -11,6 +12,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import F, Prefetch
+from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from accounts.models import Address
@@ -53,7 +55,7 @@ def _checkout_totals(cart_items, delivery_method):
 
 
 def _rupees(amount):
-    return f"Rs. {floatformat(amount, '-2')}"
+    return f"Rs. {format_nepali(amount, '-2')}"
 
 
 def _account_name(user):
@@ -63,48 +65,27 @@ def _account_name(user):
 
 
 def _delivery_details(form, user):
-    """What the order saves about where it goes: (saved Address or None, fields for Order)."""
+    """What the order saves about where it goes: (fields for Order)."""
     data = form.cleaned_data
-    name = _account_name(user)
     details = {"landmark": "", "latitude": None, "longitude": None}
-    address = None
 
     if data["delivery_method"] == Order.DeliveryMethod.PICKUP:
         where = f"Pick up at {settings.SHOP_INFO['name']}"
-    elif data["saved_address"]:
-        address = data["saved_address"]
-        where = ", ".join(part for part in (address.address_line, address.area, address.city) if part)
-        details["landmark"] = address.landmark
-        # The pin was checked when it was saved, but it may have been edited since (e.g. in the admin).
-        lat, lng = address.latitude, address.longitude
-        if lat is not None and lng is not None and is_in_nepal(float(lat), float(lng)):
-            details.update(latitude=lat, longitude=lng)
-        elif lat is not None or lng is not None:
-            logger.warning(
-                "Saved address %s has a map pin outside Nepal (%s, %s); order placed without it.",
-                address.pk, lat, lng,
-            )
     else:
-        where = data["address_line"]
+        # The city and area come from the map lookup (CheckoutForm.clean).
+        street, city = data["address_line"], data["city"]
+        if not street:
+            # Only on the map, with a landmark: the area the map found (e.g. "Pokhara") stands
+            # in for the street and already names the city. Without a lookup, the landmark does.
+            street, city = data["area"] or data["landmark"], ""
+        where = ", ".join(part for part in (street, city) if part)
         details.update(landmark=data["landmark"], latitude=data["lat"], longitude=data["lng"])
-        if data["save_address"]:
-            # Reuse the same address saved before instead of making a copy.
-            # latitude=None matches an address without a pin. Older addresses with a
-            # city or area read differently, so they don't count as the same.
-            address = user.addresses.filter(
-                address_line__iexact=data["address_line"], area="", city="", phone=data["phone"],
-                landmark__iexact=data["landmark"], latitude=data["lat"], longitude=data["lng"],
-            ).first()
-            if address is None:
-                address = Address.objects.create(
-                    user=user, recipient_name=name, phone=data["phone"],
-                    address_line=data["address_line"], landmark=data["landmark"],
-                    latitude=data["lat"], longitude=data["lng"],
-                )
 
-    # Same "Name, address — phone" text as before, cut to fit the column.
-    details["address"] = f"{name}, {where} — {data['phone']}"[:255]
-    return address, details
+    # Only where it goes (street, area, city), cut to fit the column. The name comes
+    # from the account and the phone has its own field. Older orders still have
+    # "Name, address — phone" here.
+    details["address"] = where[:255]
+    return details
 
 
 class CheckoutView(LoginRequiredMixin, View):
@@ -129,12 +110,6 @@ class CheckoutView(LoginRequiredMixin, View):
                 "total": _rupees(choice_total),
             }
 
-        addresses = request.user.addresses.order_by("-is_default", "-created_at")
-        try:
-            selected_address_id = int(form["address_id"].value())
-        except (TypeError, ValueError):
-            selected_address_id = None  # "Add new address"
-
         shop = settings.SHOP_INFO
         store = {
             "name": shop["name"], "address": shop["address"],
@@ -143,10 +118,7 @@ class CheckoutView(LoginRequiredMixin, View):
         page_data = {
             "totals": totals,
             "store": store,
-            "addresses": [
-                {"id": a.pk, "lat": a.latitude, "lng": a.longitude}
-                for a in addresses if a.latitude is not None
-            ],
+            "center": {"lat": 28.2096, "lng": 83.9856},
             "urls": {"reverse": reverse("geocode_reverse"), "search": reverse("geocode_search")},
         }
         return render(request, "checkoutpage.html", {
@@ -154,15 +126,11 @@ class CheckoutView(LoginRequiredMixin, View):
             "method": method,
             "account_name": _account_name(request.user),
             "needs_name": "full_name" in form.fields,
-            # "Add new address" and saved addresses without a phone fill in this one.
-            "account_phone": request.user.phone or "",
             "cart_items": cart_items,
             "subtotal": subtotal,
             "shipping": shipping,
             "grand_total": grand_total,
             "totals": totals,
-            "saved_addresses": addresses,
-            "selected_address_id": selected_address_id,
             "store": store,
             "page_data": page_data,
         })
@@ -173,11 +141,8 @@ class CheckoutView(LoginRequiredMixin, View):
             messages.info(request, "Your cart is empty. Add some items before checkout.")
             return redirect("cart:cart_detail")
 
-        # The default (else newest) address starts selected, with its phone.
-        newest = request.user.addresses.order_by("-is_default", "-created_at").first()
         form = CheckoutForm(user=request.user, initial={
-            "phone": (newest.phone if newest else "") or request.user.phone or "",
-            "address_id": newest.pk if newest else None,
+            "phone": request.user.phone or "",
         })
         return self._render(request, form, cart_items)
 
@@ -218,11 +183,10 @@ class CheckoutView(LoginRequiredMixin, View):
 
         method = form.cleaned_data["delivery_method"]
         subtotal, shipping, grand_total = _checkout_totals(cart_items, method)
-        address, details = _delivery_details(form, request.user)
+        details = _delivery_details(form, request.user)
 
         order = Order.objects.create(
             user=request.user,
-            shipping_address=address,
             status=Order.Status.PENDING,
             delivery_method=method,
             subtotal=subtotal,
@@ -325,3 +289,4 @@ def cancel_order(request, pk):
     if next_url:
         return redirect(next_url)
     return redirect("orders:order_detail", pk=order.pk)
+

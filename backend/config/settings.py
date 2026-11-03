@@ -66,6 +66,9 @@ TEMPLATES = [
                 'cart.context_processors.cart_count',
                 'wishlist.context_processors.wishlist',
             ],
+            'builtins': [
+                'orders.templatetags.currency_tags',
+            ],
         },
     },
 ]

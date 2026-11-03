@@ -46,7 +46,8 @@ class Address(models.Model):
     recipient_name = models.CharField(max_length=200)
     phone = models.CharField(max_length=15)
     address_line = models.CharField(max_length=255)
-    # Blank for addresses from the map checkout, where the city is part of address_line.
+    # Blank when the city is part of address_line: typed checkout addresses, and map pins
+    # given with only a landmark.
     city = models.CharField(max_length=100, blank=True)
     area = models.CharField(max_length=100, blank=True)
     landmark = models.CharField(max_length=255, blank=True)

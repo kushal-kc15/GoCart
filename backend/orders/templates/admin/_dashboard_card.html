@@ -8,6 +8,6 @@ each card separately, which runs every context processor (and its queries) again
     <p class="text-subtle mb-4">{{ card.hint }}</p>
     <p class="text-3xl font-semibold text-important">{{ card.count }}</p>
     {% if "amount" in card %}
-        <p class="text-subtle">Rs. {{ card.amount }}</p>
+        <p class="text-subtle">Rs. {{ card.amount|nepali_comma }}</p>
     {% endif %}
 </{% if card.url %}a{% else %}div{% endif %}>

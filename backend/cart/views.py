@@ -1,3 +1,4 @@
+from config.currency import format_nepali
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -62,9 +63,9 @@ def _cart_summary(user):
     subtotal, shipping, grand_total = _cart_totals(cart_items)
     return {
         "product_count": len(cart_items),
-        "subtotal": f"Rs. {floatformat(subtotal, '-2')}",
-        "shipping": f"Rs. {shipping}" if shipping else "Free",
-        "grand_total": f"Rs. {floatformat(grand_total, '-2')}",
+        "subtotal": f"Rs. {format_nepali(subtotal, '-2')}",
+        "shipping": f"Rs. {format_nepali(shipping, '-2')}" if shipping else "Free",
+        "grand_total": f"Rs. {format_nepali(grand_total, '-2')}",
     }
 
 
