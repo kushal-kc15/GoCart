@@ -39,11 +39,10 @@
                 <div class="invalid-feedback" id="nameErr">Enter a product name (min 2 characters).</div>
               </div>
               <div class="col-md-6">
-                <label class="form-label" for="discount">Discount (%)</label>
+                <label class="form-label" for="coupon">Coupon Code</label>
                 <div class="input-group has-validation">
-                  <input id="discount" type="number" min="0" max="99" step="1" class="form-control" placeholder="e.g. 10">
-                  <span class="input-group-text">%</span>
-                  <div class="invalid-feedback">Enter 0 to 99.</div>
+                  <input id="coupon"  class="form-control text-uppercase" placeholder="e.g. SUMMER20">
+                  <div class="invalid-feedback">Use 3 to 20 letters, numbers or hyphens</div>
                 </div>
               </div>
               <div class="col-md-6">
@@ -134,6 +133,7 @@
             <div class="q-row"><span>Product Name</span><span id="qName">-</span></div>
             <div class="q-row"><span>Category</span><span id="qCat">-</span></div>
             <div class="q-row"><span>Price</span><span id="qPrice">-</span></div>
+            <div class="q-row"><span>Coupon Code</span><span id="qCoupon">-</span></div>
             <div class="q-row"><span>Stock Quantity</span><span id="qStock">-</span></div>
             <div class="q-row"><span>Status</span><span id="qStatus" class="status-badge on">In Stock </span></div>
           </div>
