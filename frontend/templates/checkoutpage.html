@@ -118,7 +118,7 @@
           <p class="hint" id="map-hint">Search your area, use your location or tap the map, then drag the pin to your exact spot.</p>
           <button type="button" class="co-btn confirm" id="map-confirm" disabled>Confirm this location</button>
         </div>
-        {{ form.lat }}{{ form.lng }}
+        {{ form.lat }}{{ form.lng }}{{ form.city }}{{ form.area }}
         {% for error in form.lat.errors %}<p class="field-err">Map pin: {{ error }}</p>{% endfor %}
         {% for error in form.lng.errors %}<p class="field-err">Map pin: {{ error }}</p>{% endfor %}
 
