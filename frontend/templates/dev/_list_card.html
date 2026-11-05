@@ -27,7 +27,6 @@
         <p class="pl-card-stock in">In Stock</p>
         {% endif %}
         <div class="pl-card-price">
-            <span>{{ p.unit|default:"" }}</span>
             <strong>Rs. {{ p.price|floatformat:"-2"|nepali_comma }}</strong>
         </div>
         {# data-ajax: common.js adds to the cart in place (no reload) #}

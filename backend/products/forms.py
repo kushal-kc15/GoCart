@@ -1,6 +1,20 @@
 from django import forms
 
-from .models import Review
+from .models import Product, Review
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ["name", "category", "price", "stock", "description", "is_available", "is_featured"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Fresh Spinach 500g"}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "placeholder": "e.g. 120", "min": "0", "step": "0.01"}),
+            "stock": forms.NumberInput(attrs={"class": "form-control", "placeholder": "e.g. 50", "min": "0"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4, "placeholder": "Describe the product..."}),
+            "is_available": forms.CheckboxInput(attrs={"class": "form-check-input", "role": "switch", "style": "width:2.6em;height:1.3em"}),
+            "is_featured": forms.CheckboxInput(attrs={"class": "form-check-input", "role": "switch", "style": "width:2.6em;height:1.3em"}),
+        }
 
 
 class ReviewForm(forms.ModelForm):

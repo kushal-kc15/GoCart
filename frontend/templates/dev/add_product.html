@@ -1,0 +1,315 @@
+{% extends "dev/base.html" %}
+{% load static %}
+
+{% block title %}Add Product – GoCart{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<style>
+    /* Select2 overrides to match Bootstrap form-select */
+    .select2-container--default .select2-selection--single {
+        height: 38px; border: 1px solid #dee2e6; border-radius: 0.375rem;
+        padding: 5px 12px; font-size: 0.875rem;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px; right: 8px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 26px; padding: 0; color: #212529;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #6c757d;
+    }
+    .select2-dropdown { border-color: #dee2e6; border-radius: 0.375rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 1px solid #dee2e6; border-radius: 6px; padding: 6px 10px; font-size: 0.85rem;
+    }
+    .select2-results__option--highlighted[aria-selected] { background: #2d6a4f !important; }
+    .select2-results__group { font-weight: 600; color: #2d6a4f; font-size: 0.82rem; padding: 8px 10px 4px; }
+    .select2-container { width: 100% !important; }
+    .ap-hero {
+        background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f2 100%);
+        padding: 28px 0 20px;
+        border-bottom: 1px solid #ddeee4;
+    }
+    .ap-hero h1 { font-size: 1.4rem; font-weight: 700; margin: 0; color: #1a3a26; }
+    .ap-hero p { font-size: 0.85rem; color: #5a7a68; margin: 4px 0 0; }
+    .gc-card { background: #fff; border-radius: 12px; border: 1px solid #e2ede8; margin-bottom: 20px; }
+    .gc-card-head {
+        padding: 14px 20px; border-bottom: 1px solid #e2ede8;
+        font-weight: 600; font-size: 0.9rem; color: #2a6042;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .gc-card-body { padding: 20px; }
+    .form-label { font-weight: 500; font-size: 0.875rem; color: #374151; margin-bottom: 5px; }
+    .q-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 8px 0; border-bottom: 1px solid #f0f5f2; font-size: 0.83rem;
+    }
+    .q-row:last-child { border-bottom: none; }
+    .q-row span:first-child { color: #6b7280; }
+    .q-row .q-val { font-weight: 500; color: #111827; max-width: 58%; text-align: right; word-break: break-word; }
+    .btn-gc-save {
+        background: #2d6a4f; color: #fff; border: none; padding: 10px 24px;
+        border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-gc-save:hover { background: #1b4332; }
+    .btn-gc-reset {
+        background: transparent; color: #6b7280; border: 1px solid #d1d5db;
+        padding: 10px 20px; border-radius: 8px; font-weight: 500; font-size: 0.9rem; cursor: pointer;
+    }
+    .btn-gc-reset:hover { background: #f9fafb; }
+    .img-upload-box {
+        border: 2px dashed #a7c4b3; border-radius: 10px; padding: 28px;
+        text-align: center; cursor: pointer; background: #f7fbf9; color: #5a7a68;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .img-upload-box:hover { border-color: #2d6a4f; background: #f0f8f4; }
+    .img-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .img-thumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 2px solid #e2ede8; }
+    .sbadge-on  { background: #d1fae5; color: #065f46; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+    .sbadge-off { background: #fee2e2; color: #991b1b; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ap-hero">
+    <div class="container">
+        <div class="d-flex align-items-center gap-3">
+            <div style="background:#2d6a4f;color:#fff;width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;">
+                <i class="bi bi-plus-lg"></i>
+            </div>
+            <div>
+                <h1>Add New Product</h1>
+                <p>Fill in the details below to add a new product to your store.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row g-4">
+
+        <!-- LEFT: FORM -->
+        <div class="col-lg-8">
+            <form method="post" enctype="multipart/form-data" id="addForm" novalidate>
+                {% csrf_token %}
+
+                <!-- Basic Information -->
+                <div class="gc-card">
+                    <div class="gc-card-head"><i class="bi bi-info-circle"></i> Basic Information</div>
+                    <div class="gc-card-body">
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.name.id_for_label }}">
+                                    Product Name <span class="text-danger">*</span>
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="text-danger small mt-1">{{ form.name.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="id_category">
+                                    Category <span class="text-danger">*</span>
+                                </label>
+                                <select name="category" id="id_category"
+                                    class="form-select{% if form.category.errors %} is-invalid{% endif %}" required>
+                                    <option value="">— Choose category —</option>
+                                    {% regroup categories by parent as dept_list %}
+                                    {% for dept in dept_list %}
+                                    <optgroup label="{{ dept.grouper }}">
+                                        {% for sub in dept.list %}
+                                        <option value="{{ sub.pk }}"
+                                            {% if form.category.value == sub.pk|stringformat:"i" %}selected{% endif %}>
+                                            {{ sub.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    {% endfor %}
+                                </select>
+                                {% if form.category.errors %}
+                                <div class="text-danger small mt-1">{{ form.category.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.price.id_for_label }}">
+                                    Price (Rs.) <span class="text-danger">*</span>
+                                </label>
+                                {{ form.price }}
+                                {% if form.price.errors %}
+                                <div class="text-danger small mt-1">{{ form.price.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.stock.id_for_label }}">
+                                    Stock Quantity <span class="text-danger">*</span>
+                                </label>
+                                {{ form.stock }}
+                                {% if form.stock.errors %}
+                                <div class="text-danger small mt-1">{{ form.stock.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                <div class="text-danger small mt-1">{{ form.description.errors|join:", " }}</div>
+                                {% endif %}
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Images -->
+                <div class="gc-card">
+                    <div class="gc-card-head"><i class="bi bi-images"></i> Product Images</div>
+                    <div class="gc-card-body">
+                        <div class="img-upload-box" id="uploadBox"
+                            onclick="document.getElementById('imageInput').click()">
+                            <i class="bi bi-cloud-upload" style="font-size:2rem;"></i>
+                            <div class="mt-2 fw-semibold">Click to upload images</div>
+                            <div class="text-muted small mt-1">JPEG, PNG or WebP · multiple files allowed</div>
+                        </div>
+                        <input type="file" name="images" id="imageInput"
+                            accept="image/jpeg,image/png,image/webp" multiple hidden>
+                        <div class="img-thumbs" id="thumbs"></div>
+                    </div>
+                </div>
+
+                <!-- Status Toggles -->
+                <div class="gc-card">
+                    <div class="gc-card-head"><i class="bi bi-toggles"></i> Status</div>
+                    <div class="gc-card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center p-3 rounded-3"
+                                    style="background:#f6faf8;">
+                                    <div>
+                                        <div class="fw-semibold small">Available</div>
+                                        <div class="text-muted" style="font-size:0.8rem;">Show in the store</div>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        {{ form.is_available }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center p-3 rounded-3"
+                                    style="background:#f6faf8;">
+                                    <div>
+                                        <div class="fw-semibold small">Featured</div>
+                                        <div class="text-muted" style="font-size:0.8rem;">Show on the home page</div>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        {{ form.is_featured }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mb-5">
+                    <button type="reset" class="btn-gc-reset" id="resetBtn">
+                        <i class="bi bi-arrow-repeat"></i> Reset
+                    </button>
+                    <button type="submit" class="btn-gc-save">
+                        <i class="bi bi-floppy"></i> Save Product
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- RIGHT: Quick Info -->
+        <div class="col-lg-4">
+            <div class="gc-card" style="position:sticky;top:100px;">
+                <div class="gc-card-head"><i class="bi bi-list-ul"></i> Quick Info</div>
+                <div class="gc-card-body py-2">
+                    <div class="q-row"><span>Product Name</span><span class="q-val" id="qName">—</span></div>
+                    <div class="q-row"><span>Category</span><span class="q-val" id="qCat">—</span></div>
+                    <div class="q-row"><span>Price</span><span class="q-val" id="qPrice">—</span></div>
+                    <div class="q-row"><span>Stock</span><span class="q-val" id="qStock">—</span></div>
+                    <div class="q-row"><span>Available</span><span class="q-val" id="qAvailable"><span class="sbadge-on">Yes</span></span></div>
+                    <div class="q-row"><span>Featured</span><span class="q-val" id="qFeatured"><span class="sbadge-off">No</span></span></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+
+function qs(id) { return document.getElementById(id); }
+$('#id_category').select2({
+    placeholder: '— Search for a category —',
+    allowClear: true,
+    width: '100%',
+    minimumInputLength: 1,
+});
+
+// Select2 fires 'change' on the original select, so this works for both
+$('#id_category').on('change', function() {
+    var opt = this.options[this.selectedIndex];
+    qs('qCat').textContent = opt && opt.value ? opt.text.trim() : '—';
+});
+
+qs('id_name').addEventListener('input', function() {
+    qs('qName').textContent = this.value || '—';
+});
+qs('id_price').addEventListener('input', function() {
+    qs('qPrice').textContent = this.value ? 'Rs. ' + Number(this.value).toLocaleString() : '—';
+});
+qs('id_stock').addEventListener('input', function() {
+    qs('qStock').textContent = this.value || '—';
+});
+qs('id_is_available').addEventListener('change', function() {
+    qs('qAvailable').innerHTML = this.checked
+        ? '<span class="sbadge-on">Yes</span>'
+        : '<span class="sbadge-off">No</span>';
+});
+qs('id_is_featured').addEventListener('change', function() {
+    qs('qFeatured').innerHTML = this.checked
+        ? '<span class="sbadge-on">Yes</span>'
+        : '<span class="sbadge-off">No</span>';
+});
+
+// Show thumbnails when images are selected
+qs('imageInput').addEventListener('change', function() {
+    const box = qs('thumbs');
+    box.innerHTML = '';
+    [...this.files].forEach(f => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        box.appendChild(img);
+    });
+    if (this.files.length) {
+        qs('uploadBox').style.borderColor = '#2d6a4f';
+    }
+});
+
+// Reset also clears thumbnails
+qs('resetBtn').addEventListener('click', function() {
+    qs('thumbs').innerHTML = '';
+    qs('uploadBox').style.borderColor = '';
+    qs('qName').textContent = '—';
+    qs('qCat').textContent = '—';
+    qs('qPrice').textContent = '—';
+    qs('qStock').textContent = '—';
+    qs('qAvailable').innerHTML = '<span class="sbadge-on">Yes</span>';
+    qs('qFeatured').innerHTML = '<span class="sbadge-off">No</span>';
+});
+</script>
+{% endblock %}

@@ -73,6 +73,9 @@
                     <li><a href="{% url 'products:product_list' %}" {% if request.resolver_match.url_name == 'product_list' %}class="active"{% endif %}>CATEGORIES</a></li>
                     <li class="nav-extra"><a href="#">ABOUT US</a></li>
                     <li class="nav-extra"><a href="#">CONTACT US</a></li>
+                    {% if user.is_staff %}
+                    <li><a href="{% url 'products:add_product' %}" {% if request.resolver_match.url_name == 'add_product' %}class="active"{% endif %}>ADD PRODUCT</a></li>
+                    {% endif %}
                 </ul>
             </nav>
 
@@ -109,6 +112,9 @@
                         <li><a href="{% url 'accounts:profile' %}">My Account</a></li>
                         <li><a href="{% url 'orders:order_list' %}">My Orders</a></li>
                         <li><a href="{% url 'wishlist:wishlist_detail' %}">Wishlist</a></li>
+                        {% if user.is_staff %}
+                        <li><a href="{% url 'products:add_product' %}">Add Product</a></li>
+                        {% endif %}
                         <li>
                             <form method="POST" action="{% url 'accounts:logout' %}" class="logout-form">
                                 {% csrf_token %}

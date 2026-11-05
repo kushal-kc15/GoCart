@@ -15,7 +15,7 @@ class HomePageTests(TestCase):
         cls.dept = Category.objects.create(name="Fruits & Veg", slug="fruits-veg")
         sub = Category.objects.create(name="Fruits", slug="fruits", parent=cls.dept)
         Product.objects.create(
-            category=sub, name="Sweet Mango", slug="sweet-mango", price=120, unit="1 kg", stock=5, is_featured=True,
+            category=sub, name="Sweet Mango", slug="sweet-mango", price=120, stock=5, is_featured=True,
         )
         Product.objects.create(category=sub, name="Plain Apple", slug="plain-apple", price=90, stock=5)
         Product.objects.create(

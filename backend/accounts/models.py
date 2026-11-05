@@ -28,8 +28,6 @@ class User(AbstractUser):
     role=models.CharField(max_length=50, blank=True, default='customer')
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    # False until the emailed sign-up code is entered. Not the same as is_active,
-    # which means "deactivated by staff".
     email_verified = models.BooleanField(default=False)
 
     objects = UserManager()
@@ -46,12 +44,9 @@ class Address(models.Model):
     recipient_name = models.CharField(max_length=200)
     phone = models.CharField(max_length=15)
     address_line = models.CharField(max_length=255)
-    # Blank when the city is part of address_line: typed checkout addresses, and map pins
-    # given with only a landmark.
     city = models.CharField(max_length=100, blank=True)
     area = models.CharField(max_length=100, blank=True)
     landmark = models.CharField(max_length=255, blank=True)
-    # The confirmed map pin, if the customer set one.
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_default = models.BooleanField(default=False)
@@ -72,9 +67,6 @@ class EmailVerification(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_verification"
     )
-    # Also kept in the browser session that last set the password. Only that session
-    # may use the code, so someone who signs up again with the same email can't
-    # take over the account when the real owner enters their code.
     session_token = models.CharField(max_length=64)
     code_hash = models.CharField(max_length=128, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)

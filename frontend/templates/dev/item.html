@@ -61,7 +61,7 @@
             <span class="stock-badge out">● Out of Stock</span>
             {% endif %}
         </div>
-        <div class="price">Rs. {{ product.price|floatformat:"-2"|nepali_comma }} <span>{{ product.unit|default:"" }}</span></div>
+        <div class="price">Rs. {{ product.price|floatformat:"-2"|nepali_comma }}</div>
         {% if product.description %}
         <p class="desc">{{ product.description }}</p>
         {% endif %}
@@ -202,7 +202,7 @@
                 <span class="rp-stock">In Stock</span>
             </div>
             <div class="rp-price-row">
-                <span>{{ rp.unit|default:"Price" }}</span>
+                <span>Price</span>
                 <span class="price">Rs. {{ rp.price|floatformat:"-2"|nepali_comma }}</span>
             </div>
         </div>

@@ -39,7 +39,6 @@ class Product(SortableModel):
     slug=models.SlugField(max_length=200, unique=True)
     description=models.TextField(blank=True, null=True)
     price=models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    unit=models.CharField(max_length=50, blank=True, null=True)
     stock=models.PositiveIntegerField(default=0)
     is_available=models.BooleanField(default=True)
     is_featured=models.BooleanField(default=False)

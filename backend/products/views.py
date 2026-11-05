@@ -5,16 +5,53 @@ from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from orders.models import Order, OrderItem
-from .forms import ReviewForm
-from .models import Category, Product, Review, star_text
+from .forms import ProductForm, ReviewForm
+from .models import Category, Product, ProductImage, Review, star_text
 
 PRODUCTS_PER_PAGE = 20
 SUGGESTION_LIMIT = 6
 REVIEWS_SHOWN = 10
 
+
+
+@login_required
+def add_product(request):
+    if not request.user.is_staff:
+        messages.error(request, "Staff only.")
+        return redirect("home")
+
+    # Subcategories only, grouped by parent for the template optgroup select.
+    categories = (
+        Category.objects.filter(parent__isnull=False)
+        .select_related("parent")
+        .order_by("parent__name", "name")
+    )
+
+    if request.method == "POST":
+        form = ProductForm(request.POST)
+        images = request.FILES.getlist("images")
+        if form.is_valid():
+            product = form.save(commit=False)
+            base_slug = slugify(product.name)
+            slug = base_slug
+            n = 2
+            while Product.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{n}"
+                n += 1
+            product.slug = slug
+            product.save()
+            for i, img in enumerate(images):
+                ProductImage.objects.create(product=product, image=img, sort_order=i)
+            messages.success(request, f'"{product.name}" has been added.')
+            return redirect("products:add_product")
+    else:
+        form = ProductForm()
+
+    return render(request, "dev/add_product.html", {"form": form, "categories": categories})
 
 
 def product_list(request):

@@ -154,7 +154,7 @@
             {% with first_image=item.product.images.all|first %}
             <img src="{% if first_image %}{{ first_image.image.url }}{% else %}{% static 'images/dev/fruits.jpg' %}{% endif %}" alt="">
             {% endwith %}
-            <span>{{ item.product.name }}<small>{% if item.product.unit %}{{ item.product.unit }} {% endif %}× {{ item.quantity }}</small></span>
+            <span>{{ item.product.name }}<small>× {{ item.quantity }}</small></span>
             <b class="s-price">Rs. {{ item.line_total|floatformat:"-2" }}</b>
           </div>
           {% endfor %}

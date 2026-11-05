@@ -121,7 +121,7 @@ class CheckoutView(LoginRequiredMixin, View):
             "center": {"lat": 28.2096, "lng": 83.9856},
             "urls": {"reverse": reverse("geocode_reverse"), "search": reverse("geocode_search")},
         }
-        return render(request, "checkoutpage.html", {
+        return render(request, "dev/checkoutpage.html", {
             "form": form,
             "method": method,
             "account_name": _account_name(request.user),
