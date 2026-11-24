@@ -169,9 +169,13 @@
         <label class="opt"><input type="radio" name="delivery_method" value="delivery"{% if method == "delivery" %} checked{% endif %}> Home delivery <small>{{ totals.delivery.shipping }}</small></label>
         <label class="opt"><input type="radio" name="delivery_method" value="pickup"{% if method == "pickup" %} checked{% endif %}> Pick up at store <small>{{ totals.pickup.shipping }}</small></label>
 
+        <div class="svc-label">Payment method</div>
+        {% for error in form.payment_method.errors %}<p class="field-err">{{ error }}</p>{% endfor %}
+        <label class="opt"><input type="radio" name="payment_method" value="cod" checked> Cash on Delivery</label>
+        <label class="opt"><input type="radio" name="payment_method" value="esewa"> Pay with eSewa</label>
+
         <div class="total">Total <span id="summary-total">Rs. {{ grand_total|floatformat:"-2" }}</span></div>
         <button type="submit" class="co-btn pay">Place Order</button>
-        <p class="hint pay-note">Pay in cash on delivery, or at the store when you pick up.</p>
       </section>
     </aside>
   </form>

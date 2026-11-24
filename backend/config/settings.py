@@ -172,6 +172,13 @@ PASSWORD_RESET_TIMEOUT = 60 * 60  # reset links work for 1 hour
 # Before going live, set NOMINATIM_USER_AGENT in .env with a real contact address.
 NOMINATIM_USER_AGENT = os.getenv("NOMINATIM_USER_AGENT") or "GoCart/1.0 (student project, local development)"
 
+# eSewa payment gateway (test environment).
+# Switch to production URLs and a real merchant code before going live.
+ESEWA_SECRET_KEY = os.environ.get("ESEWA_SECRET_KEY", "8gBm/:&EnhH.1/q")
+ESEWA_PRODUCT_CODE = os.environ.get("ESEWA_PRODUCT_CODE", "EPAYTEST")
+ESEWA_PAYMENT_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+ESEWA_VERIFICATION_URL = "https://uat.esewa.com.np/api/epay/transaction/status/"
+
 
 # django-unfold admin theme
 UNFOLD = {

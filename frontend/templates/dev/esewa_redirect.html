@@ -1,0 +1,19 @@
+{% extends "dev/base.html" %}
+
+{% block title %}Redirecting to eSewa...{% endblock %}
+
+{% block content %}
+<div style="text-align:center; padding:60px 20px;">
+  <h2>Redirecting to eSewa...</h2>
+  <p>Please wait while we redirect you to eSewa for payment.</p>
+  <form id="esewa-form" method="POST" action="{{ esewa_url }}">
+    {% for key, value in esewa_data.items %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <input type="hidden" name="success_url" value="{{ request.scheme }}://{{ request.get_host }}{% url 'orders:esewa_success' %}">
+    <input type="hidden" name="failure_url" value="{{ request.scheme }}://{{ request.get_host }}{% url 'orders:esewa_failure' %}">
+    <noscript><button type="submit">Click here if you are not redirected</button></noscript>
+  </form>
+</div>
+<script>document.getElementById("esewa-form").submit();</script>
+{% endblock %}

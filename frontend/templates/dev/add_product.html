@@ -71,6 +71,58 @@
     .img-thumbs img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 2px solid #e2ede8; }
     .sbadge-on  { background: #d1fae5; color: #065f46; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
     .sbadge-off { background: #fee2e2; color: #991b1b; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+    .btn-gc-add-cat {
+        width: 38px; height: 38px; flex-shrink: 0;
+        border: 2px dashed #a7c4b3; border-radius: 8px; background: #f7fbf9;
+        color: #2d6a4f; font-size: 1.1rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s;
+    }
+    .btn-gc-add-cat:hover { border-color: #2d6a4f; background: #e8f5e9; }
+    /* Category modal */
+    .cat-modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1050;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .hidden { display: none !important; }
+    .cat-modal {
+        background: #fff; border-radius: 14px; width: min(440px, calc(100vw - 32px));
+        box-shadow: 0 12px 40px rgba(0,0,0,0.18); overflow: hidden;
+    }
+    .cat-modal-head {
+        padding: 16px 20px; border-bottom: 1px solid #e2ede8;
+        font-weight: 600; font-size: 0.95rem; color: #1a3a26;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .cat-modal-head button { background: none; border: none; font-size: 1.2rem; color: #6b7280; cursor: pointer; }
+    .cat-modal-body { padding: 20px; }
+    .cat-modal-foot {
+        padding: 14px 20px; border-top: 1px solid #e2ede8;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .cat-steps { display: flex; gap: 6px; align-items: center; font-size: 0.8rem; color: #9ca3af; }
+    .cat-step { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.75rem; background: #e5e7eb; color: #6b7280; }
+    .cat-step.active { background: #2d6a4f; color: #fff; }
+    .cat-step.done { background: #d1fae5; color: #065f46; }
+    .cat-step-line { width: 20px; height: 2px; background: #e5e7eb; }
+    .cat-step-line.done { background: #2d6a4f; }
+    .dept-option {
+        padding: 10px 14px; border: 1px solid #e2ede8; border-radius: 8px;
+        cursor: pointer; font-size: 0.88rem; transition: all 0.15s;
+    }
+    .dept-option:hover { border-color: #2d6a4f; background: #f0f8f4; }
+    .dept-option.selected { border-color: #2d6a4f; background: #e8f5e9; font-weight: 600; }
+    .dept-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+    .new-dept-row {
+        display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2ede8;
+    }
+    .new-dept-row input { flex: 1; }
+    .btn-gc-small {
+        padding: 6px 14px; border: none; border-radius: 6px;
+        background: #2d6a4f; color: #fff; font-size: 0.82rem; font-weight: 600;
+        cursor: pointer; white-space: nowrap;
+    }
+    .btn-gc-small:hover { background: #1b4332; }
 </style>
 {% endblock %}
 
@@ -117,21 +169,28 @@
                                 <label class="form-label" for="id_category">
                                     Category <span class="text-danger">*</span>
                                 </label>
-                                <select name="category" id="id_category"
-                                    class="form-select{% if form.category.errors %} is-invalid{% endif %}" required>
-                                    <option value="">— Choose category —</option>
-                                    {% regroup categories by parent as dept_list %}
-                                    {% for dept in dept_list %}
-                                    <optgroup label="{{ dept.grouper }}">
-                                        {% for sub in dept.list %}
-                                        <option value="{{ sub.pk }}"
-                                            {% if form.category.value == sub.pk|stringformat:"i" %}selected{% endif %}>
-                                            {{ sub.name }}
-                                        </option>
-                                        {% endfor %}
-                                    </optgroup>
-                                    {% endfor %}
-                                </select>
+                                <div class="d-flex gap-2 align-items-start">
+                                    <div style="flex:1;">
+                                        <select name="category" id="id_category"
+                                            class="form-select{% if form.category.errors %} is-invalid{% endif %}" required>
+                                            <option value="">— Choose category —</option>
+                                            {% regroup categories by parent as dept_list %}
+                                            {% for dept in dept_list %}
+                                            <optgroup label="{{ dept.grouper }}">
+                                                {% for sub in dept.list %}
+                                                <option value="{{ sub.pk }}"
+                                                    {% if form.category.value == sub.pk|stringformat:"i" %}selected{% endif %}>
+                                                    {{ sub.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </optgroup>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <button type="button" id="addCatBtn" class="btn-gc-add-cat" title="Add new category">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                                 {% if form.category.errors %}
                                 <div class="text-danger small mt-1">{{ form.category.errors|join:", " }}</div>
                                 {% endif %}
@@ -247,6 +306,70 @@
 
     </div>
 </div>
+
+<!-- Add Category Modal -->
+<div class="cat-modal-backdrop hidden" id="catModal">
+    <div class="cat-modal">
+        <div class="cat-modal-head">
+            <span><i class="bi bi-folder-plus"></i> Add Category</span>
+            <button type="button" id="catModalClose">&times;</button>
+        </div>
+
+        <!-- Step 1: Pick or create a department -->
+        <div id="catStep1">
+            <div class="cat-modal-body">
+                <p class="form-label mb-2" style="font-size:0.9rem;">Which Category does it belong to?</p>
+                <div class="dept-list" id="deptList">
+                    {% for dept in departments %}
+                    <div class="dept-option" data-id="{{ dept.pk }}">{{ dept.name }}</div>
+                    {% endfor %}
+                </div>
+                <div class="new-dept-row">
+                    <input type="text" id="newDeptName" class="form-control form-control-sm" placeholder="Or type a new category name…">
+                    <button type="button" class="btn-gc-small" id="createDeptBtn">Create</button>
+                </div>
+                <div class="text-danger small mt-1 hidden" id="catError1"></div>
+            </div>
+            <div class="cat-modal-foot">
+                <div class="cat-steps">
+                    <span class="cat-step active">1</span>
+                    <span class="cat-step-line"></span>
+                    <span class="cat-step">2</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn-gc-reset" id="catCancelBtn1">Cancel</button>
+                    <button type="button" class="btn-gc-save" id="catNextBtn" disabled>Next →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Name the subcategory -->
+        <div id="catStep2" class="hidden">
+            <div class="cat-modal-body">
+                <div class="mb-3" style="font-size:0.85rem; color:#6b7280;">
+                    Category: <strong id="chosenDeptName"></strong>
+                </div>
+                <label class="form-label">Subcategory name <span class="text-danger">*</span></label>
+                <input type="text" id="catSubName" class="form-control" placeholder="e.g. Breakfast Cereals">
+                <div class="text-danger small mt-1 hidden" id="catError2"></div>
+            </div>
+            <div class="cat-modal-foot">
+                <div class="cat-steps">
+                    <span class="cat-step done">✓</span>
+                    <span class="cat-step-line done"></span>
+                    <span class="cat-step active">2</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn-gc-reset" id="catBackBtn">← Back</button>
+                    <button type="button" class="btn-gc-save" id="catSaveBtn">
+                        <i class="bi bi-plus-lg"></i> Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -310,6 +433,152 @@ qs('resetBtn').addEventListener('click', function() {
     qs('qStock').textContent = '—';
     qs('qAvailable').innerHTML = '<span class="sbadge-on">Yes</span>';
     qs('qFeatured').innerHTML = '<span class="sbadge-off">No</span>';
+});
+
+// ---- Add Category Modal (two-step wizard) ----
+var modal = qs('catModal');
+var chosenDeptId = null, chosenDeptName = '';
+
+function openModal() {
+    modal.classList.remove('hidden');
+    showStep(1);
+}
+function closeModal() {
+    modal.classList.add('hidden');
+    chosenDeptId = null;
+    chosenDeptName = '';
+    qs('newDeptName').value = '';
+    qs('catSubName').value = '';
+    qs('catError1').classList.add('hidden');
+    qs('catError2').classList.add('hidden');
+    document.querySelectorAll('.dept-option').forEach(function(d) { d.classList.remove('selected'); });
+    qs('catNextBtn').disabled = true;
+}
+function showStep(n) {
+    qs('catStep1').classList.toggle('hidden', n !== 1);
+    qs('catStep2').classList.toggle('hidden', n !== 2);
+    if (n === 2) qs('catSubName').focus();
+}
+
+qs('addCatBtn').addEventListener('click', openModal);
+qs('catModalClose').addEventListener('click', closeModal);
+qs('catCancelBtn1').addEventListener('click', closeModal);
+modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+
+// Step 1: pick a department
+qs('deptList').addEventListener('click', function(e) {
+    var opt = e.target.closest('.dept-option');
+    if (!opt) return;
+    document.querySelectorAll('.dept-option').forEach(function(d) { d.classList.remove('selected'); });
+    opt.classList.add('selected');
+    chosenDeptId = opt.dataset.id;
+    chosenDeptName = opt.textContent.trim();
+    qs('catNextBtn').disabled = false;
+    qs('newDeptName').value = '';
+});
+
+// Step 1: create a new department inline
+qs('createDeptBtn').addEventListener('click', function() {
+    var name = qs('newDeptName').value.trim();
+    qs('catError1').classList.add('hidden');
+    if (!name) {
+        qs('catError1').textContent = 'Type a department name.';
+        qs('catError1').classList.remove('hidden');
+        return;
+    }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    $.post("{% url 'products:add_category' %}", {
+        name: name,
+        parent: '',
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+    }).done(function(data) {
+        // Add to the department list and select it
+        var div = document.createElement('div');
+        div.className = 'dept-option selected';
+        div.dataset.id = data.id;
+        div.textContent = data.name;
+        document.querySelectorAll('.dept-option').forEach(function(d) { d.classList.remove('selected'); });
+        qs('deptList').appendChild(div);
+        chosenDeptId = data.id;
+        chosenDeptName = data.name;
+        qs('catNextBtn').disabled = false;
+        qs('newDeptName').value = '';
+    }).fail(function(xhr) {
+        var msg = 'Something went wrong.';
+        try { msg = JSON.parse(xhr.responseText).error; } catch(e) {}
+        qs('catError1').textContent = msg;
+        qs('catError1').classList.remove('hidden');
+    }).always(function() {
+        btn.disabled = false;
+        btn.textContent = 'Create';
+    });
+});
+
+// Step 1 → Step 2
+qs('catNextBtn').addEventListener('click', function() {
+    qs('chosenDeptName').textContent = chosenDeptName;
+    showStep(2);
+});
+
+// Step 2 → Back to Step 1
+qs('catBackBtn').addEventListener('click', function() { showStep(1); });
+
+// Step 2: Save subcategory
+qs('catSaveBtn').addEventListener('click', function() {
+    var name = qs('catSubName').value.trim();
+    qs('catError2').classList.add('hidden');
+    if (!name) {
+        qs('catError2').textContent = 'Type a subcategory name.';
+        qs('catError2').classList.remove('hidden');
+        return;
+    }
+
+    var btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Adding…';
+
+    $.post("{% url 'products:add_category' %}", {
+        name: name,
+        parent: chosenDeptId,
+        csrfmiddlewaretoken: '{{ csrf_token }}'
+    }).done(function(data) {
+        // Rebuild the product category <select>
+        var sel = qs('id_category');
+        sel.innerHTML = '<option value="">— Choose category —</option>';
+        for (var dept in data.groups) {
+            var og = document.createElement('optgroup');
+            og.label = dept;
+            data.groups[dept].forEach(function(s) {
+                var opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                if (s.id === data.id) opt.selected = true;
+                og.appendChild(opt);
+            });
+            sel.appendChild(og);
+        }
+
+        // Reinitialize Select2 and select the new subcategory
+        $('#id_category').select2('destroy').select2({
+            placeholder: '— Search for a category —',
+            allowClear: true,
+            width: '100%',
+            minimumInputLength: 1,
+        });
+        $('#id_category').val(data.id).trigger('change');
+        closeModal();
+    }).fail(function(xhr) {
+        var msg = 'Something went wrong.';
+        try { msg = JSON.parse(xhr.responseText).error; } catch(e) {}
+        qs('catError2').textContent = msg;
+        qs('catError2').classList.remove('hidden');
+    }).always(function() {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plus-lg"></i> Add';
+    });
 });
 </script>
 {% endblock %}

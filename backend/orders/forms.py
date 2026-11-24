@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import forms
 
 from accounts.validators import normalize_nepali_phone
-from .models import Order
+from .models import Order, Payment
 
 # A box around Nepal. It also covers some border areas of India and China,
 # which is fine for catching a pin dropped in the wrong country.
@@ -19,6 +19,10 @@ def is_in_nepal(lat, lng):
 class CheckoutForm(forms.Form):
     delivery_method = forms.ChoiceField(
         choices=Order.DeliveryMethod.choices, initial=Order.DeliveryMethod.DELIVERY,
+    )
+    payment_method = forms.ChoiceField(
+        choices=Payment.Method.choices, initial=Payment.Method.COD,
+        widget=forms.RadioSelect,
     )
     # The name on the order is the account's name. Only an account without one gets
     # this field (see __init__); the view saves it to the account.

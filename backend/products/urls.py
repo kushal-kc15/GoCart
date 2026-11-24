@@ -10,6 +10,7 @@ urlpatterns = [
     # Must stay above the slug route, or these are treated as product slugs.
     path("suggest/", views.search_suggest, name="search_suggest"),
     path("add/", views.add_product, name="add_product"),
+    path("add/category/", views.add_category, name="add_category"),
     path("<slug:slug>/", views.product_detail, name="product_detail"),
     path("<slug:slug>/review/", views.submit_review, name="submit_review"),
     path("<slug:slug>/review/delete/", views.delete_review, name="delete_review"),

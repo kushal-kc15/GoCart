@@ -10,4 +10,6 @@ urlpatterns = [
     path("success/<int:pk>/", views.order_success, name="order_success"),
     path("<int:pk>/", views.order_detail, name="order_detail"),
     path("<int:pk>/cancel/", views.cancel_order, name="cancel_order"),
+    path("esewa/success/", views.esewa_success, name="esewa_success"),
+    path("esewa/failure/", views.esewa_failure, name="esewa_failure"),
 ]

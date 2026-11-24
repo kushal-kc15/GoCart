@@ -51,7 +51,63 @@ def add_product(request):
     else:
         form = ProductForm()
 
-    return render(request, "dev/add_product.html", {"form": form, "categories": categories})
+    departments = Category.objects.filter(parent__isnull=True).order_by("name")
+    return render(request, "dev/add_product.html", {
+        "form": form,
+        "categories": categories,
+        "departments": departments,
+    })
+
+
+@require_POST
+@login_required
+def add_category(request):
+    """AJAX: create a department or subcategory from the add-product page."""
+    if not request.user.is_staff:
+        return JsonResponse({"error": "Staff only."}, status=403)
+
+    name = request.POST.get("name", "").strip()
+    parent_id = request.POST.get("parent", "").strip()
+
+    if not name:
+        return JsonResponse({"error": "Category name is required."}, status=400)
+    
+    parent = None
+    if parent_id:
+        parent = Category.objects.filter(pk=parent_id).first()
+        if not parent:
+            return JsonResponse({"error": "Parent department not found."}, status=400)
+
+    if parent:
+        if Category.objects.filter(name__iexact=name, parent__isnull=False).exists():
+            return JsonResponse({"error": "This subcategory already exists."}, status=409)
+    else:
+        if Category.objects.filter(name__iexact=name, parent__isnull=True).exists():
+            return JsonResponse({"error": "This department already exists."}, status=409)
+        
+    base_slug = slugify(name)
+    slug = base_slug
+    n = 2
+    while Category.objects.filter(slug=slug).exists():
+        slug = f"{base_slug}-{n}"
+        n += 1
+
+    cat = Category.objects.create(name=name, slug=slug, parent=parent)
+    subs = (
+        Category.objects.filter(parent__isnull=False)
+        .select_related("parent")
+        .order_by("parent__name", "name")
+    )
+    groups = {}
+    for s in subs:
+        groups.setdefault(s.parent.name, []).append({"id": s.pk, "name": s.name})
+
+    return JsonResponse({
+        "id": cat.pk,
+        "name": cat.name,
+        "parent": cat.parent.name if cat.parent else None,
+        "groups": groups,
+    })
 
 
 def product_list(request):

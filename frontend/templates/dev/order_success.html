@@ -35,7 +35,7 @@
             <div class="kv"><span class="k">Shipping charge</span><span>{% if order.shipping_fee %}Rs. {{ order.shipping_fee|floatformat:"-2"|nepali_comma }}{% else %}Free{% endif %}</span></div>
             <div class="kv"><span class="k">Total</span><span><strong>Rs. {{ order.total|floatformat:"-2"|nepali_comma }}</strong></span></div>
             <div class="kv"><span class="k">Delivery method</span><span>{{ order.get_delivery_method_display }}</span></div>
-            <div class="kv"><span class="k">Payment</span><span>Cash on Delivery</span></div>
+            <div class="kv"><span class="k">Payment</span><span>{{ order.payment.get_method_display }}{% if order.payment.method == "esewa" and order.payment.status == "paid" %} (Paid){% endif %}</span></div>
             <div class="success-addr">{{ order.address }}</div>
         </div>
 

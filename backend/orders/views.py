@@ -135,11 +135,27 @@ class CheckoutView(LoginRequiredMixin, View):
             "page_data": page_data,
         })
 
+    def _cancel_abandoned_esewa_orders(self, user):
+        """Cancel any pending eSewa orders where the user never completed payment."""
+        abandoned = Order.objects.filter(
+            user=user,
+            status=Order.Status.PENDING,
+            payment__method=Payment.Method.ESEWA,
+            payment__status=Payment.Status.PENDING,
+        )
+        for order in abandoned:
+            order.change_status(
+                Order.Status.CANCELLED,
+                note="Abandoned eSewa payment",
+            )
+
     def get(self, request):
         cart_items = self._cart_items(request)
         if not cart_items:
             messages.info(request, "Your cart is empty. Add some items before checkout.")
             return redirect("cart:cart_detail")
+
+        self._cancel_abandoned_esewa_orders(request.user)
 
         form = CheckoutForm(user=request.user, initial={
             "phone": request.user.phone or "",
@@ -210,18 +226,37 @@ class CheckoutView(LoginRequiredMixin, View):
                 price=item.product.price,
             )
 
-        # Pending until the courier collects the cash.
-        Payment.objects.create(
-            order=order,
-            method=Payment.Method.COD,
-            status=Payment.Status.PENDING,
-            amount=grand_total,
-        )
+        payment_method = form.cleaned_data["payment_method"]
 
-        cart_items.delete()
+        if payment_method == Payment.Method.ESEWA:
+            from orders.esewa import build_payment_form
+            esewa_data = build_payment_form(order)
 
-        messages.success(request, "Order placed successfully!")
-        return redirect("orders:order_success", pk=order.pk)
+            Payment.objects.create(
+                order=order,
+                method=Payment.Method.ESEWA,
+                status=Payment.Status.PENDING,
+                amount=grand_total,
+                transaction_uuid=esewa_data["transaction_uuid"],
+                product_code=esewa_data["product_code"],
+            )
+            cart_items.delete()
+
+            return render(request, "dev/esewa_redirect.html", {
+                "esewa_url": settings.ESEWA_PAYMENT_URL,
+                "esewa_data": esewa_data,
+            })
+        else:
+            Payment.objects.create(
+                order=order,
+                method=Payment.Method.COD,
+                status=Payment.Status.PENDING,
+                amount=grand_total,
+            )
+            cart_items.delete()
+
+            messages.success(request, "Order placed successfully!")
+            return redirect("orders:order_success", pk=order.pk)
 
 
 @login_required
@@ -255,7 +290,8 @@ def order_list(request):
 @login_required
 def order_success(request, pk):
     order = get_object_or_404(
-        Order.objects.prefetch_related("items"), pk=pk, user=request.user
+        Order.objects.select_related("payment").prefetch_related("items"),
+        pk=pk, user=request.user,
     )
     return render(request, "dev/order_success.html", {"order": order})
 
@@ -289,4 +325,94 @@ def cancel_order(request, pk):
     if next_url:
         return redirect(next_url)
     return redirect("orders:order_detail", pk=order.pk)
+
+
+@login_required
+def esewa_success(request):
+    """eSewa redirects here after a successful payment."""
+    encoded_data = request.GET.get("data")
+    if not encoded_data:
+        messages.error(request, "Invalid payment response.")
+        return redirect("cart:cart_detail")
+
+    from orders.esewa import decode_callback, verify_transaction
+
+    callback = decode_callback(encoded_data)
+    if not callback:
+        messages.error(request, "Could not read payment response.")
+        return redirect("cart:cart_detail")
+
+    transaction_uuid = callback.get("transaction_uuid", "")
+    total_amount = callback.get("total_amount", "")
+    transaction_code = callback.get("transaction_code", "")
+    product_code = settings.ESEWA_PRODUCT_CODE
+
+    try:
+        payment = Payment.objects.select_related("order").get(
+            transaction_uuid=transaction_uuid,
+            method=Payment.Method.ESEWA,
+        )
+    except Payment.DoesNotExist:
+        messages.error(request, "Payment not found.")
+        return redirect("cart:cart_detail")
+
+    order = payment.order
+
+    if payment.status != Payment.Status.PENDING:
+        return redirect("orders:order_detail", pk=order.pk)
+
+    verification = verify_transaction(product_code, total_amount, transaction_uuid)
+
+    if verification and verification.get("status") == "COMPLETE":
+        payment.status = Payment.Status.PAID
+        payment.transaction_code = transaction_code
+        payment.provider_status = verification.get("status", "")
+        payment.paid_at = timezone.now()
+        payment.save(update_fields=[
+            "status", "transaction_code", "provider_status", "paid_at", "updated_at",
+        ])
+        messages.success(request, "Payment successful! Your order has been placed.")
+        return redirect("orders:order_success", pk=order.pk)
+    else:
+        payment.status = Payment.Status.FAILED
+        payment.provider_status = (verification or {}).get("status", "UNVERIFIED")
+        payment.save(update_fields=["status", "provider_status", "updated_at"])
+        order.change_status(
+            Order.Status.CANCELLED,
+            note="eSewa payment verification failed",
+        )
+        messages.error(request, "Payment could not be verified. Your order has been cancelled.")
+        return redirect("orders:order_list")
+
+
+@login_required
+def esewa_failure(request):
+    """eSewa redirects here when the customer cancels or payment fails."""
+    encoded_data = request.GET.get("data")
+    transaction_uuid = None
+
+    if encoded_data:
+        from orders.esewa import decode_callback
+        callback = decode_callback(encoded_data)
+        if callback:
+            transaction_uuid = callback.get("transaction_uuid")
+
+    if transaction_uuid:
+        try:
+            payment = Payment.objects.select_related("order").get(
+                transaction_uuid=transaction_uuid,
+                method=Payment.Method.ESEWA,
+            )
+            if payment.status == Payment.Status.PENDING:
+                payment.status = Payment.Status.FAILED
+                payment.save(update_fields=["status", "updated_at"])
+                payment.order.change_status(
+                    Order.Status.CANCELLED,
+                    note="eSewa payment cancelled or failed",
+                )
+        except Payment.DoesNotExist:
+            pass
+
+    messages.info(request, "Payment was cancelled.")
+    return redirect("cart:cart_detail")
 

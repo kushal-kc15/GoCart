@@ -1,7 +1,3 @@
-{# Account sidebar, shared by My Account (and Edit profile) and My Orders. #}
-{# Use: {% include "dev/_account_sidebar.html" with active="orders" %}  (account / orders) #}
-{# Needs profile.css and a .profile-page > .pf-shell wrapper. Name and initials come from `user`. #}
-{# Icons: small line SVGs in the same style as the header icons. #}
 <aside class="pf-sidebar">
     <div class="pf-brand">
         <span class="pf-avatar pf-avatar--brand" aria-hidden="true">{% if user.first_name %}{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}{% else %}{{ user.email|first|upper }}{% endif %}</span>
