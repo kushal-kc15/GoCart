@@ -20,11 +20,13 @@ function toast(msg) {
 /* ---------- quick info / preview ---------- */
 function updatePreview() {
   const price = parseFloat($("price").value) || 0;
+  const final = price;
   const active = $("status").checked;
 
   $("qName").textContent = $("name").value.trim() || "-";
   $("qCat").textContent = $("category").value || "-";
-  $("qPrice").textContent = price > 0 ? `Rs. ${price.toFixed(2)} / ${$("unit").value}` : "-";
+  $("qPrice").textContent = price > 0
+    ? `Rs. ${final.toFixed(2)} / ${$("unit").value}` : "-";
   $("qCoupon").textContent = $("coupon").value.trim().toUpperCase() || "-";
   $("qStock").textContent = $("stock").value !== "" ? parseInt($("stock").value, 10) : "-";
   $("qStatus").textContent = active ? "In Stock" : "Out of Stock";
@@ -259,6 +261,8 @@ document.addEventListener("DOMContentLoaded", () => {
       nameEl.setCustomValidity("duplicate");
       $("nameErr").textContent = "A product with this name already exists.";
     }
+    const cEl = $("coupon");
+    cEl.setCustomValidity(cEl.value.trim() && !/^[A-Za-z0-9-]{3,20}$/.test(cEl.value.trim()) ? "invalid" : "");
     if (!form.checkValidity()) return form.classList.add("was-validated");
 
     products.push({
